@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { routes } from "@/lib/design";
 
 export default function Hero() {
   return (
@@ -7,7 +9,7 @@ export default function Hero() {
       {/* Background Glow */}
       <div className="absolute left-1/2 top-0 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-violet-500/20 blur-3xl" />
 
-      <div className="relative mx-auto flex max-w-7xl flex-col items-center px-6 py-28 text-center">
+      <div className="relative mx-auto flex max-w-7xl flex-col items-center px-6 py-32 text-center sm:py-40 lg:py-48">
 
         {/* Badge */}
         <div className="mb-6 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-300 backdrop-blur">
@@ -15,30 +17,29 @@ export default function Hero() {
         </div>
 
         {/* Headline */}
-        <h1 className="max-w-4xl text-5xl font-bold leading-tight tracking-tight md:text-7xl">
-          Build Smarter Blogs
+        <h1 className="max-w-5xl text-5xl font-bold leading-tight tracking-tight md:text-7xl">
+          Generate SEO-Focused Blog Content
           <span className="bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
-            {" "}With AI
+            {" "}That Ranks
           </span>
         </h1>
 
         {/* Subheadline */}
-        <p className="mt-6 max-w-2xl text-lg leading-8 text-gray-400">
-          Mendanize helps creators, businesses, and beginners generate
-          high-quality blog content, improve SEO, and grow faster using AI.
+        <p className="mt-6 max-w-3xl text-lg leading-8 text-gray-300">
+          Generate publish-ready blog drafts optimized for search engines. Track visibility, improve rankings with AI suggestions, and grow your traffic using an all-in-one platform built for creators and teams.
         </p>
 
-        {/* Buttons */}
-        <div className="mt-10 flex flex-col gap-4 sm:flex-row">
-          <Button className="rounded-full px-8 py-6 text-base">
-            Start Writing Free
+        <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-center">
+          <Button asChild className="rounded-full px-8 py-3 text-base font-semibold">
+            <Link href={routes.blogGenerator}>Start Free</Link>
           </Button>
 
           <Button
             variant="outline"
-            className="rounded-full border-white/20 bg-white/5 px-8 py-6 text-base text-white hover:bg-white/10"
+            asChild
+            className="rounded-full border-white/20 bg-white/5 px-8 py-3 text-base text-white hover:bg-white/10 hover:border-white/40 transition-all"
           >
-            Watch Demo
+            <Link href={routes.learn}>See How It Works</Link>
           </Button>
         </div>
 
