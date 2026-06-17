@@ -1,7 +1,5 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  FileText,
-  Hash,
   Camera,
   Mail,
   Package,

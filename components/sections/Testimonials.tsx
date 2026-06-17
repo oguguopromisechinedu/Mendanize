@@ -4,36 +4,42 @@ import { motion } from "framer-motion";
 
 const testimonials = [
   {
+    id: "testimonial-ava-martin",
     quote: "Reduced content creation time by 60% and improved search traffic by 150% in 3 months.",
     name: "Ava Martin",
     title: "Founder, Content Pulse",
     metric: "+150% organic traffic"
   },
   {
+    id: "testimonial-noah-carter",
     quote: "The AI workflow keeps our editorial calendar on track. We're publishing 3x faster now.",
     name: "Noah Carter",
     title: "Growth Lead, Studio Nine",
     metric: "3x faster publishing"
   },
   {
+    id: "testimonial-lina-patel",
     quote: "Beautiful dashboard, thoughtful tools. Generated 28% more revenue from our blog.",
     name: "Lina Patel",
     title: "Creator, Growth Stories",
     metric: "+28% blog revenue"
   },
   {
+    id: "testimonial-james-chen",
     quote: "Finally a tool that understands blogging. Our monthly traffic went from 5K to 32K.",
     name: "James Chen",
     title: "Blogger, Tech Insights",
     metric: "+540% monthly traffic"
   },
   {
+    id: "testimonial-sarah-williams",
     quote: "Mendanize took our SEO from 30% visibility to 89% in 6 months. Game-changer.",
     name: "Sarah Williams",
     title: "Marketing Manager, Digital Co",
     metric: "+196% SEO visibility"
   },
   {
+    id: "testimonial-marcus-johnson",
     quote: "The best investment we made for our content team. ROI is incredible.",
     name: "Marcus Johnson",
     title: "Content Director, StartupXYZ",
@@ -58,7 +64,7 @@ export default function Testimonials() {
         <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {testimonials.map((item, index) => (
             <motion.article
-              key={item.name}
+              key={item.id}
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.2 }}

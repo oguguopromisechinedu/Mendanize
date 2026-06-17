@@ -17,19 +17,19 @@ const footerSections = {
   company: {
     title: "Company",
     links: [
-      { label: "About", href: "#" },
-      { label: "Contact", href: "#" },
-      { label: "Support", href: "#" },
-      { label: "Status", href: "#" },
+      { label: "About", href: "/about" },
+      { label: "Contact", href: "/contact" },
+      { label: "Support", href: "/support" },
+      { label: "Status", href: "/status" },
     ]
   },
   legal: {
     title: "Legal",
     links: [
-      { label: "Privacy Policy", href: "#" },
-      { label: "Terms of Service", href: "#" },
-      { label: "Cookie Policy", href: "#" },
-      { label: "Disclaimer", href: "#" },
+      { label: "Privacy Policy", href: "/privacy-policy" },
+      { label: "Terms of Service", href: "/terms-of-service" },
+      { label: "Cookie Policy", href: "/cookie-policy" },
+      { label: "Disclaimer", href: "/disclaimer" },
     ]
   },
 };
@@ -74,8 +74,8 @@ export default function Footer() {
           <div>
             <p className="font-semibold text-white mb-4">{footerSections.product.title}</p>
             <ul className="space-y-3">
-              {footerSections.product.links.map((link) => (
-                <li key={link.href}>
+              {footerSections.product.links.map((link, index) => (
+                <li key={`product-${link.href}-${index}`}>
                   <Link
                     href={link.href}
                     className="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-2"
@@ -91,8 +91,8 @@ export default function Footer() {
           <div>
             <p className="font-semibold text-white mb-4">{footerSections.company.title}</p>
             <ul className="space-y-3">
-              {footerSections.company.links.map((link) => (
-                <li key={link.href}>
+              {footerSections.company.links.map((link, index) => (
+                <li key={`company-${link.href}-${index}`}>
                   <Link
                     href={link.href}
                     className="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-2"
@@ -108,8 +108,8 @@ export default function Footer() {
           <div>
             <p className="font-semibold text-white mb-4">{footerSections.legal.title}</p>
             <ul className="space-y-3">
-              {footerSections.legal.links.map((link) => (
-                <li key={link.href}>
+              {footerSections.legal.links.map((link, index) => (
+                <li key={`legal-${link.href}-${index}`}>
                   <Link
                     href={link.href}
                     className="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-2"

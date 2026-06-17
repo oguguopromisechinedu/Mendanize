@@ -39,9 +39,9 @@ export default function Navbar() {
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
-          {navLinks.slice(0, 3).map((link) => (
+          {navLinks.slice(0, 3).map((link, index) => (
             <Link
-              key={link.href}
+              key={`nav-${link.href}-${index}`}
               href={link.href}
               className={`text-sm transition-colors font-medium ${
                 isActive(link.href)
@@ -95,9 +95,9 @@ export default function Navbar() {
               </div>
 
               <div className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-8">
-                {navLinks.map((link) => (
+                {navLinks.map((link, index) => (
                   <Link
-                    key={link.href}
+                    key={`nav-${link.href}-${index}`}
                     href={link.href}
                     className={`rounded-lg px-4 py-3 text-sm font-medium transition-all ${
                       isActive(link.href)

@@ -8,7 +8,7 @@ import MarkdownRenderer from "@/components/markdown/MarkdownRenderer";
 import { aiModels, DEFAULT_MODEL } from "@/lib/ai/models";
 import { cn } from "@/lib/utils";
 
-type Message = { role: "user" | "assistant"; content: string };
+type Message = { id: string; role: "user" | "assistant"; content: string };
 
 export default function ChatWorkspace() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -34,13 +34,20 @@ export default function ChatWorkspace() {
       setError(null);
       setInput("");
 
-      const userMessage: Message = { role: "user", content };
+      const userMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "user",
+        content,
+      };
       const baseMessages = retryLast
         ? messages.slice(0, messages.findLastIndex((m) => m.role === "user"))
         : messages;
 
       const nextMessages = [...baseMessages, userMessage];
-      setMessages([...nextMessages, { role: "assistant", content: "" }]);
+      setMessages([
+        ...nextMessages,
+        { id: crypto.randomUUID(), role: "assistant", content: "" },
+      ]);
       setStreaming(true);
 
       abortRef.current?.abort();
@@ -76,7 +83,9 @@ export default function ChatWorkspace() {
             assistantText += decoder.decode(value, { stream: true });
             setMessages((prev) => {
               const updated = [...prev];
+              const lastMessage = updated[updated.length - 1];
               updated[updated.length - 1] = {
+                ...lastMessage,
                 role: "assistant",
                 content: assistantText,
               };
@@ -139,9 +148,9 @@ export default function ChatWorkspace() {
           </div>
         ) : (
           <div className="mx-auto max-w-3xl space-y-6">
-            {messages.map((msg, i) => (
+            {messages.map((msg, index) => (
               <div
-                key={i}
+                key={msg.id}
                 className={cn(
                   "group rounded-2xl border p-4",
                   msg.role === "user"
@@ -164,7 +173,7 @@ export default function ChatWorkspace() {
                       >
                         <Copy className="h-4 w-4" />
                       </Button>
-                      {i === messages.length - 1 && !streaming && (
+                      {index === messages.length - 1 && !streaming && (
                         <Button
                           variant="ghost"
                           size="icon"

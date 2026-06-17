@@ -6,7 +6,7 @@ import { getArticleBySlug, learnArticles } from "@/lib/learn/content";
 import { routes, styles } from "@/lib/design";
 
 type PageProps = {
-  params: Promise<{ slug: string }>;
+  params: { slug: string };
 };
 
 export function generateStaticParams() {

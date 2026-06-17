@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import { motion } from "framer-motion";
-import { Card } from "@/components/ui/card";
 import { Sparkles, BarChart3, TrendingUp } from "lucide-react";
 
 const benefits = [

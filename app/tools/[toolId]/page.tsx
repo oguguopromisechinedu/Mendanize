@@ -4,7 +4,7 @@ import ToolRunner from "@/components/tools/ToolRunner";
 import { getToolById } from "@/lib/tools/registry";
 import type { Metadata } from "next";
 
-type Props = { params: Promise<{ toolId: string }> };
+type Props = { params: { toolId: string } };
 
 export async function generateStaticParams() {
   const { aiTools } = await import("@/lib/tools/registry");

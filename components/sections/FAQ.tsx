@@ -43,14 +43,14 @@ export default function FAQ() {
             Frequently asked questions.
           </h2>
           <p className="mt-4 text-base leading-7 text-slate-400">
-            Have questions? We've got answers. Contact our support team if you need help.
+            Have questions? We&apos;ve got answers. Contact our support team if you need help.
           </p>
         </div>
 
         <div className="space-y-3">
           {faqs.map((faq, index) => (
             <motion.div
-              key={index}
+              key={faq.question}
               initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.5 }}

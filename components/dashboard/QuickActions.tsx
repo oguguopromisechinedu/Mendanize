@@ -13,7 +13,7 @@ const actions = [
   {
     label: "SEO optimizer",
     description: "Improve rankings and metadata",
-    href: routes.dashboard,
+    href: routes.seoOptimizer,
     icon: Search,
   },
   {
@@ -24,8 +24,8 @@ const actions = [
   },
   {
     label: "Explore templates",
-    description: "Coming soon",
-    href: routes.dashboard,
+    description: "Pick a blog post style and start fast",
+    href: routes.templates,
     icon: Sparkles,
   },
 ];

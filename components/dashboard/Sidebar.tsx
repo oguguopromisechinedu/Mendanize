@@ -17,11 +17,17 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { label: "Overview", href: routes.dashboard, icon: LayoutDashboard },
   { label: "Blog Generator", href: routes.blogGenerator, icon: PenLine },
-  { label: "Content", href: "/dashboard/content", icon: FileText },
-  { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+  { label: "Content", href: routes.content, icon: FileText },
+  { label: "Analytics", href: routes.analytics, icon: BarChart3 },
   { label: "Learn", href: routes.learn, icon: BookOpen },
-  { label: "Settings", href: "/dashboard/settings", icon: Settings },
+  { label: "Settings", href: routes.settings, icon: Settings },
 ];
+
+const alternatePaths: Record<string, string[]> = {
+  [routes.content]: [routes.content, "/content"],
+  [routes.analytics]: [routes.analytics, "/analytics"],
+  [routes.settings]: [routes.settings, "/settings"],
+};
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -39,9 +45,8 @@ export default function Sidebar() {
       <nav className="flex flex-1 flex-col gap-1" aria-label="Dashboard">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const active =
-            pathname === item.href ||
-            (item.href !== routes.dashboard && pathname.startsWith(item.href));
+          const itemPaths = alternatePaths[item.href] ?? [item.href];
+          const active = itemPaths.some((path) => pathname === path || pathname.startsWith(path));
 
           return (
             <Link
