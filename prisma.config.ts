@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { defineConfig, env } from "@prisma/config";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -46,9 +47,16 @@ if (!connectionString) {
     "postgresql://postgres:postgres@localhost:5432/mendanize?schema=public";
   process.env.DATABASE_URL = localFallback;
 }
+=======
+import "dotenv/config";
+import { defineConfig, env } from "prisma/config";
+>>>>>>> 191104ab (Complete Mendanize platform)
 
 export default defineConfig({
-  schema: "./prisma/schema.prisma",
+  schema: "prisma/schema.prisma",
+  migrations: {
+    path: "prisma/migrations",
+  },
   datasource: {
     url: env("DATABASE_URL"),
   },

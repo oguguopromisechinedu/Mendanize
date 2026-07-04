@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
     "chat.mcp.serverSampling": {
         "mendanize/.vscode/mcp.json: Github mcp server": {
             "allowedModels": [
@@ -39,3 +40,14 @@
     "editor.formatOnType": true,
     "files.autoSave": "afterDelay"
 }
+=======
+  "gitlens.codeLens.enabled": true,
+  "gitlens.codeLens.scopes": ["document", "containers", "blocks"],
+  "gitlens.views.contributors.showAllBranches": true,
+  "gitlens.graph.dimMergeCommits": true,
+  "gitlens.graph.showRemoteNames": true,
+  "gitlens.currentLine.enabled": true,
+  "gitlens.hovers.currentLine.over": "line",
+  "gitlens.graph.dateFormat": null
+}
+>>>>>>> 191104ab (Complete Mendanize platform)

@@ -1,4 +1,4 @@
-// Mendanize — production database schema
+// Mendanize - production database schema
 // PostgreSQL + Prisma ORM
 
 generator client {
@@ -58,6 +58,7 @@ model User {
   promptPresets PromptPreset[]
   notifications Notification[]
   settings      UserSettings?
+  posts         Post[]
 }
 
 model Account {
@@ -124,15 +125,15 @@ model Subscription {
 }
 
 model UsageRecord {
-  id                    String   @id @default(cuid())
-  userId                String
-  month                 String
-  generationsCount      Int      @default(0)
-  tokensUsed            Int      @default(0)
-  workspaceId           String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String   @id @default(cuid())
+  userId           String
+  month            String
+  generationsCount Int      @default(0)
+  tokensUsed       Int      @default(0)
+  workspaceId      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, month])
 }
@@ -151,47 +152,47 @@ model Workspace {
 }
 
 model WorkspaceMember {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   workspaceId String
   userId      String
-  role        String   @default("member")
-  joinedAt    DateTime @default(now())
+  role        String    @default("member")
+  joinedAt    DateTime  @default(now())
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([workspaceId, userId])
 }
 
 model Team {
-  id          String   @id @default(cuid())
-  name        String
-  ownerId     String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  name      String
+  ownerId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Project {
-  id          String   @id @default(cuid())
+  id          String     @id @default(cuid())
   name        String
   description String?
   userId      String
   workspaceId String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
   generations Generation[]
 }
 
 model Chat {
-  id          String    @id @default(cuid())
-  title       String    @default("New conversation")
+  id          String     @id @default(cuid())
+  title       String     @default("New conversation")
   userId      String
   workspaceId String?
-  model       String    @default("gpt-4o-mini")
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  model       String     @default("gpt-4o-mini")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
   messages    ChatMessage[]
 }
@@ -238,17 +239,17 @@ model SavedOutput {
 }
 
 model PromptTemplate {
-  id          String   @id @default(cuid())
-  slug        String   @unique
-  name        String
-  description String?
-  category    String
-  systemPrompt String  @db.Text
-  userTemplate String  @db.Text
-  variables   String[]
-  isPublic    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  name         String
+  description  String?
+  category     String
+  systemPrompt String   @db.Text
+  userTemplate String   @db.Text
+  variables    String[]
+  isPublic     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model PromptPreset {
@@ -290,4 +291,77 @@ model FeatureFlag {
   enabled     Boolean  @default(false)
   description String?
   updatedAt   DateTime @updatedAt
+}
+
+// === Blog Platform Models ===
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  description String?
+  icon      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  posts     Post[]
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  postTags  PostTag[]
+}
+
+model Post {
+  id            String      @id @default(cuid())
+  title         String
+  slug          String      @unique
+  content       String      @db.Text
+  excerpt       String?
+  featuredImage String?
+  authorId      String
+  categoryId    String?
+  status        PostStatus  @default(DRAFT)
+  viewCount     Int         @default(0)
+  publishedAt   DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  // SEO fields
+  seoTitle      String?
+  seoDescription String?
+  seoKeywords   String?
+  
+  // Relations
+  author        User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  category      Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  postTags      PostTag[]
+}
+
+model PostTag {
+  postId String
+  tagId  String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+}
+
+model Subscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  status    String   @default("active")
+  categories String[] @default([])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

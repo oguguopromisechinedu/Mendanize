@@ -3,7 +3,7 @@
  * Do not import auth providers until credentials are configured.
  */
 
-export type AuthProvider = "clerk" | "nextauth" | "none";
+export type AuthProvider = "clerk" | "nextauth" | "supabase" | "none";
 
 export const authConfig = {
   provider: (process.env.AUTH_PROVIDER ?? "none") as AuthProvider,

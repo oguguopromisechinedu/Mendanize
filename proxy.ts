@@ -4,9 +4,10 @@ import { auth } from "@/auth";
 const protectedPrefixes = [
   "/dashboard",
   "/workspace",
-  "/admin",
   "/onboarding",
 ];
+
+const adminPrefixes = ["/dashboard"];
 
 const authRoutes = ["/sign-in", "/sign-up"];
 
@@ -29,8 +30,11 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
   }
 
-  if (pathname.startsWith("/admin") && req.auth?.user?.role !== "ADMIN") {
-    return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
+  if (
+    adminPrefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`)) &&
+    req.auth?.user?.role !== "ADMIN"
+  ) {
+    return NextResponse.redirect(new URL("/", req.nextUrl.origin));
   }
 
   return NextResponse.next();
@@ -40,7 +44,6 @@ export const config = {
   matcher: [
     "/dashboard/:path*",
     "/workspace/:path*",
-    "/admin/:path*",
     "/onboarding",
     "/sign-in",
     "/sign-up",

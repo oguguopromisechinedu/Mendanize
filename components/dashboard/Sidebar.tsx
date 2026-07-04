@@ -16,11 +16,19 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { label: "Overview", href: routes.dashboard, icon: LayoutDashboard },
+<<<<<<< HEAD
   { label: "Blog Generator", href: routes.blogGenerator, icon: PenLine },
   { label: "Content", href: routes.content, icon: FileText },
   { label: "Analytics", href: routes.analytics, icon: BarChart3 },
   { label: "Learn", href: routes.learn, icon: BookOpen },
   { label: "Settings", href: routes.settings, icon: Settings },
+=======
+  { label: "Articles", href: "/dashboard/articles", icon: FileText },
+  { label: "Create", href: "/dashboard/create", icon: PenLine },
+  { label: "Media", href: "/dashboard/media", icon: BookOpen },
+  { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+  { label: "Settings", href: "/dashboard/settings", icon: Settings },
+>>>>>>> 191104ab (Complete Mendanize platform)
 ];
 
 const alternatePaths: Record<string, string[]> = {

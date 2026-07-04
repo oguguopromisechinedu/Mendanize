@@ -9,14 +9,20 @@ import {
   SheetClose,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { MenuIcon, XIcon, Sparkles } from "lucide-react";
+import { MenuIcon, XIcon, Sparkles, Search, SunMoon, Mail } from "lucide-react";
+import SearchButton from "@/components/ui/SearchButton";
+import ThemeToggle from "@/components/ui/ThemeToggle";
+import SubscribeButton from "@/components/ui/SubscribeButton";
 import { routes } from "@/lib/design";
 
 const navLinks = [
-  { label: "Features", href: "/#features" },
-  { label: "Pricing", href: routes.pricing },
+  { label: "Home", href: routes.home },
+  { label: "AI News", href: "/ai-news" },
+  { label: "AI Tools", href: "/tools" },
+  { label: "Tutorials", href: "/tutorials" },
+  { label: "Guides", href: "/guides" },
+  { label: "Reviews", href: "/reviews" },
   { label: "Resources", href: routes.learn },
-  { label: "Login", href: routes.dashboard },
 ];
 
 export default function Navbar() {
@@ -39,7 +45,11 @@ export default function Navbar() {
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
+<<<<<<< HEAD
           {navLinks.slice(0, 3).map((link, index) => (
+=======
+          {navLinks.map((link) => (
+>>>>>>> 191104ab (Complete Mendanize platform)
             <Link
               key={`nav-${link.href}-${index}`}
               href={link.href}
@@ -55,17 +65,18 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            asChild
-            className="hidden text-slate-300 hover:text-white hover:bg-white/5 md:inline-flex transition-colors"
-          >
-            <Link href={routes.dashboard}>Login</Link>
-          </Button>
-
-          <Button asChild className="hidden rounded-full px-6 py-2.5 md:inline-flex font-semibold hover:shadow-lg hover:shadow-violet-500/30 transition-all">
-            <Link href={routes.blogGenerator}>Start Free</Link>
-          </Button>
+          <div className="hidden items-center gap-3 md:flex">
+            <SearchButton />
+            <ThemeToggle />
+            <SubscribeButton />
+            <Button
+              variant="ghost"
+              asChild
+              className="text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+            >
+              <Link href={routes.dashboard}>Login</Link>
+            </Button>
+          </div>
 
           <Sheet>
             <SheetTrigger asChild>
@@ -111,16 +122,21 @@ export default function Navbar() {
               </div>
 
               <div className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-8">
-                <Button asChild className="rounded-full px-6 py-3 text-sm font-semibold w-full">
-                  <Link href={routes.blogGenerator}>Start Free</Link>
-                </Button>
-                <Button
-                  variant="outline"
-                  asChild
-                  className="rounded-full border-white/20 px-6 py-3 text-sm text-slate-200 hover:bg-white/10"
-                >
-                  <Link href={routes.dashboard}>Login</Link>
-                </Button>
+                <SearchButton />
+                <ThemeToggle />
+                <SubscribeButton />
+                <div className="flex gap-3">
+                  <Button asChild className="rounded-full px-6 py-3 text-sm font-semibold w-full">
+                    <Link href={routes.blogGenerator}>Start Free</Link>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    asChild
+                    className="rounded-full border-white/20 px-6 py-3 text-sm text-slate-200 hover:bg-white/10"
+                  >
+                    <Link href={routes.dashboard}>Login</Link>
+                  </Button>
+                </div>
               </div>
             </SheetContent>
           </Sheet>

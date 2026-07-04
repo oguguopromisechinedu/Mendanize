@@ -14,7 +14,7 @@ export const routes = {
   signIn: "/sign-in",
   signUp: "/sign-up",
   onboarding: "/onboarding",
-  admin: "/admin",
+  admin: "/dashboard",
   settings: "/dashboard/settings",
   billing: "/dashboard/billing",
   saved: "/dashboard/saved",
