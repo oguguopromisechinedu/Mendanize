@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { defineConfig, env } from "@prisma/config";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -23,7 +22,7 @@ function loadEnvFile(fileName: string) {
     }
 
     const rawValue = valueParts.join("=").trim();
-    const value = rawValue.replace(/^\"(.*)\"$/s, "$1").replace(/^\'(.*)\'$/s, "$1");
+    const value = rawValue.replace(/^"(.*)"$/, "$1").replace(/^'(.*)'$/, "$1");
 
     if (process.env[key] === undefined) {
       process.env[key] = value;
@@ -47,10 +46,6 @@ if (!connectionString) {
     "postgresql://postgres:postgres@localhost:5432/mendanize?schema=public";
   process.env.DATABASE_URL = localFallback;
 }
-=======
-import "dotenv/config";
-import { defineConfig, env } from "prisma/config";
->>>>>>> 191104ab (Complete Mendanize platform)
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
