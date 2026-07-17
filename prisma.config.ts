@@ -7,20 +7,16 @@ function loadEnvFile(fileName: string) {
   if (!existsSync(envPath)) {
     return;
   }
-
   const content = readFileSync(envPath, "utf-8");
-
   for (const line of content.split(/\r?\n/)) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#")) {
       continue;
     }
-
     const [key, ...valueParts] = trimmed.split("=");
     if (!key) {
       continue;
     }
-
     const rawValue = valueParts.join("=").trim();
     const value = rawValue.replace(/^"(.*)"$/, "$1").replace(/^'(.*)'$/, "$1");
 
@@ -33,18 +29,34 @@ function loadEnvFile(fileName: string) {
 loadEnvFile(".env");
 loadEnvFile(".env.local");
 
-const connectionString = process.env.DATABASE_URL?.trim();
+/**
+ * Prisma CLI (migrate, db push, introspect) must use the direct Postgres
+ * connection — not the Supabase transaction pooler.
+ *
+ * Set DIRECT_URL in .env / .env.local. Falls back to DATABASE_URL only when
+ * DIRECT_URL is unset (not when it is an empty string).
+ */
+const directUrl = process.env.DIRECT_URL?.trim();
+const databaseUrl = process.env.DATABASE_URL?.trim();
+const resolvedDirectUrl = directUrl || databaseUrl;
 
-if (!connectionString) {
+if (!resolvedDirectUrl) {
   if (process.env.NODE_ENV === "production") {
-    throw new Error("DATABASE_URL is required in production.");
+    throw new Error(
+      "DIRECT_URL is required for Prisma migrations. Set DIRECT_URL to your direct Postgres connection (port 5432).",
+    );
   }
-
   // Fallback for local development if environment variables are missing.
   // This allows Prisma code generation without requiring a configured database.
-  const localFallback =
+  process.env.DIRECT_URL =
     "postgresql://postgres:postgres@localhost:5432/mendanize?schema=public";
-  process.env.DATABASE_URL = localFallback;
+} else {
+  process.env.DIRECT_URL = resolvedDirectUrl;
+  if (!directUrl && databaseUrl) {
+    console.warn(
+      "[prisma.config] DIRECT_URL is not set; using DATABASE_URL for migrations. Add DIRECT_URL for Supabase pooling.",
+    );
+  }
 }
 
 export default defineConfig({
@@ -53,6 +65,7 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: env("DATABASE_URL"),
+    // Direct connection for migrations / introspection (not the pooler).
+    url: env("DIRECT_URL"),
   },
 });
