@@ -1,62 +1,50 @@
 /**
- * Standardized Error Handling for Mendanize API
- * 
- * All API routes should use these error classes to ensure consistent
- * error responses across the entire application.
+ * Standardized API errors for Mendanize (MES-002 / API-Standards).
+ * Responses always use { data, error, meta } via handleApiError / lib/api/response.
  */
 
+import { NextResponse } from "next/server";
+import type { ApiResponse } from "@/types/api";
+import { logger } from "@/lib/logger";
+
+/** Stable uppercase codes from docs/standards/API-Standards.md */
 export enum ErrorCode {
-  // Validation
   VALIDATION_ERROR = "VALIDATION_ERROR",
   MISSING_FIELD = "MISSING_FIELD",
   INVALID_INPUT = "INVALID_INPUT",
 
-  // Authentication
   UNAUTHORIZED = "UNAUTHORIZED",
-  UNAUTHENTICATED = "UNAUTHENTICATED",
   INVALID_CREDENTIALS = "INVALID_CREDENTIALS",
   EMAIL_ALREADY_EXISTS = "EMAIL_ALREADY_EXISTS",
   USER_NOT_FOUND = "USER_NOT_FOUND",
 
-  // Authorization
   FORBIDDEN = "FORBIDDEN",
   INSUFFICIENT_PERMISSIONS = "INSUFFICIENT_PERMISSIONS",
 
-  // Rate Limiting
-  RATE_LIMIT_EXCEEDED = "RATE_LIMIT_EXCEEDED",
+  RATE_LIMITED = "RATE_LIMITED",
 
-  // Resource
   NOT_FOUND = "NOT_FOUND",
   CONFLICT = "CONFLICT",
+  NOT_IMPLEMENTED = "NOT_IMPLEMENTED",
 
-  // External Services
   OPENAI_ERROR = "OPENAI_ERROR",
   STRIPE_ERROR = "STRIPE_ERROR",
   DATABASE_ERROR = "DATABASE_ERROR",
 
-  // Server
-  INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR",
+  INTERNAL_ERROR = "INTERNAL_ERROR",
   SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE",
-}
-
-export interface ErrorResponse {
-  error: {
-    code: ErrorCode;
-    message: string;
-    details?: Record<string, unknown>;
-  };
 }
 
 export class AppError extends Error {
   public readonly code: ErrorCode;
   public readonly statusCode: number;
-  public readonly details?: Record<string, unknown>;
+  public readonly details?: unknown;
 
   constructor(
     code: ErrorCode,
     message: string,
     statusCode: number = 500,
-    details?: Record<string, unknown>
+    details?: unknown
   ) {
     super(message);
     this.code = code;
@@ -65,27 +53,28 @@ export class AppError extends Error {
     this.name = "AppError";
   }
 
-  toJSON(): ErrorResponse {
+  toApiResponse(): ApiResponse<null> {
     return {
+      data: null,
       error: {
         code: this.code,
         message: this.message,
-        ...(this.details && { details: this.details }),
+        ...(this.details !== undefined ? { details: this.details } : {}),
       },
     };
   }
 }
 
 export class ValidationError extends AppError {
-  constructor(message: string, details?: Record<string, unknown>) {
+  constructor(message: string, details?: unknown) {
     super(ErrorCode.VALIDATION_ERROR, message, 400, details);
     this.name = "ValidationError";
   }
 }
 
 export class AuthenticationError extends AppError {
-  constructor(message: string = "Authentication failed") {
-    super(ErrorCode.UNAUTHENTICATED, message, 401);
+  constructor(message: string = "Authentication required") {
+    super(ErrorCode.UNAUTHORIZED, message, 401);
     this.name = "AuthenticationError";
   }
 }
@@ -106,7 +95,7 @@ export class AuthorizationError extends AppError {
 
 export class RateLimitError extends AppError {
   constructor(message: string = "Too many requests. Please try again later.") {
-    super(ErrorCode.RATE_LIMIT_EXCEEDED, message, 429);
+    super(ErrorCode.RATE_LIMITED, message, 429);
     this.name = "RateLimitError";
   }
 }
@@ -157,41 +146,45 @@ export class StripeError extends AppError {
   }
 }
 
+export class NotImplementedError extends AppError {
+  constructor(surface: string) {
+    super(
+      ErrorCode.NOT_IMPLEMENTED,
+      `${surface} — not implemented`,
+      501
+    );
+    this.name = "NotImplementedError";
+  }
+}
+
 export class InternalServerError extends AppError {
   constructor(message: string = "Internal server error") {
-    super(ErrorCode.INTERNAL_SERVER_ERROR, message, 500);
+    super(ErrorCode.INTERNAL_ERROR, message, 500);
     this.name = "InternalServerError";
   }
 }
 
 /**
- * Handle errors consistently in API routes
- * 
- * Usage:
- * ```typescript
- * export async function POST(req: Request) {
- *   try {
- *     // Your logic
- *   } catch (error) {
- *     return handleApiError(error);
- *   }
- * }
- * ```
+ * Map thrown errors to the MES-002 envelope `{ data, error, meta }`.
  */
 export function handleApiError(error: unknown) {
-  console.error("[API Error]", error);
+  logger.error("API error", {
+    message: error instanceof Error ? error.message : String(error),
+    name: error instanceof Error ? error.name : undefined,
+  });
+
+  if (error instanceof NotImplementedError) {
+    const body = error.toApiResponse();
+    body.meta = { placeholder: true };
+    return NextResponse.json(body, { status: 501 });
+  }
 
   if (error instanceof AppError) {
-    return new Response(JSON.stringify(error.toJSON()), {
+    return NextResponse.json(error.toApiResponse(), {
       status: error.statusCode,
-      headers: { "Content-Type": "application/json" },
     });
   }
 
-  // Unknown error
   const unknownError = new InternalServerError("An unexpected error occurred");
-  return new Response(JSON.stringify(unknownError.toJSON()), {
-    status: 500,
-    headers: { "Content-Type": "application/json" },
-  });
+  return NextResponse.json(unknownError.toApiResponse(), { status: 500 });
 }

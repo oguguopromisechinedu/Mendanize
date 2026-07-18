@@ -18,6 +18,7 @@
         "name": "next"
       }
     ],
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"]
     }
@@ -30,9 +31,6 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-<<<<<<< HEAD
-  "exclude": ["node_modules", "mendanize"]
-=======
-  "exclude": ["node_modules", ".next", "mendanize"]
->>>>>>> 191104ab (Complete Mendanize platform)
+  "exclude": ["node_modules", ".next"]
 }
+

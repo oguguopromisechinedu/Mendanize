@@ -1,0 +1,5 @@
+import { PublishedPage, statusMetadata } from "../_status-pages"
+
+export const metadata = statusMetadata("Published AI tools")
+
+export default PublishedPage

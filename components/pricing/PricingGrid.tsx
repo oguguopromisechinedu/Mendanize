@@ -66,8 +66,8 @@ export default function PricingGrid() {
             <Link
               href={
                 plan.id === "free"
-                  ? routes.blogGenerator
-                  : routes.dashboard
+                  ? routes.signUp
+                  : routes.billing
               }
             >
               {plan.id === "free" ? "Start free" : `Get ${plan.name}`}

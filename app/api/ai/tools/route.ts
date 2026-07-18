@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { getSession } from "@/features/authentication/server";
 import { createChatCompletion } from "@/lib/ai/openai";
 import { DEFAULT_MODEL } from "@/lib/ai/models";
 import { rateLimit } from "@/lib/rate-limit";
@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
-    const session = await auth();
+    const session = await getSession();
     const userId = session?.user?.id;
     const ip = req.headers.get("x-forwarded-for") ?? "unknown";
     const limitKey = `tool:${userId ?? ip}`;

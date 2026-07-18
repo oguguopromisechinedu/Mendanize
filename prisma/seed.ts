@@ -1,3 +1,4 @@
+import "./load-env";
 import { getPrisma } from '../lib/db/prisma'
 
 const prisma = getPrisma()

@@ -5,9 +5,7 @@ import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import bcrypt from "bcryptjs";
 import { getPrisma, isDatabaseConfigured } from "@/lib/db/prisma";
-import { supabase } from "@/lib/supabase";
 import type { UserRole } from "@prisma/client";
-
 declare module "next-auth" {
   interface Session {
     user: {
@@ -68,6 +66,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const valid = await bcrypt.compare(password, user.passwordHash);
         if (!valid) return null;
 
+        const { getAuthenticationSettings } = await import(
+          "@/services/settings/platform"
+        );
+        const authSettings = await getAuthenticationSettings();
+        if (authSettings.emailVerification && !user.emailVerified) {
+          return null;
+        }
+
         return {
           id: user.id,
           email: user.email,
@@ -82,14 +88,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = user.role ?? "USER";
+        token.role = user.role ?? "LEARNER";
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
-        session.user.role = (token.role as UserRole) ?? "USER";
+        session.user.role = (token.role as UserRole) ?? "LEARNER";
       }
       return session;
     },

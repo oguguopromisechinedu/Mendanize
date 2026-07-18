@@ -1,0 +1,2 @@
+/** Client stores placeholder */
+export {};

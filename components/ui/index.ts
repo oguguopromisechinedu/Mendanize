@@ -1,0 +1,30 @@
+/**
+ * UI primitive barrel (MES-003).
+ * Prefer importing from here or `@/components/ui/<name>`.
+ */
+
+export * from "./button"
+export * from "./input"
+export * from "./textarea"
+export * from "./label"
+export * from "./card"
+export * from "./badge"
+export * from "./alert"
+export * from "./skeleton"
+export * from "./spinner"
+export * from "./progress"
+export * from "./separator"
+export * from "./checkbox"
+export * from "./switch"
+export * from "./tabs"
+export * from "./tooltip"
+export * from "./container"
+export * from "./empty-state"
+export * from "./dialog"
+export * from "./sheet"
+export * from "./dropdown-menu"
+export * from "./sonner"
+export * from "./accordion"
+export * from "./breadcrumb"
+export * from "./pagination"
+export * from "./select"

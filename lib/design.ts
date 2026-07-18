@@ -1,11 +1,24 @@
+/**
+ * Design surface helpers (MES-003).
+ * Prefer CSS tokens / Tailwind semantic colors over ad-hoc hex.
+ */
+
 export const routes = {
   home: "/",
+  learn: "/learn",
+  guides: "/guides",
+  categories: "/categories",
+  aiTools: "/ai-tools",
+  articles: "/articles",
+  topics: "/topics",
+  about: "/about",
+  contact: "/contact",
+  search: "/search",
+  pricing: "/pricing",
   dashboard: "/dashboard",
   workspace: "/workspace",
-  tools: "/tools",
-  learn: "/learn",
-  pricing: "/pricing",
-  blog: "/blog",
+  tools: "/ai-tools",
+  blog: "/articles",
   seoOptimizer: "/seo-optimizer",
   templates: "/templates",
   content: "/dashboard/content",
@@ -16,23 +29,26 @@ export const routes = {
   onboarding: "/onboarding",
   admin: "/dashboard",
   settings: "/dashboard/settings",
-  billing: "/dashboard/billing",
+  billing: "/dashboard/settings/billing",
   saved: "/dashboard/saved",
 };
 
+/** Layout / typography class presets backed by MES-003 tokens. */
 export const styles = {
-  container: "mx-auto max-w-7xl",
-  section: "px-6 py-24 sm:px-10 lg:py-32",
-  eyebrow:
-    "text-xs font-medium uppercase tracking-[0.25em] text-violet-400/90",
+  container: "container-app",
+  section: "section-y px-[var(--space-6)]",
+  eyebrow: "type-caption text-primary",
   primaryBtn:
-    "inline-flex items-center justify-center rounded-full bg-gradient-to-r from-violet-500 to-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-violet-500/25 transition duration-300 hover:opacity-95 hover:shadow-violet-500/40",
+    "inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition duration-[var(--motion-base)] hover:opacity-95",
   glass:
-    "rounded-2xl border border-white/[0.08] bg-white/[0.04] text-slate-100 shadow-xl shadow-black/40 backdrop-blur-xl",
+    "rounded-2xl border border-border bg-card/80 text-card-foreground shadow-md backdrop-blur-xl",
   glassHover:
-    "transition duration-300 hover:-translate-y-0.5 hover:border-white/15 hover:bg-white/[0.07]",
-  gradientText:
-    "bg-gradient-to-r from-violet-300 via-fuchsia-300 to-cyan-300 bg-clip-text text-transparent",
-  meshBg:
-    "pointer-events-none absolute inset-0 overflow-hidden",
+    "transition duration-[var(--motion-base)] hover:-translate-y-0.5 hover:border-primary/30 hover:bg-hover",
+  gradientText: "text-primary",
+  meshBg: "pointer-events-none absolute inset-0 overflow-hidden",
+};
+
+export const icons = {
+  /** Single icon set for the product (MES-003) — Lucide via lucide-react. */
+  library: "lucide-react" as const,
 };

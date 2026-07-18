@@ -1,4 +1,67 @@
-# Environment Configuration Guide
+# Environment Configuration
+
+| Field | Value |
+|-------|-------|
+| **Version** | 1.0.0 |
+| **Status** | Approved |
+| **Last Updated** | 2026-07-16 |
+| **Owner** | Mendanize Platform Architecture |
+
+
+## Purpose
+
+Catalog required and optional environment variables for local development, preview, and production, and define how secrets are managed.
+
+
+## Scope
+
+Application URL, database, auth, Supabase, AI providers, Stripe, Redis/rate-limit, analytics. Complements [MES-020](./engineering/MES-020.md) (non-secret preferences).
+
+
+## Dependencies
+
+- [MES-006-Authentication.md](./engineering/MES-006.md)
+- [MES-020-Platform-Settings.md](./engineering/MES-020.md)
+- [MES-021-Billing-Subscriptions.md](./engineering/MES-021.md)
+- [DEPLOYMENT.md](./DEPLOYMENT.md)
+- [SECURITY-STANDARDS.md](./standards/Security-Standards.md)
+
+
+## Quick Start
+
+```bash
+cp .env.example .env.local
+# fill required values
+npm run dev
+```
+
+
+## Variable Groups
+
+| Group | Examples | Required |
+|-------|----------|----------|
+| App | `NEXT_PUBLIC_APP_URL` | Yes |
+| Database | `DATABASE_URL` | Yes |
+| Auth | `AUTH_SECRET`, OAuth client IDs/secrets | Yes for auth |
+| Supabase | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, service role (server-only) | Yes for storage/auth integrations |
+| AI | `OPENAI_API_KEY` (v1.0 live provider) | For live generation; local mock if unset |
+| Stripe | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, publishable key | Yes for billing |
+| Rate limit | Upstash Redis REST URL/token | Recommended in prod |
+| Analytics | Vercel Analytics (platform) | Optional |
+
+
+## Implementation Notes
+
+- Never commit `.env.local` or production secrets.
+- `NEXT_PUBLIC_*` must be safe for browsers.
+- Server-only keys imported only from server modules.
+- Platform Settings (MES-020) stores non-secret preferences; raw provider secrets remain in env/secret manager.
+- Rotate compromised credentials immediately and invalidate sessions if auth secrets leak.
+
+
+## Detailed Variable Reference
+
+The following reference is maintained for operators and expands each variable:
 
 This document explains all environment variables required to run Mendanize locally or in production.
 
@@ -127,20 +190,47 @@ GRANT ALL PRIVILEGES ON DATABASE mendanize TO mendanize_user;
 
 ---
 
-### OpenAI API
+### OpenAI API (v1.0 live AI provider)
+
+**Launch posture:** Mendanize v1.0 wires **OpenAI only**. MES-002 defined a multi-provider AI Service seam (Claude, Gemini, Grok, DALL·E adapters under `services/ai/providers/`), but those adapters still throw `NotImplementedError`. Studio text, Ask, and article assist call OpenAI directly when `OPENAI_API_KEY` is set; otherwise they use deterministic local mocks. DALL·E image generation also uses `OPENAI_API_KEY` (same OpenAI account).
+
+| Provider | Env var | v1.0 status |
+|----------|---------|-------------|
+| OpenAI (chat / Studio text / Ask) | `OPENAI_API_KEY` | **Live** when key is set |
+| DALL·E (Studio images) | `OPENAI_API_KEY` | **Live** via OpenAI when key is set |
+| Claude / Anthropic | `ANTHROPIC_API_KEY` (reserved) | Stub adapter — not connected |
+| Gemini | `GOOGLE_AI_API_KEY` (reserved) | Stub adapter — not connected |
+| Grok / xAI | `XAI_API_KEY` (reserved) | Stub adapter — not connected |
+
+The dashboard **AI & API Status** panel and AI Studio status list reflect this: OpenAI/DALL·E show connected only when `OPENAI_API_KEY` is present; Claude/Gemini/Grok always show as stubs.
 
 #### `OPENAI_API_KEY`
 
-- **Description:** API key for OpenAI content generation
+- **Description:** API key for OpenAI — the only live AI provider at v1.0
 - **How to get:**
   1. Go to [OpenAI Platform](https://platform.openai.com/api-keys)
   2. Create a new API key
   3. Copy to `.env.local`
 - **Type:** String
-- **Required:** For content generation features
-- **Used by:** Blog generator, SEO tools, all AI features
+- **Required:** For live content generation (Studio, Ask, article assist). Optional for local UI work (mock drafts).
+- **Used by:** Admin AI Studio, Ask Mendanize, article authoring assist, DALL·E image generation
 - **Never share:** This is sensitive! Never commit to git.
-- **Cost:** Pay-as-you-go, ~$0.005 per blog post
+
+#### `OPENAI_STUDIO_MODEL` (optional)
+
+- **Description:** Chat model override for Studio text generation
+- **Default:** `gpt-4o-mini`
+- **Required:** No
+
+#### Reserved multi-provider keys (post-v1.0)
+
+Do not expect these to activate generation in v1.0 even if set — provider modules are stubs until a later release wires them:
+
+```env
+# ANTHROPIC_API_KEY=
+# GOOGLE_AI_API_KEY=
+# XAI_API_KEY=
+```
 
 ---
 
@@ -230,6 +320,7 @@ AUTH_URL=http://localhost:3000
 GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 OPENAI_API_KEY=sk-your-openai-key
+# Other AI provider keys are reserved for post-v1.0 (not connected yet)
 ```
 
 **Optional for local dev:**
@@ -241,6 +332,7 @@ STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 ```
 
+Without `OPENAI_API_KEY`, Studio and Ask still run using local mock drafts.
 ### Staging Environment
 
 Same as production but use staging URLs and test API keys:
@@ -447,5 +539,12 @@ npm run lint
 
 ---
 
-**Last updated:** June 16, 2026  
-**Status:** Current for Next.js 16.2.6 + Prisma 7.8.0 + NextAuth v5
+**Last updated:** 2026-07-16  
+**Status:** Current for Next.js 16.2.6 + Prisma 7.8.0 + NextAuth v5. AI: OpenAI-only at v1.0.
+
+
+## Related Documents
+
+- [Deployment](./DEPLOYMENT.md)
+- [Security Standards](./standards/Security-Standards.md)
+- [Platform Settings](./engineering/MES-020.md)
