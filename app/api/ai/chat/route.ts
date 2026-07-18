@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { getSession } from "@/features/authentication/server";
 import { createChatStream } from "@/lib/ai/openai";
 import { systemPrompts } from "@/lib/ai/prompts";
 import { rateLimit } from "@/lib/rate-limit";
@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
-    const session = await auth();
+    const session = await getSession();
     const userId = session?.user?.id ?? "anonymous";
     const ip = req.headers.get("x-forwarded-for") ?? "unknown";
     const limitKey = `chat:${userId}:${ip}`;

@@ -1,29 +1,32 @@
 /**
- * Auth scaffold — wire Clerk or NextAuth here when ready.
- * Do not import auth providers until credentials are configured.
+ * Auth route constants for proxy/middleware (MES-006).
+ * Session resolution lives in `features/authentication` + root `auth.ts` (Auth.js / NextAuth).
  */
 
-export type AuthProvider = "clerk" | "nextauth" | "supabase" | "none";
+export const protectedPrefixes = [
+  "/dashboard",
+  "/workspace",
+  "/onboarding",
+  "/learning",
+  "/ask",
+] as const
 
-export const authConfig = {
-  provider: (process.env.AUTH_PROVIDER ?? "none") as AuthProvider,
-  /** Routes that require authentication once auth is enabled */
-  protectedRoutes: [
-    "/dashboard",
-    "/dashboard/content",
-    "/dashboard/analytics",
-    "/dashboard/settings",
-  ],
-  publicRoutes: ["/", "/pricing", "/learn", "/blog", "/tools/blog-generator"],
-} as const;
+export const adminPrefixes = ["/dashboard"] as const
 
-/** Placeholder — replace with real session check when auth is integrated */
-export async function getSession(): Promise<null> {
-  return null;
+export const authRoutes = [
+  "/sign-in",
+  "/sign-up",
+  "/forgot-password",
+  "/reset-password",
+  "/verify-email",
+] as const
+
+export function isProtectedRoute(pathname: string) {
+  return protectedPrefixes.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`)
+  )
 }
 
-export function isProtectedRoute(pathname: string): boolean {
-  return authConfig.protectedRoutes.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`)
-  );
+export function isAuthRoute(pathname: string) {
+  return authRoutes.some((p) => pathname === p || pathname.startsWith(`${p}/`))
 }

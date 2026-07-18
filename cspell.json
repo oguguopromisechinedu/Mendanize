@@ -1,0 +1,26 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "Mendanize",
+    "mendanize",
+    "MSEM",
+    "supabase",
+    "Supabase",
+    "nextauth",
+    "lucide",
+    "upstash",
+    "shadcn",
+    "rehype",
+    "sonner",
+    "cuid",
+    "webhooks",
+    "webhook"
+  ],
+  "ignorePaths": [
+    "node_modules/**",
+    ".next/**",
+    "package-lock.json",
+    "**/mendanize/**"
+  ]
+}

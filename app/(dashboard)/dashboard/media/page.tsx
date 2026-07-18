@@ -1,11 +1,28 @@
-export default function DashboardMediaPage() {
-  return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-semibold text-white">Media</h1>
-        <p className="mt-2 text-slate-400">Upload and organize assets for publication.</p>
-      </header>
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-slate-300">Media management will be implemented next.</div>
-    </div>
-  );
+import type { Metadata } from "next"
+
+import { MediaLibraryView } from "@/features/media-library"
+import {
+  loadMediaLibrary,
+  loadMediaOptions,
+} from "@/features/media-library/server"
+
+export const metadata: Metadata = {
+  title: "Media Library",
+  robots: { index: false },
+}
+
+export default async function MediaLibraryPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const raw = await searchParams
+  const [initial, options] = await Promise.all([
+    loadMediaLibrary({
+      query: typeof raw.query === "string" ? raw.query : undefined,
+      pageSize: 48,
+    }),
+    loadMediaOptions(),
+  ])
+  return <MediaLibraryView initial={initial} options={options} />
 }

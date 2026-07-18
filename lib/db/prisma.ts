@@ -104,6 +104,24 @@ export function isDatabaseConfigured(): boolean {
   return Boolean(process.env.DATABASE_URL?.trim());
 }
 
+/**
+ * Memory/seed fallbacks are allowed in development and preview.
+ * Production writes must hit a real database.
+ */
+export function allowMemoryFallback(): boolean {
+  if (isDatabaseConfigured()) return false;
+  return process.env.NODE_ENV !== "production";
+}
+
+/** Throw when production is missing DATABASE_URL (write-critical paths). */
+export function assertDatabaseForProductionWrites(surface: string): void {
+  if (process.env.NODE_ENV === "production" && !isDatabaseConfigured()) {
+    throw new Error(
+      `${surface}: DATABASE_URL is required in production. Memory fallback is disabled.`
+    );
+  }
+}
+
 /** True when DIRECT_URL is set for Prisma CLI migrations. */
 export function isDirectUrlConfigured(): boolean {
   return Boolean(process.env.DIRECT_URL?.trim());

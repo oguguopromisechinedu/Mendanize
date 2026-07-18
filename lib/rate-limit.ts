@@ -2,6 +2,8 @@
  * Rate limiting — Upstash Redis in production, in-memory fallback for dev.
  */
 
+import { RateLimitError } from "@/lib/api/errors";
+
 type RateLimitResult = { success: boolean; remaining: number; reset: number };
 
 const memoryStore = new Map<string, { count: number; resetAt: number }>();
@@ -9,23 +11,23 @@ const memoryStore = new Map<string, { count: number; resetAt: number }>();
 const WINDOW_MS = 60_000;
 const MAX_REQUESTS = 30;
 
-function memoryRateLimit(key: string): RateLimitResult {
+function memoryRateLimit(key: string, limit: number): RateLimitResult {
   const now = Date.now();
   const entry = memoryStore.get(key);
 
   if (!entry || now > entry.resetAt) {
     memoryStore.set(key, { count: 1, resetAt: now + WINDOW_MS });
-    return { success: true, remaining: MAX_REQUESTS - 1, reset: now + WINDOW_MS };
+    return { success: true, remaining: limit - 1, reset: now + WINDOW_MS };
   }
 
-  if (entry.count >= MAX_REQUESTS) {
+  if (entry.count >= limit) {
     return { success: false, remaining: 0, reset: entry.resetAt };
   }
 
   entry.count += 1;
   return {
     success: true,
-    remaining: MAX_REQUESTS - entry.count,
+    remaining: limit - entry.count,
     reset: entry.resetAt,
   };
 }
@@ -57,5 +59,17 @@ export async function rateLimit(
     }
   }
 
-  return memoryRateLimit(identifier);
+  return memoryRateLimit(identifier, limit);
+}
+
+/** Throw RateLimitError when the bucket is exhausted (MES-028 API routes). */
+export async function enforceRateLimit(
+  identifier: string,
+  limit = MAX_REQUESTS
+): Promise<{ remaining: number; reset: number }> {
+  const result = await rateLimit(identifier, limit);
+  if (!result.success) {
+    throw new RateLimitError();
+  }
+  return { remaining: result.remaining, reset: result.reset };
 }

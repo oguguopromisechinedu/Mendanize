@@ -1,46 +1,41 @@
 {
-<<<<<<< HEAD
-    "chat.mcp.serverSampling": {
-        "mendanize/.vscode/mcp.json: Github mcp server": {
-            "allowedModels": [
-                "copilot/auto",
-                "copilotcli/claude-haiku-4.5",
-                "claude-code/claude-haiku-4.5",
-                "copilot/claude-haiku-4.5",
-                "copilotcli/gpt-4.1",
-                "copilotcli/gpt-5-mini",
-                "copilot/gpt-5-mini",
-                "copilot/mai-code-1-flash-picker",
-                "copilot/oswe-vscode-prime"
-            ]
-        },
-        "mendanize/.vscode/mcp.json: com.figma.mcp/mcp": {
-            "allowedModels": [
-                "copilot/auto",
-                "copilotcli/claude-haiku-4.5",
-                "copilot/claude-haiku-4.5",
-                "claude-code/claude-haiku-4.5",
-                "copilotcli/gpt-4.1",
-                "copilot/gpt-5-mini",
-                "copilotcli/gpt-5-mini",
-                "copilot/mai-code-1-flash-picker",
-                "copilot/oswe-vscode-prime"
-            ]
-        }
+  "chat.mcp.serverSampling": {
+    "mendanize/.vscode/mcp.json: Github mcp server": {
+      "allowedModels": [
+        "copilot/auto",
+        "copilotcli/claude-haiku-4.5",
+        "claude-code/claude-haiku-4.5",
+        "copilot/claude-haiku-4.5",
+        "copilotcli/gpt-4.1",
+        "copilotcli/gpt-5-mini",
+        "copilot/gpt-5-mini",
+        "copilot/mai-code-1-flash-picker",
+        "copilot/oswe-vscode-prime"
+      ]
     },
-    "json.schemaDownload.enable": true,
-    "editor.formatOnSave": true,
-    "editor.codeActionsOnSave": {
-
-    },
-    "git.autofetch": true,
-    "cursor.cpp.enablePartialAccepts": true,
-    "gitlens.ai.openInAgent": "agent",
-    "editor.formatOnPaste": true,
-    "editor.formatOnType": true,
-    "files.autoSave": "afterDelay"
-}
-=======
+    "mendanize/.vscode/mcp.json: com.figma.mcp/mcp": {
+      "allowedModels": [
+        "copilot/auto",
+        "copilotcli/claude-haiku-4.5",
+        "copilot/claude-haiku-4.5",
+        "claude-code/claude-haiku-4.5",
+        "copilotcli/gpt-4.1",
+        "copilot/gpt-5-mini",
+        "copilotcli/gpt-5-mini",
+        "copilot/mai-code-1-flash-picker",
+        "copilot/oswe-vscode-prime"
+      ]
+    }
+  },
+  "json.schemaDownload.enable": true,
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {},
+  "git.autofetch": true,
+  "cursor.cpp.enablePartialAccepts": true,
+  "gitlens.ai.openInAgent": "agent",
+  "editor.formatOnPaste": true,
+  "editor.formatOnType": true,
+  "files.autoSave": "afterDelay",
   "gitlens.codeLens.enabled": true,
   "gitlens.codeLens.scopes": ["document", "containers", "blocks"],
   "gitlens.views.contributors.showAllBranches": true,
@@ -48,6 +43,12 @@
   "gitlens.graph.showRemoteNames": true,
   "gitlens.currentLine.enabled": true,
   "gitlens.hovers.currentLine.over": "line",
-  "gitlens.graph.dateFormat": null
+  "gitlens.graph.dateFormat": null,
+  "cSpell.words": [
+    "Mendanize",
+    "mendanize",
+    "MSEM",
+    "supabase",
+    "Supabase"
+  ]
 }
->>>>>>> 191104ab (Complete Mendanize platform)

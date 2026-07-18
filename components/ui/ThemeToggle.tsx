@@ -1,36 +1,54 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { SunMoon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useSyncExternalStore } from "react"
+import { SunMoon } from "lucide-react"
 
+import { Button } from "@/components/ui/button"
+
+function subscribe(onStoreChange: () => void) {
+  window.addEventListener("storage", onStoreChange)
+  window.addEventListener("mendanize-theme", onStoreChange)
+  return () => {
+    window.removeEventListener("storage", onStoreChange)
+    window.removeEventListener("mendanize-theme", onStoreChange)
+  }
+}
+
+function getThemeSnapshot() {
+  return localStorage.getItem("theme") !== "light"
+}
+
+function getServerSnapshot() {
+  return true
+}
+
+/** Theme toggle UI only (MES-004) — persists preference locally. */
 export default function ThemeToggle() {
-  const [isDark, setIsDark] = useState<boolean>(true);
+  const isDark = useSyncExternalStore(
+    subscribe,
+    getThemeSnapshot,
+    getServerSnapshot
+  )
 
   useEffect(() => {
-    const stored = typeof window !== "undefined" ? localStorage.getItem("theme") : null;
-    if (stored) {
-      setIsDark(stored === "dark");
-      document.documentElement.classList.toggle("dark", stored === "dark");
-    } else {
-      // default to dark
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-      setIsDark(true);
-    }
-  }, []);
+    document.documentElement.classList.toggle("dark", isDark)
+  }, [isDark])
 
   const toggle = () => {
-    const next = !isDark;
-    setIsDark(next);
-    document.documentElement.classList.toggle("dark", next);
-    localStorage.setItem("theme", next ? "dark" : "light");
-  };
+    const next = !isDark
+    localStorage.setItem("theme", next ? "dark" : "light")
+    window.dispatchEvent(new Event("mendanize-theme"))
+  }
 
   return (
-    <Button onClick={toggle} variant="ghost" className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-200 hover:text-white hover:bg-white/5 transition-colors">
-      <SunMoon className="h-5 w-5" />
-      <span className="sr-only">Toggle theme</span>
+    <Button
+      type="button"
+      onClick={toggle}
+      variant="ghost"
+      size="icon"
+      aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+    >
+      <SunMoon className="size-5" />
     </Button>
-  );
+  )
 }

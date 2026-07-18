@@ -1,4 +1,21 @@
+/**
+ * @deprecated Prefer `getPricingCatalog()` from `@/services/billing`.
+ * Re-exports for older importers (PricingGrid, etc.).
+ */
+
+import {
+  getPricingCatalog,
+  type BillingPlanId,
+  type PricingPlanCatalogItem,
+} from "@/services/billing";
+
 export type PlanId = "free" | "pro" | "team";
+
+const ID_MAP: Record<BillingPlanId, PlanId> = {
+  starter: "free",
+  professional: "pro",
+  enterprise: "team",
+};
 
 export type PricingPlan = {
   id: PlanId;
@@ -8,7 +25,6 @@ export type PricingPlan = {
   description: string;
   features: string[];
   popular?: boolean;
-  /** Stripe price ID — set when Stripe is connected */
   stripePriceId?: string;
   limits: {
     generationsPerMonth: number;
@@ -17,53 +33,25 @@ export type PricingPlan = {
   };
 };
 
-export const pricingPlans: PricingPlan[] = [
-  {
-    id: "free",
-    name: "Free",
-    price: 0,
-    priceLabel: "$0",
-    description: "Starter tools for solo creators exploring AI blogging.",
-    features: [
-      "10 AI generations / month",
-      "Basic SEO suggestions",
-      "Markdown export",
-      "Community support",
-    ],
-    limits: { generationsPerMonth: 10, seoReports: 5, teamSeats: 1 },
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: 29,
-    priceLabel: "$29",
-    description: "The most popular plan for growing brands and creators.",
-    features: [
-      "Unlimited AI generations",
-      "Advanced SEO insights",
-      "Monetization playbooks",
-      "Priority support",
-    ],
-    popular: true,
-    stripePriceId: process.env.STRIPE_PRICE_PRO,
-    limits: { generationsPerMonth: -1, seoReports: -1, teamSeats: 1 },
-  },
-  {
-    id: "team",
-    name: "Team",
-    price: 79,
-    priceLabel: "$79",
-    description: "Scale publishing across multiple authors and campaigns.",
-    features: [
-      "Everything in Pro",
-      "Shared editorial workspace",
-      "Collaboration & approvals",
-      "Advanced analytics",
-    ],
-    stripePriceId: process.env.STRIPE_PRICE_TEAM,
-    limits: { generationsPerMonth: -1, seoReports: -1, teamSeats: 10 },
-  },
-];
+function toLegacy(item: PricingPlanCatalogItem): PricingPlan {
+  return {
+    id: ID_MAP[item.id],
+    name: item.name,
+    price: item.price,
+    priceLabel: item.priceLabel,
+    description: item.description,
+    features: item.features,
+    popular: item.popular,
+    stripePriceId: item.stripePriceId ?? undefined,
+    limits: {
+      generationsPerMonth: item.plan === "FREE" ? 10 : -1,
+      seoReports: item.plan === "FREE" ? 5 : -1,
+      teamSeats: item.plan === "TEAM" ? 10 : 1,
+    },
+  };
+}
+
+export const pricingPlans: PricingPlan[] = getPricingCatalog().map(toLegacy);
 
 export function getPlanById(id: PlanId): PricingPlan | undefined {
   return pricingPlans.find((p) => p.id === id);

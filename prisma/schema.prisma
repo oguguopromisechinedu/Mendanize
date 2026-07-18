@@ -6,13 +6,20 @@ generator client {
   engineType = "binary"
 }
 
+// Prisma 7: connection URLs live in prisma.config.ts (not here).
+// Runtime (pooled): DATABASE_URL via lib/db/prisma.ts
+// Migrations (direct): DIRECT_URL via prisma.config.ts datasource.url
 datasource db {
   provider = "postgresql"
 }
 
 enum UserRole {
+  /// @deprecated Prefer LEARNER — kept for existing rows
   USER
+  LEARNER
+  EDITOR
   ADMIN
+  SUPER_ADMIN
 }
 
 enum PlanTier {
@@ -31,7 +38,33 @@ enum NotificationType {
   INFO
   SUCCESS
   WARNING
+  ERROR
+  SECURITY
+  SYSTEM
+  LEARNING
+  AI
+  ANNOUNCEMENT
   BILLING
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
+}
+
+enum AnnouncementKind {
+  PLATFORM
+  MAINTENANCE
+  FEATURE
+  LEARNING
 }
 
 model User {
@@ -41,7 +74,7 @@ model User {
   emailVerified DateTime?
   image         String?
   passwordHash  String?
-  role          UserRole  @default(USER)
+  role          UserRole  @default(LEARNER)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -57,8 +90,22 @@ model User {
   projects      Project[]
   promptPresets PromptPreset[]
   notifications Notification[]
+  notificationPreference NotificationPreference?
+  communicationLogs CommunicationLog[]
   settings      UserSettings?
   posts         Post[]
+  articles      Article[]
+  articleRevisions ArticleRevision[]
+  guides        Guide[]
+  guideRevisions GuideRevision[]
+  aiGenerations AIGeneration[]
+  userInterests UserInterest[]
+  savedContents SavedContent[]
+  learningHistory LearningHistory[]
+  learningGoals LearningGoal[]
+  learningProgress LearningProgress[]
+  userPreference UserPreference?
+  conversations Conversation[]
 }
 
 model Account {
@@ -264,15 +311,108 @@ model PromptPreset {
 }
 
 model Notification {
-  id        String           @id @default(cuid())
+  id        String               @id @default(cuid())
   userId    String
-  type      NotificationType @default(INFO)
+  type      NotificationType     @default(INFO)
+  priority  NotificationPriority @default(NORMAL)
+  status    NotificationStatus   @default(UNREAD)
   title     String
+  preview   String?
   body      String?
-  read      Boolean          @default(false)
+  read      Boolean              @default(false)
+  archived  Boolean              @default(false)
   link      String?
-  createdAt DateTime         @default(now())
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateKey String?
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, status])
+  @@index([type])
+}
+
+model NotificationPreference {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  learningUpdates  Boolean  @default(true)
+  aiUpdates        Boolean  @default(true)
+  securityAlerts   Boolean  @default(true)
+  newsletter       Boolean  @default(false)
+  productUpdates   Boolean  @default(true)
+  announcements    Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model NotificationTemplate {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  name        String
+  type        NotificationType @default(INFO)
+  titleTpl    String
+  bodyTpl     String           @db.Text
+  priority    NotificationPriority @default(NORMAL)
+  active      Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  subject     String
+  bodyHtml    String   @db.Text
+  bodyText    String?  @db.Text
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Announcement {
+  id          String          @id @default(cuid())
+  kind        AnnouncementKind @default(PLATFORM)
+  title       String
+  body        String          @db.Text
+  active      Boolean         @default(true)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  link        String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([active, startsAt])
+}
+
+model CommunicationLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  channel     String
+  templateKey String?
+  subject     String?
+  status      String   @default("queued")
+  detail      String?  @db.Text
+  createdAt   DateTime @default(now())
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([channel, status])
+}
+
+model DeliverySetting {
+  id              String   @id @default(cuid())
+  key             String   @unique @default("main")
+  inAppEnabled    Boolean  @default(true)
+  emailEnabled    Boolean  @default(true)
+  browserPushEnabled Boolean @default(false)
+  smsEnabled      Boolean  @default(false)
+  smtpNote        String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model UserSettings {
@@ -288,9 +428,14 @@ model UserSettings {
 model FeatureFlag {
   id          String   @id @default(cuid())
   key         String   @unique
-  enabled     Boolean  @default(false)
+  label       String   @default("")
   description String?
+  enabled     Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([sortOrder])
 }
 
 // === Blog Platform Models ===
@@ -301,24 +446,308 @@ enum PostStatus {
   ARCHIVED
 }
 
+enum CategoryStatus {
+  DRAFT
+  ACTIVE
+  HIDDEN
+  ARCHIVED
+}
+
+enum TopicStatus {
+  DRAFT
+  ACTIVE
+  HIDDEN
+  ARCHIVED
+}
+
 model Category {
+  id             String           @id @default(cuid())
+  name           String           @unique
+  slug           String           @unique
+  description    String?
+  icon           String?
+  accentColor    String?
+  status         CategoryStatus   @default(ACTIVE)
+  featured       Boolean          @default(false)
+  displayOrder   Int              @default(0)
+  seoTitle       String?
+  seoDescription String?
+  focusKeyword   String?
+  canonicalUrl   String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  posts          Post[]
+  articles       Article[]
+  topics         Topic[]
+  guides         Guide[]
+  toolRelations  ToolCategoryRelation[]
+  image          CategoryImage?
+
+  @@index([status])
+  @@index([displayOrder])
+}
+
+model CategoryImage {
+  id         String   @id @default(cuid())
+  url        String
+  alt        String?
+  categoryId String   @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+}
+
+model Topic {
+  id             String        @id @default(cuid())
+  name           String        @unique
+  slug           String        @unique
+  description    String?
+  categoryId     String
+  status         TopicStatus   @default(ACTIVE)
+  featured       Boolean       @default(false)
+  displayOrder   Int           @default(0)
+  seoTitle       String?
+  seoDescription String?
+  focusKeyword   String?
+  canonicalUrl   String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  category       Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  articles       Article[]
+  guides         Guide[]
+  toolRelations  ToolTopicRelation[]
+  image          TopicImage?
+
+  @@index([categoryId])
+  @@index([status])
+  @@index([displayOrder])
+}
+
+model TopicImage {
   id        String   @id @default(cuid())
-  name      String   @unique
-  slug      String   @unique
-  description String?
-  icon      String?
+  url       String
+  alt       String?
+  topicId   String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  posts     Post[]
+  topic     Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
 }
 
 model Tag {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  slug        String        @unique
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  postTags    PostTag[]
+  articleTags ArticleTag[]
+  toolTags    ToolTag[]
+}
+
+// === MES-008 Article CMS ===
+
+enum ArticleStatus {
+  DRAFT
+  REVIEW
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+model Article {
+  id               String         @id @default(cuid())
+  title            String
+  slug             String         @unique
+  excerpt          String?
+  content          String         @db.Text
+  status           ArticleStatus  @default(DRAFT)
+  featured         Boolean        @default(false)
+  readingTimeMin   Int            @default(1)
+  authorId         String
+  categoryId       String?
+  topicId          String?
+  publishedAt      DateTime?
+  scheduledAt      DateTime?
+  viewCount        Int            @default(0)
+  // SEO (SEO Service consumption)
+  seoTitle         String?
+  seoDescription   String?
+  focusKeyword     String?
+  canonicalUrl     String?
+  socialImageUrl   String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  author           User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  category         Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  topic            Topic?         @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  tags             ArticleTag[]
+  featuredImage    FeaturedImage?
+  revisions        ArticleRevision[]
+
+  @@index([status])
+  @@index([publishedAt])
+  @@index([authorId])
+}
+
+model FeaturedImage {
   id        String   @id @default(cuid())
-  name      String   @unique
-  slug      String   @unique
+  url       String
+  alt       String?
+  articleId String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  postTags  PostTag[]
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+}
+
+model ArticleTag {
+  articleId String
+  tagId     String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, tagId])
+}
+
+/// Architecture only in MES-008 — no version-history UI yet.
+model ArticleRevision {
+  id          String   @id @default(cuid())
+  articleId   String
+  title       String
+  content     String   @db.Text
+  excerpt     String?
+  createdById String?
+  createdAt   DateTime @default(now())
+  article     Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([articleId])
+}
+
+// === MES-010 Learning Guides ===
+
+enum GuideStatus {
+  DRAFT
+  REVIEW
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum GuideDifficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+model Guide {
+  id                    String          @id @default(cuid())
+  title                 String
+  slug                  String          @unique
+  shortDescription      String?
+  fullDescription       String?         @db.Text
+  coverImageUrl         String?
+  coverImageAlt         String?
+  status                GuideStatus     @default(DRAFT)
+  difficulty            GuideDifficulty @default(BEGINNER)
+  estimatedMinutes      Int             @default(30)
+  learningObjectives    String[]        @default([])
+  prerequisites         String[]        @default([])
+  featured              Boolean         @default(false)
+  authorId              String
+  categoryId            String?
+  topicId               String
+  publishedAt           DateTime?
+  scheduledAt           DateTime?
+  seoTitle              String?
+  seoDescription        String?
+  focusKeyword          String?
+  canonicalUrl          String?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  author                User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  category              Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  topic                 Topic           @relation(fields: [topicId], references: [id], onDelete: Restrict)
+  sections              GuideSection[]
+  revisions             GuideRevision[]
+  progressRecords       GuideProgress[]
+
+  @@index([status])
+  @@index([topicId])
+  @@index([authorId])
+  @@index([publishedAt])
+}
+
+model GuideSection {
+  id          String        @id @default(cuid())
+  guideId     String
+  title       String
+  slug        String
+  description String?
+  sortOrder   Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  guide       Guide         @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  lessons     GuideLesson[]
+
+  @@unique([guideId, slug])
+  @@index([guideId, sortOrder])
+}
+
+model GuideLesson {
+  id              String       @id @default(cuid())
+  sectionId       String
+  title           String
+  slug            String
+  content         String       @db.Text @default("")
+  readingTimeMin  Int          @default(1)
+  featuredImageUrl String?
+  featuredImageAlt String?
+  /// Placeholders until Media / AI Tools deeper wiring
+  videoUrl        String?
+  codeExample     String?      @db.Text
+  resourceUrl     String?
+  articleId       String?
+  aiToolId        String?
+  sortOrder       Int          @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  section         GuideSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@unique([sectionId, slug])
+  @@index([sectionId, sortOrder])
+}
+
+/// Architecture only — version-history UI not in MES-010.
+model GuideRevision {
+  id          String   @id @default(cuid())
+  guideId     String
+  title       String
+  snapshot    String   @db.Text
+  createdById String?
+  createdAt   DateTime @default(now())
+  guide       Guide    @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([guideId])
+}
+
+/// Modeled for MES-021 personalization — not implemented in MES-010.
+model GuideProgress {
+  id              String    @id @default(cuid())
+  userId          String
+  guideId         String
+  completedLessonIds String[] @default([])
+  percentComplete Int       @default(0)
+  lastLessonId    String?
+  startedAt       DateTime  @default(now())
+  completedAt     DateTime?
+  updatedAt       DateTime  @updatedAt
+  guide           Guide     @relation(fields: [guideId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, guideId])
+  @@index([guideId])
 }
 
 model Post {
@@ -364,4 +793,1361 @@ model Subscriber {
   categories String[] @default([])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// === MES-012 AI Tools Directory ===
+
+enum ToolStatus {
+  DRAFT
+  REVIEW
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ToolPricing {
+  FREE
+  FREEMIUM
+  PAID
+  ENTERPRISE
+}
+
+enum ToolDifficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum ToolAvailability {
+  AVAILABLE
+  BETA
+  WAITLIST
+  DISCONTINUED
+}
+
+enum ToolFeatureKind {
+  FEATURE
+  USE_CASE
+  ADVANTAGE
+  LIMITATION
+}
+
+enum ToolImageKind {
+  LOGO
+  COVER
+  SCREENSHOT
+}
+
+model Tool {
+  id                   String            @id @default(cuid())
+  name                 String
+  slug                 String            @unique
+  shortDescription     String?
+  fullDescription      String?           @db.Text
+  websiteUrl           String?
+  developer            String?
+  platforms            String[]          @default([])
+  availability         ToolAvailability  @default(AVAILABLE)
+  pricing              ToolPricing       @default(FREEMIUM)
+  difficulty           ToolDifficulty    @default(BEGINNER)
+  recommendedFor       String[]          @default([])
+  learningOutcomes     String[]          @default([])
+  relatedArticleIds    String[]          @default([])
+  relatedGuideIds      String[]          @default([])
+  relatedToolIds       String[]          @default([])
+  demoVideoUrl         String?
+  featured             Boolean           @default(false)
+  status               ToolStatus        @default(DRAFT)
+  publishedAt          DateTime?
+  seoTitle             String?
+  seoDescription       String?
+  focusKeyword         String?
+  canonicalUrl         String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  categories           ToolCategoryRelation[]
+  topics               ToolTopicRelation[]
+  features             ToolFeature[]
+  images               ToolImage[]
+  tags                 ToolTag[]
+
+  @@index([status])
+  @@index([pricing])
+  @@index([featured])
+  @@index([publishedAt])
+}
+
+model ToolCategoryRelation {
+  toolId     String
+  categoryId String
+  tool       Tool     @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([toolId, categoryId])
+}
+
+model ToolTopicRelation {
+  toolId  String
+  topicId String
+  tool    Tool  @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  topic   Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@id([toolId, topicId])
+}
+
+model ToolFeature {
+  id        String          @id @default(cuid())
+  toolId    String
+  label     String
+  kind      ToolFeatureKind
+  sortOrder Int             @default(0)
+  tool      Tool            @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([toolId, kind, sortOrder])
+}
+
+model ToolImage {
+  id        String        @id @default(cuid())
+  toolId    String
+  url       String
+  alt       String?
+  kind      ToolImageKind
+  sortOrder Int           @default(0)
+  tool      Tool          @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([toolId, kind])
+}
+
+model ToolTag {
+  toolId String
+  tagId  String
+  tool   Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([toolId, tagId])
+}
+
+// === MES-011 Admin AI Studio ===
+
+enum AIGenerationType {
+  ARTICLE
+  IMAGE
+  VIDEO
+}
+
+enum AIGenerationProvider {
+  CLAUDE
+  OPENAI
+  GEMINI
+  GROK
+  DALLE
+  VIDEO_TBD
+  LOCAL_MOCK
+}
+
+enum AIGenerationStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  ACCEPTED
+}
+
+model AIGeneration {
+  id              String               @id @default(cuid())
+  userId          String
+  type            AIGenerationType
+  provider        AIGenerationProvider
+  status          AIGenerationStatus   @default(PENDING)
+  prompt          String               @db.Text
+  systemPrompt    String?              @db.Text
+  outputText      String?              @db.Text
+  outputUrls      String[]             @default([])
+  model           String?
+  tone            String?
+  targetLength    String?
+  aspectRatio     String?
+  durationSec     Int?
+  categoryId      String?
+  topicId         String?
+  articleId       String?
+  mediaAssetId    String?
+  errorMessage    String?
+  meta            Json?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// === MES-013 Homepage CMS ===
+
+enum HomepageStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum HomepageFeaturedKind {
+  CATEGORY
+  ARTICLE
+  GUIDE
+  TOOL
+}
+
+enum HomepageSelectionMode {
+  MANUAL
+  AUTOMATIC
+}
+
+model Homepage {
+  id               String                     @id @default(cuid())
+  key              String                     @unique @default("main")
+  status           HomepageStatus             @default(DRAFT)
+  publishedAt      DateTime?
+  askJson          Json?
+  whyJson          Json?
+  newsletterJson   Json?
+  latestArticlesJson Json?
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+  sections         HomepageSection[]
+  hero             HomepageHero?
+  statistics       HomepageStatistic[]
+  faqs             HomepageFAQ[]
+  cta              HomepageCTA?
+  featured         HomepageFeaturedContent[]
+  testimonials     HomepageTestimonial[]
+}
+
+model HomepageSection {
+  id                String    @id @default(cuid())
+  homepageId        String
+  sectionKey        String
+  enabled           Boolean   @default(true)
+  sortOrder         Int       @default(0)
+  visibilityRules   String?
+  backgroundStyle   String?
+  animationEnabled  Boolean   @default(true)
+  spacing           String    @default("default")
+  title             String?
+  displayLimit      Int?
+  homepage          Homepage  @relation(fields: [homepageId], references: [id], onDelete: Cascade)
+
+  @@unique([homepageId, sectionKey])
+  @@index([homepageId, sortOrder])
+}
+
+model HomepageHero {
+  id                  String   @id @default(cuid())
+  homepageId          String   @unique
+  brand               String   @default("Mendanize")
+  headline            String
+  supportingText      String   @db.Text
+  primaryCtaLabel     String
+  primaryCtaHref      String
+  secondaryCtaLabel   String
+  secondaryCtaHref    String
+  trustLine           String?
+  heroImageUrl        String?
+  backgroundGradient  String?
+  askPlaceholder      String?
+  eyebrow             String?
+  headlineAccent      String?
+  showAskInHero       Boolean  @default(true)
+  homepage            Homepage @relation(fields: [homepageId], references: [id], onDelete: Cascade)
+}
+
+model HomepageStatistic {
+  id         String   @id @default(cuid())
+  homepageId String
+  key        String
+  label      String
+  value      String
+  sortOrder  Int      @default(0)
+  icon       String?
+  homepage   Homepage @relation(fields: [homepageId], references: [id], onDelete: Cascade)
+
+  @@index([homepageId, sortOrder])
+}
+
+model HomepageFAQ {
+  id         String   @id @default(cuid())
+  homepageId String
+  question   String
+  answer     String   @db.Text
+  sortOrder  Int      @default(0)
+  homepage   Homepage @relation(fields: [homepageId], references: [id], onDelete: Cascade)
+
+  @@index([homepageId, sortOrder])
+}
+
+model HomepageCTA {
+  id                String   @id @default(cuid())
+  homepageId        String   @unique
+  headline          String
+  description       String   @db.Text
+  primaryCtaLabel   String
+  primaryCtaHref    String
+  secondaryCtaLabel String
+  secondaryCtaHref  String
+  homepage          Homepage @relation(fields: [homepageId], references: [id], onDelete: Cascade)
+}
+
+model HomepageFeaturedContent {
+  id            String                 @id @default(cuid())
+  homepageId    String
+  kind          HomepageFeaturedKind
+  entityId      String
+  sortOrder     Int                    @default(0)
+  selectionMode HomepageSelectionMode  @default(MANUAL)
+  titleOverride String?
+  icon          String?
+  iconColor     String?
+  homepage      Homepage               @relation(fields: [homepageId], references: [id], onDelete: Cascade)
+
+  @@index([homepageId, kind, sortOrder])
+}
+
+model HomepageTestimonial {
+  id         String   @id @default(cuid())
+  homepageId String
+  quote      String   @db.Text
+  name       String
+  role       String
+  sortOrder  Int      @default(0)
+  homepage   Homepage @relation(fields: [homepageId], references: [id], onDelete: Cascade)
+
+  @@index([homepageId, sortOrder])
+}
+
+// === MES-014 Media Library ===
+
+enum AssetStatus {
+  ACTIVE
+  ARCHIVED
+  PROCESSING
+  FAILED
+}
+
+enum MediaVisibility {
+  PUBLIC
+  PRIVATE
+  UNLISTED
+}
+
+model MediaCategory {
+  id          String       @id @default(cuid())
+  name        String
+  slug        String       @unique
+  description String?
+  sortOrder   Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  assets      MediaAsset[]
+}
+
+model MediaCollection {
+  id          String                 @id @default(cuid())
+  name        String
+  slug        String                 @unique
+  description String?
+  sortOrder   Int                    @default(0)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  assets      MediaCollectionAsset[]
+}
+
+model MediaTag {
+  id     String          @id @default(cuid())
+  name   String
+  slug   String          @unique
+  assets MediaAssetTag[]
+}
+
+model MediaAsset {
+  id              String                 @id @default(cuid())
+  filename        String
+  originalName    String?
+  mimeType        String
+  url             String
+  storageKey      String?
+  storageProvider String                 @default("placeholder")
+  width           Int?
+  height          Int?
+  sizeBytes       Int?
+  altText         String?
+  caption         String?
+  description     String?                @db.Text
+  copyright       String?
+  visibility      MediaVisibility        @default(PUBLIC)
+  featured        Boolean                @default(false)
+  status          AssetStatus            @default(ACTIVE)
+  categoryId      String?
+  lastUsedAt      DateTime?
+  uploadedById    String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  category        MediaCategory?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags            MediaAssetTag[]
+  collections     MediaCollectionAsset[]
+  usages          MediaUsage[]
+
+  @@index([status])
+  @@index([categoryId])
+  @@index([createdAt])
+  @@index([featured])
+}
+
+model MediaAssetTag {
+  assetId String
+  tagId   String
+  asset   MediaAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  tag     MediaTag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([assetId, tagId])
+}
+
+model MediaCollectionAsset {
+  collectionId String
+  assetId      String
+  sortOrder    Int             @default(0)
+  collection   MediaCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  asset        MediaAsset      @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@id([collectionId, assetId])
+}
+
+model MediaUsage {
+  id         String     @id @default(cuid())
+  assetId    String
+  entityType String
+  entityId   String
+  field      String?
+  createdAt  DateTime   @default(now())
+  asset      MediaAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@index([entityType, entityId])
+}
+
+// === MES-015 SEO Center ===
+
+enum RedirectType {
+  PERMANENT_301
+  TEMPORARY_302
+}
+
+enum RedirectStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum SeoEntityType {
+  HOMEPAGE
+  ARTICLE
+  CATEGORY
+  TOPIC
+  GUIDE
+  AI_TOOL
+  PAGE
+}
+
+model GlobalSEOSettings {
+  id                   String   @id @default(cuid())
+  key                  String   @unique @default("main")
+  websiteTitle         String   @default("Mendanize")
+  defaultMetaTitle     String?
+  defaultMetaDescription String? @db.Text
+  defaultOgImageUrl    String?
+  defaultTwitterImageUrl String?
+  brandName            String   @default("Mendanize")
+  siteLanguage         String   @default("en")
+  canonicalDomain      String?
+  defaultRobotsIndex   Boolean  @default(true)
+  defaultRobotsFollow  Boolean  @default(true)
+  faviconUrl           String?
+  appleTouchIconUrl    String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model SEOProfile {
+  id              String        @id @default(cuid())
+  entityType      SeoEntityType
+  entityId        String?
+  path            String?
+  seoTitle        String?
+  metaDescription String?       @db.Text
+  focusKeyword    String?
+  canonicalUrl    String?
+  slug            String?
+  ogTitle         String?
+  ogDescription   String?       @db.Text
+  ogImageUrl      String?
+  twitterTitle    String?
+  twitterDescription String?    @db.Text
+  twitterImageUrl String?
+  robotsIndex     Boolean       @default(true)
+  robotsFollow    Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([entityType, entityId])
+  @@index([entityType])
+  @@index([path])
+}
+
+model MetadataTemplate {
+  id              String        @id @default(cuid())
+  entityType      SeoEntityType
+  name            String
+  titleTemplate   String
+  descriptionTemplate String    @db.Text
+  isDefault       Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([entityType, name])
+  @@index([entityType])
+}
+
+model Redirect {
+  id          String         @id @default(cuid())
+  sourcePath  String
+  destination String
+  type        RedirectType   @default(PERMANENT_301)
+  status      RedirectStatus @default(ACTIVE)
+  notes       String?
+  hitCount    Int            @default(0)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([sourcePath])
+  @@index([status])
+}
+
+model StructuredData {
+  id         String        @id @default(cuid())
+  schemaType String
+  entityType SeoEntityType?
+  label      String
+  jsonPreview Json
+  enabled    Boolean       @default(true)
+  sortOrder  Int           @default(0)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([schemaType])
+}
+
+model RobotsRule {
+  id          String   @id @default(cuid())
+  userAgent   String   @default("*")
+  allowPath   String?
+  disallowPath String?
+  sortOrder   Int      @default(0)
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SitemapConfiguration {
+  id              String        @id @default(cuid())
+  entityType      SeoEntityType
+  included        Boolean       @default(true)
+  changefreq      String        @default("weekly")
+  priority        Float         @default(0.5)
+  lastRegeneratedAt DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([entityType])
+}
+
+// === MES-016 Navigation Manager ===
+
+enum MenuItemType {
+  INTERNAL_PAGE
+  ARTICLE
+  CATEGORY
+  TOPIC
+  GUIDE
+  AI_TOOL
+  CUSTOM_URL
+}
+
+enum MenuLocationKey {
+  MAIN
+  MOBILE
+  FOOTER
+  UTILITY
+  QUICK_LINKS
+}
+
+model NavigationSiteSettings {
+  id              String   @id @default(cuid())
+  key             String   @unique @default("main")
+  brandName       String   @default("Mendanize")
+  brandHref       String   @default("/")
+  brandTagline    String?
+  signInHref      String   @default("/sign-in")
+  copyrightText   String?
+  newsletterEnabled Boolean @default(true)
+  newsletterHeadline String?
+  newsletterPlaceholder String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model NavigationMenu {
+  id          String         @id @default(cuid())
+  name        String
+  slug        String         @unique
+  description String?
+  maxDepth    Int            @default(3)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  items       MenuItem[]
+  locations   MenuLocation[]
+}
+
+model MenuItem {
+  id           String       @id @default(cuid())
+  menuId       String
+  parentId     String?
+  label        String
+  itemType     MenuItemType @default(INTERNAL_PAGE)
+  href         String?
+  entityId     String?
+  icon         String?
+  openInNewTab Boolean      @default(false)
+  visible      Boolean      @default(true)
+  badgeLabel   String?
+  sortOrder    Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  menu         NavigationMenu @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  parent       MenuItem?    @relation("MenuItemTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children     MenuItem[]   @relation("MenuItemTree")
+
+  @@index([menuId, sortOrder])
+  @@index([parentId])
+}
+
+model MenuLocation {
+  id          String          @id @default(cuid())
+  key         MenuLocationKey @unique
+  label       String
+  menuId      String?
+  columnTitle String?
+  sortOrder   Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  menu        NavigationMenu? @relation(fields: [menuId], references: [id], onDelete: SetNull)
+
+  @@index([key, sortOrder])
+}
+
+model SocialLink {
+  id        String   @id @default(cuid())
+  platform  String
+  label     String
+  href      String
+  icon      String?
+  visible   Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sortOrder])
+}
+
+model LegalLink {
+  id        String   @id @default(cuid())
+  label     String
+  href      String
+  visible   Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sortOrder])
+}
+
+// === MES-017 Search & Discovery ===
+
+enum SearchFilterKind {
+  CONTENT_TYPE
+  CATEGORY
+  TOPIC
+  DIFFICULTY
+  PUBLISH_DATE
+  FEATURED
+  RECENTLY_UPDATED
+}
+
+model SearchConfiguration {
+  id                    String   @id @default(cuid())
+  key                   String   @unique @default("main")
+  enabled               Boolean  @default(true)
+  minQueryLength        Int      @default(2)
+  resultsPerPage        Int      @default(12)
+  rankingRulesNote      String?  @db.Text
+  synonymsPlaceholder   String?  @db.Text
+  stopWordsPlaceholder  String?  @db.Text
+  analyticsPlaceholder  String?  @db.Text
+  includeArticles       Boolean  @default(true)
+  includeGuides         Boolean  @default(true)
+  includeTools          Boolean  @default(true)
+  includeCategories     Boolean  @default(true)
+  includeTopics         Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model SearchHistory {
+  id          String   @id @default(cuid())
+  query       String
+  userId      String?
+  sessionKey  String?
+  resultCount Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([query])
+  @@index([userId])
+}
+
+model TrendingSearch {
+  id        String   @id @default(cuid())
+  query     String   @unique
+  score     Int      @default(0)
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, sortOrder])
+}
+
+model SearchSuggestion {
+  id        String   @id @default(cuid())
+  query     String
+  label     String?
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, sortOrder])
+}
+
+model SearchFilter {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  label       String
+  kind        SearchFilterKind
+  enabled     Boolean          @default(true)
+  sortOrder   Int              @default(0)
+  optionsJson String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([enabled, sortOrder])
+}
+
+// === MES-018 Recommendations Engine ===
+// UserInterest / SavedContent / LearningHistory: written by Personalization (MES-022),
+// read by Recommendations. Single engine — no parallel ranking elsewhere.
+
+enum RecommendationEntityKind {
+  ARTICLE
+  GUIDE
+  AI_TOOL
+  CATEGORY
+  TOPIC
+}
+
+model UserInterest {
+  id         String   @id @default(cuid())
+  userId     String
+  categoryId String?
+  topicId    String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([categoryId])
+  @@index([topicId])
+  @@unique([userId, categoryId, topicId])
+}
+
+model SavedContent {
+  id         String                   @id @default(cuid())
+  userId     String
+  entityType RecommendationEntityKind
+  entityId   String
+  createdAt  DateTime                 @default(now())
+  user       User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, entityType, entityId])
+  @@index([userId, createdAt])
+}
+
+model LearningHistory {
+  id         String                   @id @default(cuid())
+  userId     String
+  entityType RecommendationEntityKind
+  entityId   String
+  viewedAt   DateTime                 @default(now())
+  user       User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, viewedAt])
+  @@index([entityType, entityId])
+}
+
+// === MES-022 User Learning Experience ===
+// SavedArticle/Guide/AITool map to polymorphic SavedContent (MES-018).
+// LearningProgress is placeholder until guide lesson completion exists.
+
+model LearningGoal {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  targetNote  String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+}
+
+model UserPreference {
+  id                       String   @id @default(cuid())
+  userId                   String   @unique
+  preferredDifficulty      String   @default("INTERMEDIATE")
+  dailyReminderEnabled     Boolean  @default(false)
+  preferredCategoryIdsJson String?  @db.Text
+  preferredTopicIdsJson    String?  @db.Text
+  themePreference          String   @default("system")
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model LearningProgress {
+  id                   String   @id @default(cuid())
+  userId               String
+  guideId              String
+  lastLessonTitle      String?
+  completedLessons     Int      @default(0)
+  totalLessons         Int      @default(5)
+  estimatedMinutesLeft Int?
+  percentComplete      Int      @default(0)
+  lastOpenedAt         DateTime @default(now())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, guideId])
+  @@index([userId, lastOpenedAt])
+}
+
+// === MES-019 Ask Mendanize AI ===
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum AskContextType {
+  ARTICLE
+  GUIDE
+  AI_TOOL
+  GENERAL
+  HOMEPAGE
+}
+
+model Conversation {
+  id              String         @id @default(cuid())
+  userId          String
+  title           String         @default("New conversation")
+  contextType     AskContextType @default(GENERAL)
+  contextId       String?
+  contextTitle    String?
+  handoffId       String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages        Message[]
+  feedback        AskFeedback[]
+
+  @@index([userId, updatedAt])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  role           MessageRole
+  content        String       @db.Text
+  model          String?
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  feedback       AskFeedback[]
+
+  @@index([conversationId, createdAt])
+}
+
+/// Ask-specific templates (legacy PromptTemplate remains for workspace tools).
+model AskPromptTemplate {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  category    String   @default("general")
+  promptText  String   @db.Text
+  sortOrder   Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([active, sortOrder])
+}
+
+model AskFeedback {
+  id             String        @id @default(cuid())
+  userId         String?
+  conversationId String?
+  messageId      String?
+  rating         Int
+  comment        String?
+  createdAt      DateTime      @default(now())
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  message        Message?      @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId])
+  @@index([messageId])
+}
+
+/// Ephemeral Tier 1 → Tier 2 handoff payload (expires quickly).
+model AskHandoff {
+  id           String         @id @default(cuid())
+  question     String         @db.Text
+  answer       String?        @db.Text
+  contextType  AskContextType @default(GENERAL)
+  contextId    String?
+  contextTitle String?
+  expiresAt    DateTime
+  claimedAt    DateTime?
+  createdAt    DateTime       @default(now())
+
+  @@index([expiresAt])
+}
+
+// === MES-020 Platform Settings ===
+
+model PlatformSetting {
+  id               String   @id @default(cuid())
+  key              String   @unique @default("main")
+  platformName     String   @default("Mendanize")
+  description      String?
+  websiteUrl       String   @default("https://mendanize.com")
+  contactEmail     String   @default("hello@mendanize.com")
+  supportEmail     String   @default("support@mendanize.com")
+  timeZone         String   @default("UTC")
+  dateFormat       String   @default("YYYY-MM-DD")
+  language         String   @default("en")
+  defaultHomepage  String   @default("/")
+  defaultUserRole  String   @default("LEARNER")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model BrandingSetting {
+  id                 String   @id @default(cuid())
+  key                String   @unique @default("main")
+  brandName          String   @default("Mendanize")
+  logoUrl            String?
+  faviconUrl         String?
+  primaryColor       String   @default("#E8940C")
+  secondaryColor     String   @default("#2A2A2A")
+  accentColor        String   @default("#E8940C")
+  tokenOverridesJson String?  @db.Text
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model LocalizationSetting {
+  id                 String   @id @default(cuid())
+  key                String   @unique @default("main")
+  defaultLanguage    String   @default("en")
+  availableLanguages String   @default("en")
+  timeZone           String   @default("UTC")
+  dateFormat         String   @default("YYYY-MM-DD")
+  numberFormat       String   @default("en-US")
+  currencyCode       String   @default("USD")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model AuthenticationSetting {
+  id                    String   @id @default(cuid())
+  key                   String   @unique @default("main")
+  registrationEnabled   Boolean  @default(true)
+  emailVerification     Boolean  @default(true)
+  passwordPolicyNote    String?  @db.Text
+  sessionTimeoutMinutes Int      @default(10080)
+  rememberMeEnabled     Boolean  @default(true)
+  twoFactorPlaceholder  Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model AiPlatformSetting {
+  id                      String   @id @default(cuid())
+  key                     String   @unique @default("main")
+  defaultTextProvider     String   @default("claude")
+  defaultImageProvider    String   @default("dalle")
+  defaultVideoProvider    String   @default("video_tbd")
+  maxResponseLength       Int      @default(4000)
+  conversationHistoryOn   Boolean  @default(true)
+  rateLimitPlaceholder    String?  @db.Text
+  enabledProvidersJson    String?  @db.Text
+  modelsJson              String?  @db.Text
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+model SearchPlatformSetting {
+  id                   String   @id @default(cuid())
+  key                  String   @unique @default("main")
+  enabled              Boolean  @default(true)
+  suggestionsEnabled   Boolean  @default(true)
+  trendingEnabled      Boolean  @default(true)
+  resultLimit          Int      @default(12)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model EmailSetting {
+  id                 String   @id @default(cuid())
+  key                String   @unique @default("main")
+  senderName         String   @default("Mendanize")
+  senderEmail        String   @default("noreply@mendanize.com")
+  smtpPlaceholder    String?  @db.Text
+  templatesNote      String?  @db.Text
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model SecuritySetting {
+  id                    String   @id @default(cuid())
+  key                   String   @unique @default("main")
+  maxLoginAttempts      Int      @default(5)
+  auditLoggingEnabled   Boolean  @default(true)
+  apiAccessPlaceholder  String?  @db.Text
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+
+model MaintenanceConfiguration {
+  id                 String   @id @default(cuid())
+  key                String   @unique @default("main")
+  enabled            Boolean  @default(false)
+  message            String?  @db.Text
+  allowedAdminEmails String?  @db.Text
+  showBanner         Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+// === MES-023 Analytics & Insights ===
+// AnalyticsEvent is the single write stream; domain tables hold rollups/placeholders.
+
+enum AnalyticsEventKind {
+  PAGE_VIEW
+  CONTENT_VIEW
+  GUIDE_START
+  TOOL_VIEW
+  SEARCH_QUERY
+  ASK_MESSAGE
+  SESSION_START
+  SESSION_END
+  USER_SIGN_IN
+  OTHER
+}
+
+model AnalyticsEvent {
+  id           String             @id @default(cuid())
+  kind         AnalyticsEventKind
+  entityType   String?
+  entityId     String?
+  userId       String?
+  sessionKey   String?
+  path         String?
+  query        String?
+  metadataJson String?            @db.Text
+  occurredAt   DateTime           @default(now())
+  createdAt    DateTime           @default(now())
+
+  @@index([kind, occurredAt])
+  @@index([entityType, entityId])
+  @@index([userId, occurredAt])
+  @@index([sessionKey])
+}
+
+model ContentAnalytics {
+  id            String   @id @default(cuid())
+  periodKey     String   @unique
+  articleViews  Int      @default(0)
+  guideViews    Int      @default(0)
+  toolViews     Int      @default(0)
+  topContentJson String? @db.Text
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+}
+
+model LearningAnalytics {
+  id               String   @id @default(cuid())
+  periodKey        String   @unique
+  guideStarts      Int      @default(0)
+  lessonsCompleted Int      @default(0)
+  activeLearners   Int      @default(0)
+  topGuidesJson    String?  @db.Text
+  updatedAt        DateTime @updatedAt
+  createdAt        DateTime @default(now())
+}
+
+model AIAnalytics {
+  id                  String   @id @default(cuid())
+  periodKey           String   @unique
+  conversations       Int      @default(0)
+  messages            Int      @default(0)
+  avgMessagesPerConvo Float    @default(0)
+  topTopicsJson       String?  @db.Text
+  updatedAt           DateTime @updatedAt
+  createdAt           DateTime @default(now())
+}
+
+model SearchAnalytics {
+  id                 String   @id @default(cuid())
+  periodKey          String   @unique
+  queryCount         Int      @default(0)
+  zeroResultCount    Int      @default(0)
+  topQueriesJson     String?  @db.Text
+  zeroResultJson     String?  @db.Text
+  updatedAt          DateTime @updatedAt
+  createdAt          DateTime @default(now())
+}
+
+model TrafficAnalytics {
+  id               String   @id @default(cuid())
+  periodKey        String   @unique
+  visitors         Int      @default(0)
+  sessions         Int      @default(0)
+  pageViews        Int      @default(0)
+  returningUsers   Int      @default(0)
+  avgSessionSec    Int      @default(0)
+  devicesJson      String?  @db.Text
+  browsersJson     String?  @db.Text
+  updatedAt        DateTime @updatedAt
+  createdAt        DateTime @default(now())
+}
+
+model AnalyticsReport {
+  id          String   @id @default(cuid())
+  name        String
+  reportType  String
+  dateFrom    DateTime?
+  dateTo      DateTime?
+  filtersJson String?  @db.Text
+  status      String   @default("ready")
+  exportNote  String?  @db.Text
+  scheduleNote String? @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([createdAt])
+}
+
+model AnalyticsConfiguration {
+  id                     String   @id @default(cuid())
+  key                    String   @unique @default("main")
+  retentionDays          Int      @default(90)
+  privacyMode            Boolean  @default(true)
+  auditLoggingNote       String?  @db.Text
+  allowedRolesJson       String?  @db.Text
+  instrumentationEnabled Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+// === Admin ops modules (Users, Tags CRUD, Subscribers, Pages, Comments, Audit, Newsletter, Broken Links, Automation, KB) ===
+
+enum CommentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SPAM
+}
+
+enum CommentEntityType {
+  ARTICLE
+  GUIDE
+  TOOL
+  PAGE
+}
+
+model Comment {
+  id          String            @id @default(cuid())
+  entityType  CommentEntityType
+  entityId    String
+  entityTitle String?
+  authorName  String
+  authorEmail String?
+  body        String            @db.Text
+  status      CommentStatus     @default(PENDING)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([status, createdAt])
+  @@index([entityType, entityId])
+}
+
+enum StaticPageStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+model StaticPage {
+  id             String           @id @default(cuid())
+  title          String
+  slug           String           @unique
+  content        String           @db.Text
+  excerpt        String?
+  status         StaticPageStatus @default(DRAFT)
+  seoTitle       String?
+  seoDescription String?
+  publishedAt    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([status])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  actorId      String?
+  actorEmail   String?
+  action       String
+  entityType   String
+  entityId     String?
+  summary      String
+  metadataJson String?  @db.Text
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entityType, entityId])
+  @@index([actorId])
+}
+
+enum NewsletterCampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  CANCELLED
+}
+
+model NewsletterCampaign {
+  id             String                   @id @default(cuid())
+  subject        String
+  previewText    String?
+  bodyHtml       String                   @db.Text
+  status         NewsletterCampaignStatus @default(DRAFT)
+  audienceFilter String                   @default("all")
+  scheduledAt    DateTime?
+  sentAt         DateTime?
+  recipientCount Int                      @default(0)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  @@index([status])
+}
+
+enum BrokenLinkStatus {
+  OPEN
+  IGNORED
+  FIXED
+}
+
+model BrokenLink {
+  id            String           @id @default(cuid())
+  url           String
+  foundOnPath   String
+  statusCode    Int?
+  status        BrokenLinkStatus @default(OPEN)
+  lastCheckedAt DateTime         @default(now())
+  notes         String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@unique([url, foundOnPath])
+  @@index([status])
+}
+
+enum AutomationJobStatus {
+  IDLE
+  RUNNING
+  FAILED
+  DISABLED
+}
+
+model AutomationJob {
+  id          String              @id @default(cuid())
+  key         String              @unique
+  name        String
+  description String?
+  enabled     Boolean             @default(true)
+  schedule    String?
+  status      AutomationJobStatus @default(IDLE)
+  lastRunAt   DateTime?
+  lastResult  String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+model AutomationRun {
+  id         String    @id @default(cuid())
+  jobKey     String
+  status     String
+  message    String?
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  @@index([jobKey, startedAt])
+}
+
+model KnowledgeArticle {
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   @unique
+  category  String   @default("general")
+  body      String   @db.Text
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
 }

@@ -1,0 +1,149 @@
+/**
+ * MES-003 design tokens — CSS custom properties.
+ * Source of truth for seed values: services/settings/design-tokens.ts
+ * Dark-first; light theme supported via :root (without .dark).
+ */
+
+:root {
+  /* Typography roles */
+  --type-display: clamp(2.75rem, 5vw, 4.5rem);
+  --type-h1: clamp(2rem, 3.5vw, 3rem);
+  --type-h2: clamp(1.5rem, 2.5vw, 2.25rem);
+  --type-h3: 1.5rem;
+  --type-h4: 1.25rem;
+  --type-body-lg: 1.125rem;
+  --type-body: 1rem;
+  --type-small: 0.875rem;
+  --type-caption: 0.75rem;
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  /* Radius */
+  --radius: 0.75rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+
+  /* Motion */
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --motion-slow: 320ms;
+  --ease-default: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+
+  /* Z-index */
+  --z-dropdown: 40;
+  --z-sticky: 50;
+  --z-overlay: 60;
+  --z-modal: 70;
+  --z-toast: 80;
+
+  /* Containers */
+  --container-sm: 40rem;
+  --container-md: 48rem;
+  --container-lg: 64rem;
+  --container-xl: 80rem;
+  --container-2xl: 90rem;
+
+  /* Light theme seed (future toggle) */
+  --background: #fafaf9;
+  --foreground: #0d0d0d;
+  --surface: #ffffff;
+  --card: #ffffff;
+  --card-foreground: #0d0d0d;
+  --popover: #ffffff;
+  --popover-foreground: #0d0d0d;
+  --primary: #7c3aed;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f5f4;
+  --secondary-foreground: #0a0b1e;
+  --muted: #f5f5f4;
+  --muted-foreground: #78716c;
+  --accent: #6366f1;
+  --accent-foreground: #ffffff;
+  --destructive: #dc2626;
+  --success: #16a34a;
+  --warning: #d97706;
+  --border: rgba(124, 58, 237, 0.15);
+  --input: rgba(13, 13, 13, 0.12);
+  --ring: #7c3aed;
+  --hover: rgba(124, 58, 237, 0.1);
+
+  --sidebar: #fafaf9;
+  --sidebar-foreground: #0a0b1e;
+  --sidebar-primary: #7c3aed;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f5f5f4;
+  --sidebar-accent-foreground: #0a0b1e;
+  --sidebar-border: rgba(124, 58, 237, 0.15);
+  --sidebar-ring: #7c3aed;
+
+  --chart-1: #7c3aed;
+  --chart-2: #78716c;
+  --chart-3: #a8a29e;
+  --chart-4: #57534e;
+  --chart-5: #292524;
+}
+
+/* Dark-first product surface (MES-003) */
+.dark {
+  --background: #0a0b1e;
+  --foreground: #f5f5f4;
+  --surface: #12132a;
+  --card: #16172e;
+  --card-foreground: #f5f5f4;
+  --popover: #16172e;
+  --popover-foreground: #f5f5f4;
+  --primary: #8b5cf6;
+  --primary-foreground: #ffffff;
+  --secondary: #1e1f3a;
+  --secondary-foreground: #f5f5f4;
+  --muted: #1a1b35;
+  --muted-foreground: #a8a29e;
+  --accent: #6366f1;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --border: rgba(139, 92, 246, 0.15);
+  --input: rgba(139, 92, 246, 0.2);
+  --ring: #8b5cf6;
+  --hover: rgba(139, 92, 246, 0.12);
+
+  --sidebar: #12132a;
+  --sidebar-foreground: #f5f5f4;
+  --sidebar-primary: #8b5cf6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1a1b35;
+  --sidebar-accent-foreground: #f5f5f4;
+  --sidebar-border: rgba(139, 92, 246, 0.15);
+  --sidebar-ring: #8b5cf6;
+
+  --chart-1: #8b5cf6;
+  --chart-2: #a8a29e;
+  --chart-3: #78716c;
+  --chart-4: #57534e;
+  --chart-5: #292524;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+    --motion-slow: 0ms;
+  }
+}

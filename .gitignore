@@ -44,3 +44,6 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# Accidental nested create-next-app (duplicate project — do not commit)
+/mendanize/

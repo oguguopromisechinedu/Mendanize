@@ -1,54 +1,42 @@
 # Mendanize
 
-Mendanize is an AI media and education platform for creating, publishing, and growing content with subscribers, premium resources, and AI-assisted workflows.
+AI-powered technology learning platform with two surfaces:
 
-## Final Tech Stack
+1. **Teaching Frontend** (`app/(public)`) — Learn / Discover / Explore (public)
+2. **Dashboard** (`app/(dashboard)`) — Practice / Ask / Administer (auth-gated)
 
-- Frontend: Next.js, Tailwind CSS, shadcn/ui
-- Backend: Supabase, PostgreSQL
-- AI: OpenAI API for AI writing and content generation
+## Source of truth
 
-## Project Goals
+Engineering docs live under [`docs/`](./docs/README.md). Start with:
 
-- Publish high-quality AI-assisted media and educational content
-- Support premium content and subscriber experiences
-- Create a scalable platform for AI resources and learning products
+- [Cursor System Prompt](./docs/core/Cursor-System-Prompt.md)
+- [MES Index](./docs/engineering/MES-INDEX.md) — implement specs in order (MES-001 → MES-029)
+- [Module Map](./docs/architecture/Module-Map.md)
+- [App Router Paths](./docs/architecture/App-Router-Paths.md)
 
-## Getting Started
+## Tech stack
 
-1. Install dependencies:
+- **Frontend:** Next.js (App Router), React, Tailwind CSS, shadcn/ui
+- **Data:** PostgreSQL via Prisma (Supabase-hosted DB supported)
+- **Auth:** NextAuth (session owner: MES-006 / `features/authentication`)
+- **AI:** Multi-provider via `services/ai` (wiring lands in later MES specs)
+- **API contract:** `{ data, error, meta }` — see [API Standards](./docs/standards/API-Standards.md)
+
+## Getting started
 
 ```bash
 npm install
-```
-
-2. Create your environment file:
-
-```bash
 cp .env.example .env.local
-```
-
-3. Start the development server:
-
-```bash
 npm run dev
 ```
 
-Open http://localhost:3000 to view the app.
+Open http://localhost:3000.
 
-## Environment Variables
+## Environment
 
-Make sure these are configured:
+See [docs/ENVIRONMENT.md](./docs/ENVIRONMENT.md) and `.env.example`. Typical keys:
 
-- NEXT_PUBLIC_SUPABASE_URL
-- NEXT_PUBLIC_SUPABASE_ANON_KEY
-- OPENAI_API_KEY
-- DATABASE_URL
-- NEXTAUTH_SECRET
-
-## Architecture Notes
-
-- Supabase handles app data and real-time features.
-- PostgreSQL is the primary relational database layer.
-- OpenAI powers AI writing and generation features.
-- Next.js + Tailwind + shadcn/ui provide the modern frontend foundation.
+- `DATABASE_URL`
+- `NEXTAUTH_SECRET`
+- `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` (when using Supabase)
+- `OPENAI_API_KEY` (and other provider keys as features land)
