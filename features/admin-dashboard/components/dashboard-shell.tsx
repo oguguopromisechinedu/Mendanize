@@ -6,7 +6,12 @@ import type { AuthSession } from "@/features/authentication/types/types"
 import type { AdminNavigationConfig } from "@/services/settings/admin-navigation"
 import { AdminSidebar } from "./admin-sidebar"
 import { AdminTopBar } from "./admin-topbar"
-import { Sheet, SheetContent } from "@/components/ui/sheet"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 
 export function DashboardShell({
@@ -44,6 +49,10 @@ export function DashboardShell({
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-72 p-0" showCloseButton>
+          <SheetTitle className="sr-only">Admin navigation</SheetTitle>
+          <SheetDescription className="sr-only">
+            Navigate the Mendanize admin dashboard.
+          </SheetDescription>
           <AdminSidebar
             config={nav}
             collapsed={false}

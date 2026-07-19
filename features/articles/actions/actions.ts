@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { requireEditor } from "@/features/authentication/server"
+import { invalidateDashboardHome } from "@/features/admin-dashboard/server"
 import {
   bulkUpdateArticleStatus,
   createArticle,
@@ -19,6 +20,8 @@ import type { ActionResult } from "../types/types"
 import type { ArticleRecord } from "@/services/content/types"
 
 function revalidateArticles(slug?: string) {
+  invalidateDashboardHome()
+  revalidatePath("/dashboard")
   revalidatePath("/dashboard/articles")
   revalidatePath("/dashboard/articles/drafts")
   revalidatePath("/dashboard/articles/scheduled")

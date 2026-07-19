@@ -151,7 +151,6 @@ async function uniqueSlug(
 
   const prisma = getPrisma();
   let n = 0;
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const existing =
       kind === "category"

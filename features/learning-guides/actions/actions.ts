@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { requireEditor } from "@/features/authentication/server"
+import { invalidateDashboardHome } from "@/features/admin-dashboard/server"
 import {
   bulkUpdateGuideStatus,
   createGuide,
@@ -17,6 +18,8 @@ import {
 import type { ActionResult } from "../types/types"
 
 function revalidateGuides() {
+  invalidateDashboardHome()
+  revalidatePath("/dashboard")
   revalidatePath("/dashboard/guides")
   revalidatePath("/dashboard/guides/drafts")
   revalidatePath("/dashboard/guides/published")

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { requireEditor } from "@/features/authentication/server"
+import { invalidateDashboardHome } from "@/features/admin-dashboard/server"
 import {
   bulkUpdateToolStatus,
   createTool,
@@ -17,6 +18,8 @@ import {
 import type { ActionResult } from "../types/types"
 
 function revalidateTools() {
+  invalidateDashboardHome()
+  revalidatePath("/dashboard")
   revalidatePath("/dashboard/ai-tools")
   revalidatePath("/dashboard/ai-tools/drafts")
   revalidatePath("/dashboard/ai-tools/published")

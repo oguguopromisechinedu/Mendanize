@@ -137,7 +137,6 @@ async function uniqueGuideSlug(base: string, excludeId?: string) {
   }
   const prisma = getPrisma();
   let n = 0;
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const existing = await prisma.guide.findUnique({ where: { slug } });
     if (!existing || existing.id === excludeId) return slug;

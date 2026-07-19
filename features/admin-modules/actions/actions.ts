@@ -313,7 +313,7 @@ export async function createNewsletterAction(
   const parsed = newsletterWriteSchema.safeParse(input)
   if (!parsed.success) return { ok: false, message: "Subject required" }
   try {
-    const campaign = await createNewsletterCampaign(parsed.data)
+    await createNewsletterCampaign(parsed.data)
     revalidate("/dashboard/newsletter")
     return { ok: true, message: "Campaign saved", data: undefined }
   } catch (e) {

@@ -122,7 +122,6 @@ async function uniqueToolSlug(base: string, excludeId?: string) {
   }
   const prisma = getPrisma();
   let n = 0;
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const existing = await prisma.tool.findUnique({ where: { slug } });
     if (!existing || existing.id === excludeId) return slug;

@@ -30,6 +30,13 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# build / test output artifacts (should not be committed)
+*.log
+build*.txt
+*-out.txt
+vitest-out.txt
+scripts/*result*.json
+
 # env files (can opt-in for committing if needed)
 .env
 .env.local

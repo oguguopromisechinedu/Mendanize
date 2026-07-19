@@ -54,10 +54,12 @@ function createPrismaClient() {
 
   const pool = new Pool({
     connectionString,
-    // Keep the app-side pool small; Supabase pooler owns the real multiplexing.
-    max: 5,
+    // App-side pool. Dashboard aggregation fans out into many parallel queries,
+    // so allow enough headroom to avoid "timeout exceeded when trying to connect"
+    // while still staying well under the Supabase pooler's per-project budget.
+    max: Number(process.env.DATABASE_POOL_MAX ?? 12),
     connectionTimeoutMillis: 20_000,
-    idleTimeoutMillis: 60_000,
+    idleTimeoutMillis: 30_000,
     keepAlive: true,
     // Supabase pooler TLS often needs this on Windows/Node pg clients.
     ...(isSupabase ? { ssl: { rejectUnauthorized: false } } : {}),

@@ -6,6 +6,7 @@
 
 import "server-only";
 
+import { cache } from "react";
 import { AnalyticsEventKind } from "@prisma/client";
 
 import { getPrisma, isDatabaseConfigured } from "@/lib/db/prisma";
@@ -47,185 +48,205 @@ function formatCount(n: number): string {
   return String(n);
 }
 
+let seedPromise: Promise<void> | null = null;
+
+/**
+ * Idempotently seeds analytics placeholder rows.
+ *
+ * NOTE: This intentionally uses sequential `upsert`s rather than an interactive
+ * `$transaction`. Interactive transactions are not supported over the Supabase
+ * transaction pooler (pgbouncer) and fail with "Unable to start a transaction
+ * in the given time". Each row here is independent and idempotent, so a
+ * transaction is unnecessary. Results are memoized per process to avoid
+ * repeating the work on every request.
+ */
 async function ensureSeeded(): Promise<void> {
   if (!isDatabaseConfigured()) return;
+  if (seedPromise) return seedPromise;
 
-  await db().$transaction(async (tx) => {
-    if (!(await tx.analyticsConfiguration.findUnique({ where: { key: KEY } }))) {
-      await tx.analyticsConfiguration.create({
-        data: {
-          key: KEY,
-          retentionDays: 90,
-          privacyMode: true,
-          instrumentationEnabled: false,
-          auditLoggingNote:
-            "Audit logging integrates with platform Security settings (MES-020).",
-          allowedRolesJson: JSON.stringify(["EDITOR", "ADMIN", "SUPER_ADMIN"]),
-        },
-      });
-    }
-
-    if (!(await tx.contentAnalytics.findUnique({ where: { periodKey: PERIOD } }))) {
-      await tx.contentAnalytics.create({
-        data: {
-          periodKey: PERIOD,
-          articleViews: 12450,
-          guideViews: 3820,
-          toolViews: 2910,
-          topContentJson: JSON.stringify([
-            {
-              id: "1",
-              label: "How transformers actually work",
-              value: "1.2K",
-              meta: "article",
-            },
-            {
-              id: "2",
-              label: "Prompt engineering basics",
-              value: "980",
-              meta: "article",
-            },
-            {
-              id: "3",
-              label: "AI literacy path",
-              value: "760",
-              meta: "guide",
-            },
-          ]),
-        },
-      });
-    }
-
-    if (!(await tx.learningAnalytics.findUnique({ where: { periodKey: PERIOD } }))) {
-      await tx.learningAnalytics.create({
-        data: {
-          periodKey: PERIOD,
-          guideStarts: 640,
-          lessonsCompleted: 210,
-          activeLearners: 420,
-          topGuidesJson: JSON.stringify([
-            {
-              id: "g1",
-              label: "AI literacy path",
-              value: "180 starts",
-              meta: "placeholder progress",
-            },
-            {
-              id: "g2",
-              label: "React fundamentals",
-              value: "142 starts",
-              meta: "placeholder progress",
-            },
-          ]),
-        },
-      });
-    }
-
-    if (!(await tx.aIAnalytics.findUnique({ where: { periodKey: PERIOD } }))) {
-      await tx.aIAnalytics.create({
-        data: {
-          periodKey: PERIOD,
-          conversations: 890,
-          messages: 4120,
-          avgMessagesPerConvo: 4.6,
-          topTopicsJson: JSON.stringify([
-            { id: "t1", label: "Explain this article", value: "32%", meta: "Ask" },
-            { id: "t2", label: "Compare AI tools", value: "21%", meta: "Ask" },
-            { id: "t3", label: "Quiz me", value: "14%", meta: "Ask" },
-          ]),
-        },
-      });
-    }
-
-    if (!(await tx.searchAnalytics.findUnique({ where: { periodKey: PERIOD } }))) {
-      await tx.searchAnalytics.create({
-        data: {
-          periodKey: PERIOD,
-          queryCount: 5600,
-          zeroResultCount: 180,
-          topQueriesJson: JSON.stringify([
-            { id: "s1", label: "Prompt engineering", value: "420", meta: "top" },
-            {
-              id: "s2",
-              label: "React Server Components",
-              value: "310",
-              meta: "top",
-            },
-            {
-              id: "s3",
-              label: "AI tools for beginners",
-              value: "275",
-              meta: "top",
-            },
-          ]),
-          zeroResultJson: JSON.stringify([
-            {
-              id: "z1",
-              label: "kubernetes helm charts ai",
-              value: "12",
-              meta: "zero-result",
-            },
-            {
-              id: "z2",
-              label: "fortran tutorials",
-              value: "8",
-              meta: "zero-result",
-            },
-          ]),
-        },
-      });
-    }
-
-    if (!(await tx.trafficAnalytics.findUnique({ where: { periodKey: PERIOD } }))) {
-      await tx.trafficAnalytics.create({
-        data: {
-          periodKey: PERIOD,
-          visitors: 18200,
-          sessions: 24100,
-          pageViews: 91300,
-          returningUsers: 6400,
-          avgSessionSec: 192,
-          devicesJson: JSON.stringify([
-            { id: "d1", label: "Desktop", value: "58%", meta: "device" },
-            { id: "d2", label: "Mobile", value: "36%", meta: "device" },
-            { id: "d3", label: "Tablet", value: "6%", meta: "device" },
-          ]),
-          browsersJson: JSON.stringify([
-            { id: "b1", label: "Chrome", value: "61%", meta: "browser" },
-            { id: "b2", label: "Safari", value: "22%", meta: "browser" },
-            { id: "b3", label: "Firefox", value: "9%", meta: "browser" },
-            { id: "b4", label: "Edge", value: "8%", meta: "browser" },
-          ]),
-        },
-      });
-    }
-
-    const reportCount = await tx.analyticsReport.count();
-    if (reportCount === 0) {
-      await tx.analyticsReport.createMany({
-        data: [
-          {
-            name: "Monthly content engagement",
-            reportType: "content",
-            status: "ready",
-            exportNote: "Export placeholder — CSV/PDF arrives later.",
-            scheduleNote: "Scheduled reports placeholder.",
-            dateFrom: new Date(Date.now() - 30 * 86400000),
-            dateTo: new Date(),
-          },
-          {
-            name: "Search quality snapshot",
-            reportType: "search",
-            status: "ready",
-            exportNote: "Export placeholder.",
-            scheduleNote: null,
-            dateFrom: new Date(Date.now() - 7 * 86400000),
-            dateTo: new Date(),
-          },
-        ],
-      });
-    }
+  seedPromise = seedAnalytics().catch((error) => {
+    // Reset so a transient failure can be retried on a later request.
+    seedPromise = null;
+    throw error;
   });
+  return seedPromise;
+}
+
+async function seedAnalytics(): Promise<void> {
+  await db().analyticsConfiguration.upsert({
+    where: { key: KEY },
+    update: {},
+    create: {
+      key: KEY,
+      retentionDays: 90,
+      privacyMode: true,
+      instrumentationEnabled: false,
+      auditLoggingNote:
+        "Audit logging integrates with platform Security settings (MES-020).",
+      allowedRolesJson: JSON.stringify(["EDITOR", "ADMIN", "SUPER_ADMIN"]),
+    },
+  });
+
+  await db().contentAnalytics.upsert({
+    where: { periodKey: PERIOD },
+    update: {},
+    create: {
+      periodKey: PERIOD,
+      articleViews: 12450,
+      guideViews: 3820,
+      toolViews: 2910,
+      topContentJson: JSON.stringify([
+        {
+          id: "1",
+          label: "How transformers actually work",
+          value: "1.2K",
+          meta: "article",
+        },
+        {
+          id: "2",
+          label: "Prompt engineering basics",
+          value: "980",
+          meta: "article",
+        },
+        {
+          id: "3",
+          label: "AI literacy path",
+          value: "760",
+          meta: "guide",
+        },
+      ]),
+    },
+  });
+
+  await db().learningAnalytics.upsert({
+    where: { periodKey: PERIOD },
+    update: {},
+    create: {
+      periodKey: PERIOD,
+      guideStarts: 640,
+      lessonsCompleted: 210,
+      activeLearners: 420,
+      topGuidesJson: JSON.stringify([
+        {
+          id: "g1",
+          label: "AI literacy path",
+          value: "180 starts",
+          meta: "placeholder progress",
+        },
+        {
+          id: "g2",
+          label: "React fundamentals",
+          value: "142 starts",
+          meta: "placeholder progress",
+        },
+      ]),
+    },
+  });
+
+  await db().aIAnalytics.upsert({
+    where: { periodKey: PERIOD },
+    update: {},
+    create: {
+      periodKey: PERIOD,
+      conversations: 890,
+      messages: 4120,
+      avgMessagesPerConvo: 4.6,
+      topTopicsJson: JSON.stringify([
+        { id: "t1", label: "Explain this article", value: "32%", meta: "Ask" },
+        { id: "t2", label: "Compare AI tools", value: "21%", meta: "Ask" },
+        { id: "t3", label: "Quiz me", value: "14%", meta: "Ask" },
+      ]),
+    },
+  });
+
+  await db().searchAnalytics.upsert({
+    where: { periodKey: PERIOD },
+    update: {},
+    create: {
+      periodKey: PERIOD,
+      queryCount: 5600,
+      zeroResultCount: 180,
+      topQueriesJson: JSON.stringify([
+        { id: "s1", label: "Prompt engineering", value: "420", meta: "top" },
+        {
+          id: "s2",
+          label: "React Server Components",
+          value: "310",
+          meta: "top",
+        },
+        {
+          id: "s3",
+          label: "AI tools for beginners",
+          value: "275",
+          meta: "top",
+        },
+      ]),
+      zeroResultJson: JSON.stringify([
+        {
+          id: "z1",
+          label: "kubernetes helm charts ai",
+          value: "12",
+          meta: "zero-result",
+        },
+        {
+          id: "z2",
+          label: "fortran tutorials",
+          value: "8",
+          meta: "zero-result",
+        },
+      ]),
+    },
+  });
+
+  await db().trafficAnalytics.upsert({
+    where: { periodKey: PERIOD },
+    update: {},
+    create: {
+      periodKey: PERIOD,
+      visitors: 18200,
+      sessions: 24100,
+      pageViews: 91300,
+      returningUsers: 6400,
+      avgSessionSec: 192,
+      devicesJson: JSON.stringify([
+        { id: "d1", label: "Desktop", value: "58%", meta: "device" },
+        { id: "d2", label: "Mobile", value: "36%", meta: "device" },
+        { id: "d3", label: "Tablet", value: "6%", meta: "device" },
+      ]),
+      browsersJson: JSON.stringify([
+        { id: "b1", label: "Chrome", value: "61%", meta: "browser" },
+        { id: "b2", label: "Safari", value: "22%", meta: "browser" },
+        { id: "b3", label: "Firefox", value: "9%", meta: "browser" },
+        { id: "b4", label: "Edge", value: "8%", meta: "browser" },
+      ]),
+    },
+  });
+
+  const reportCount = await db().analyticsReport.count();
+  if (reportCount === 0) {
+    await db().analyticsReport.createMany({
+      data: [
+        {
+          name: "Monthly content engagement",
+          reportType: "content",
+          status: "ready",
+          exportNote: "Export placeholder — CSV/PDF arrives later.",
+          scheduleNote: "Scheduled reports placeholder.",
+          dateFrom: new Date(Date.now() - 30 * 86400000),
+          dateTo: new Date(),
+        },
+        {
+          name: "Search quality snapshot",
+          reportType: "search",
+          status: "ready",
+          exportNote: "Export placeholder.",
+          scheduleNote: null,
+          dateFrom: new Date(Date.now() - 7 * 86400000),
+          dateTo: new Date(),
+        },
+      ],
+    });
+  }
 }
 
 /**
@@ -333,7 +354,18 @@ async function liveContentCounts(): Promise<{
   };
 }
 
-export async function getAnalyticsOverview(): Promise<AnalyticsOverview> {
+/**
+ * Request-scoped memoization: the dashboard renders both an analytics slice and
+ * sparkline charts, each of which needs the overview. `cache()` ensures the
+ * ~12 underlying queries run once per render instead of twice.
+ */
+export const getAnalyticsOverview = cache(
+  async (): Promise<AnalyticsOverview> => {
+    return computeAnalyticsOverview();
+  },
+);
+
+async function computeAnalyticsOverview(): Promise<AnalyticsOverview> {
   await ensureSeeded();
   const [config, live, traffic, content, ai, search] = await Promise.all([
     getAnalyticsConfiguration(),

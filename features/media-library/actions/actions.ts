@@ -15,6 +15,7 @@ import {
   updateMediaCollection,
   uploadAsset,
 } from "@/services/media"
+import { invalidateDashboardHome } from "@/features/admin-dashboard/server"
 import type { MediaAsset, MediaAssetRecord } from "@/services/media/types"
 import {
   assetWriteSchema,
@@ -28,6 +29,8 @@ import {
 import type { ActionResult } from "../types/types"
 
 function revalidateMedia() {
+  invalidateDashboardHome()
+  revalidatePath("/dashboard")
   revalidatePath("/dashboard/media")
   revalidatePath("/dashboard/media/upload")
   revalidatePath("/dashboard/media/recent")
