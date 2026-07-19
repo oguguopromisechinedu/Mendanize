@@ -13,6 +13,7 @@
     "test:integration": "vitest run tests/integration",
     "smoke": "tsx scripts/smoke-check.ts",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:content": "tsx prisma/seed-content.ts",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio"
   },

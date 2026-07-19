@@ -170,7 +170,6 @@ async function ensureUniqueSlug(base: string, excludeId?: string): Promise<strin
 
   const prisma = getPrisma();
   let n = 0;
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const existing = await prisma.article.findUnique({ where: { slug } });
     if (!existing || existing.id === excludeId) return slug;

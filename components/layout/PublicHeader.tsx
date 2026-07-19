@@ -9,6 +9,8 @@ import {
   Sheet,
   SheetClose,
   SheetContent,
+  SheetDescription,
+  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { SearchModal } from "@/components/layout/SearchModal"
@@ -210,6 +212,10 @@ export function PublicHeader({
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-full max-w-xs p-6">
+              <SheetTitle className="sr-only">Site navigation</SheetTitle>
+              <SheetDescription className="sr-only">
+                Browse Mendanize sections and links.
+              </SheetDescription>
               <div className="mb-8 flex items-center justify-between">
                 <Link
                   href={brandHref}

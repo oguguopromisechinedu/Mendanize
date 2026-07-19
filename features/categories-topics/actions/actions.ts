@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { requireEditor } from "@/features/authentication/server"
+import { invalidateDashboardHome } from "@/features/admin-dashboard/server"
 import {
   bulkUpdateCategoryStatus,
   bulkUpdateTopicStatus,
@@ -22,6 +23,8 @@ import {
 import type { ActionResult } from "../types/types"
 
 function revalidateTaxonomy() {
+  invalidateDashboardHome()
+  revalidatePath("/dashboard")
   revalidatePath("/dashboard/categories")
   revalidatePath("/dashboard/topics")
   revalidatePath("/dashboard/articles")

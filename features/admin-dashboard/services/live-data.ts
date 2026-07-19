@@ -58,7 +58,7 @@ export async function loadTopCategories(): Promise<RankedCategory[]> {
     status: "ACTIVE",
   });
 
-  return [...result.items]
+  const ranked = [...result.items]
     .sort((a, b) => b.articleCount - a.articleCount)
     .slice(0, 8)
     .map((cat) => ({
@@ -66,6 +66,11 @@ export async function loadTopCategories(): Promise<RankedCategory[]> {
       name: cat.name,
       count: cat.articleCount,
     }));
+
+  // Keep the seeded demo ranking until categories actually have articles.
+  if (ranked.length === 0 || ranked.every((c) => c.count === 0)) return [];
+
+  return ranked;
 }
 
 export async function loadRecentActivity(): Promise<ActivityItem[]> {
@@ -160,6 +165,9 @@ export async function loadContentOverview(): Promise<ContentSlice[] | null> {
     db.mediaAsset.count({ where: { mimeType: { startsWith: "video/" } } }),
   ]);
 
+  // Keep the seeded demo donut until there is real content to visualize.
+  if (articles + guides + tools + images + videos === 0) return null;
+
   return [
     { id: "c1", label: "Articles", value: articles, color: "#8B5CF6" },
     { id: "c2", label: "Guides", value: guides, color: "#6366F1" },
@@ -228,6 +236,10 @@ export async function loadLiveStats(
       where: { createdAt: { gte: twoWeeksAgo, lt: weekAgo } },
     }),
   ]);
+
+  // No real content yet — signal the caller to keep the seeded demo numbers
+  // (a nicer first-run experience). Live counts take over once content exists.
+  if (articles + guides + images + videos === 0) return [];
 
   return [
     {

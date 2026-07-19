@@ -250,7 +250,7 @@ function ensureMemory() {
       enabled: true,
     },
   ];
-  memory.sitemap = DEFAULT_SITEMAP.map((entityType, i) => ({
+  memory.sitemap = DEFAULT_SITEMAP.map((entityType) => ({
     id: `sm_${entityType}`,
     entityType,
     included: entityType !== "PAGE",
