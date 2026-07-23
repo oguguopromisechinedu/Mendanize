@@ -10,13 +10,17 @@ import {
 import { ok, fail } from "@/lib/api/response";
 import { signUpSchema } from "@/features/authentication/validators/schema";
 
+/**
+ * Public registration API — creates PublicUser only (MES-030).
+ * Admin accounts cannot be self-created.
+ */
 export async function POST(req: Request) {
   try {
     if (!isDatabaseConfigured()) {
       return fail(
         "SERVICE_UNAVAILABLE",
         "Database not configured. Please contact support.",
-        503
+        503,
       );
     }
 
@@ -28,12 +32,11 @@ export async function POST(req: Request) {
     const { success, reset } = await rateLimit(`register-${ip}`, 5);
     if (!success) {
       throw new RateLimitError(
-        `Too many registration attempts. Try again in ${Math.ceil((reset - Date.now()) / 1000)} seconds.`
+        `Too many registration attempts. Try again in ${Math.ceil((reset - Date.now()) / 1000)} seconds.`,
       );
     }
 
     const body = await req.json();
-    // API may omit confirmPassword — map password onto it for schema reuse
     const parsed = signUpSchema.safeParse({
       ...body,
       confirmPassword: body.confirmPassword ?? body.password,
@@ -41,28 +44,35 @@ export async function POST(req: Request) {
     if (!parsed.success) {
       throw new ValidationError(
         "Invalid registration data",
-        parsed.error.flatten().fieldErrors
+        parsed.error.flatten().fieldErrors,
       );
     }
 
     const { name, email, password } = parsed.data;
     const normalizedEmail = email.toLowerCase();
+    const prisma = getPrisma();
 
-    const existing = await getPrisma().user.findUnique({
+    const existing = await prisma.publicUser.findUnique({
       where: { email: normalizedEmail },
     });
     if (existing) {
       throw new EmailAlreadyExistsError(normalizedEmail);
     }
 
+    const adminCollision = await prisma.admin.findUnique({
+      where: { email: normalizedEmail },
+    });
+    if (adminCollision) {
+      throw new EmailAlreadyExistsError(normalizedEmail);
+    }
+
     const passwordHash = await bcrypt.hash(password, 12);
 
-    const user = await getPrisma().user.create({
+    const user = await prisma.publicUser.create({
       data: {
         name,
         email: normalizedEmail,
         passwordHash,
-        role: "LEARNER",
         profile: { create: {} },
         subscription: { create: { plan: "FREE" } },
         settings: { create: {} },
@@ -71,7 +81,6 @@ export async function POST(req: Request) {
         id: true,
         email: true,
         name: true,
-        role: true,
       },
     });
 
@@ -81,11 +90,11 @@ export async function POST(req: Request) {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role,
+          domain: "public" as const,
         },
       },
       undefined,
-      201
+      201,
     );
   } catch (error) {
     return handleApiError(error);

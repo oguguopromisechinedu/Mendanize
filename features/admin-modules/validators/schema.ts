@@ -12,7 +12,14 @@ export const tagMergeSchema = z.object({
 
 export const userRoleSchema = z.object({
   id: z.string().min(1),
-  role: z.enum(["LEARNER", "EDITOR", "ADMIN", "SUPER_ADMIN", "USER"]),
+  role: z.enum([
+    "SUPER_ADMINISTRATOR",
+    "ADMINISTRATOR",
+    "EDITOR",
+    "CONTENT_MANAGER",
+    "ANALYTICS_MANAGER",
+    "SUPPORT_MANAGER",
+  ]),
 })
 
 export const subscriberWriteSchema = z.object({

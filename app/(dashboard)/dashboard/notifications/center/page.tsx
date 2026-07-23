@@ -1,24 +1,23 @@
-import type { Metadata } from "next"
-import { redirect } from "next/navigation"
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import { requireUser } from "@/features/authentication/server"
+import { requireEditor } from "@/features/authentication/server";
 import {
   NotificationCenterView,
-  loadCenter,
-} from "@/features/notifications"
+  loadAdminCenter,
+} from "@/features/notifications";
 
 export const metadata: Metadata = {
   title: "Notification center",
   robots: { index: false },
-}
+};
 
+/** Admin notification inbox — Admin session (MES-030). */
 export default async function Page() {
-  const session = await requireUser()
-  if (!session?.user?.id) {
-    redirect(
-      `/sign-in?callbackUrl=${encodeURIComponent("/dashboard/notifications/center")}`,
-    )
+  const session = await requireEditor();
+  if (!session?.admin?.id) {
+    redirect("/dashboard/login");
   }
-  const initial = await loadCenter(session.user.id)
-  return <NotificationCenterView initial={initial} />
+  const initial = await loadAdminCenter(session.admin.id);
+  return <NotificationCenterView initial={initial} />;
 }

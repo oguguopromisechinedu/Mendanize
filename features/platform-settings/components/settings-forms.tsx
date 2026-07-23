@@ -362,7 +362,7 @@ export function AiSettingsView({ settings }: { settings: AIPlatformSettingRecord
       <p className="mt-4 text-xs text-muted-foreground">
         Prompt templates for Ask live under Ask Prompt Templates; manage
         conversations in{" "}
-        <Link href="/dashboard/ask" className="text-primary hover:underline">
+        <Link href="/ask" className="text-primary hover:underline">
           Ask Mendanize
         </Link>
         .
@@ -608,13 +608,19 @@ export function BackupSettingsView() {
     <div className="mx-auto max-w-3xl space-y-6">
       <AdminPageHeader
         title="Backup & restore"
-        description="Placeholder — real backups are out of scope for this phase."
+        description="Mendanize relies on Supabase automated backups (MES-034). Follow the restore runbook for incidents."
       />
       <SettingsCmsNav />
-      <AdminPanel title="Coming later">
+      <AdminPanel title="Restore runbook">
         <p className="text-sm text-muted-foreground">
-          No environment variable editing, cloud backups, or restore workflows
-          in MES-020.
+          Operators: use{" "}
+          <span className="font-mono text-foreground">
+            docs/runbooks/restore.md
+          </span>{" "}
+          in the repository for snapshot, restore, and verification steps.
+          Confirm your Supabase plan tier includes the retention window you
+          need. Pre-migration manual snapshots remain required for risky schema
+          changes.
         </p>
       </AdminPanel>
     </div>

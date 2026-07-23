@@ -8,7 +8,7 @@ export const SEEDED_HOMEPAGE_CONTENT: HomepageContent = {
   sections: [
     { id: "hero", visible: true, order: 1 },
     { id: "ask", visible: false, order: 2 },
-    { id: "stats", visible: true, order: 3 },
+    { id: "stats", visible: false, order: 3 },
     { id: "articles", visible: true, order: 4 },
     { id: "categories", visible: true, order: 5 },
     { id: "why", visible: true, order: 6 },
@@ -22,7 +22,8 @@ export const SEEDED_HOMEPAGE_CONTENT: HomepageContent = {
   hero: {
     brand: "Mendanize",
     eyebrow: "Stay Ahead with AI",
-    headline: "Learn. Explore. Master",
+    headline: "Learn. Explore.",
+    headlineLead: "Master",
     headlineAccent: "AI.",
     description:
       "Your ultimate resource for AI tools, tutorials, and insights. Learn from experts, discover cutting-edge tools, and stay ahead in the AI revolution.",
@@ -196,6 +197,26 @@ export const SEEDED_HOMEPAGE_CONTENT: HomepageContent = {
       author: "Editorial",
       date: "Jul 12, 2026",
     },
+    {
+      id: "l6",
+      title: "Prompt Engineering Patterns That Actually Stick",
+      description: "",
+      href: "/articles",
+      category: "Guides",
+      readingTime: "8 min",
+      author: "Editorial",
+      date: "Jul 11, 2026",
+    },
+    {
+      id: "l7",
+      title: "Building Reliable AI Toolchains for Teams",
+      description: "",
+      href: "/articles",
+      category: "Tools",
+      readingTime: "10 min",
+      author: "Editorial",
+      date: "Jul 10, 2026",
+    },
   ],
   tools: [
     {
@@ -227,38 +248,44 @@ export const SEEDED_HOMEPAGE_CONTENT: HomepageContent = {
     {
       id: "insights",
       title: "AI-Powered Insights",
-      description: "Get personalized learning recommendations powered by AI.",
+      description:
+        "Get personalized learning recommendations powered by AI.",
       icon: "insights",
     },
     {
       id: "tutorials",
       title: "Step-by-Step Tutorials",
-      description: "Clear, practical guides from beginner to advanced.",
+      description:
+        "Clear, practical guides from beginner to advanced.",
       icon: "tutorials",
     },
     {
       id: "community",
       title: "Community Focused",
-      description: "Learn alongside thousands of AI enthusiasts worldwide.",
+      description:
+        "Learn alongside thousands of AI enthusiasts worldwide.",
       icon: "community",
     },
     {
       id: "updated",
       title: "Always Updated",
-      description: "Fresh content every week as AI evolves rapidly.",
+      description:
+        "Fresh content every week as AI evolves rapidly.",
       icon: "updated",
     },
     {
       id: "skills",
       title: "Real Skills",
-      description: "Apply what you learn with hands-on projects.",
+      description:
+        "Apply what you learn with hands-on projects.",
       icon: "skills",
     },
     {
-      id: "ai",
+      id: "ask",
       title: "Ask Mendanize AI",
-      description: "Get instant answers to your learning questions.",
-      icon: "ai",
+      description:
+        "Get instant answers to your learning questions.",
+      icon: "ask",
     },
   ],
   testimonials: [
@@ -318,9 +345,10 @@ export const SEEDED_HOMEPAGE_CONTENT: HomepageContent = {
     },
   ],
   finalCta: {
-    headline: "Ready to understand technology better?",
-    description: "Explore guides, categories, and tools — then keep learning on your terms.",
-    primaryCta: { label: "Explore guides", href: "/guides" },
-    secondaryCta: { label: "Create account", href: "/sign-up" },
+    headline: "Ready to get more from Mendanize?",
+    description:
+      "Create a free account to unlock guided learning paths, AI tools, saved content, and the full Mendanize product experience.",
+    primaryCta: { label: "Create account", href: "/sign-up" },
+    secondaryCta: { label: "Explore guides", href: "/guides" },
   },
 };

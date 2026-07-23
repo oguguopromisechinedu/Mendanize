@@ -8,7 +8,7 @@ import { getHealthSnapshot } from "@/lib/observability"
  */
 export async function GET() {
   try {
-    return ok(getHealthSnapshot(), { service: "health" })
+    return ok(await getHealthSnapshot(), { service: "health" })
   } catch (error) {
     return handleApiError(error)
   }

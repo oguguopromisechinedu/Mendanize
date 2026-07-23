@@ -1,11 +1,12 @@
 export const LEARNING_NAV = [
-  { label: "Dashboard", href: "/learning" },
-  { label: "Continue", href: "/learning/continue" },
-  { label: "Saved", href: "/learning/saved" },
-  { label: "History", href: "/learning/history" },
-  { label: "For you", href: "/learning/recommended" },
-  { label: "Interests", href: "/learning/interests" },
-  { label: "Preferences", href: "/learning/preferences" },
+  { label: "Dashboard", href: "/account" },
+  { label: "Continue", href: "/account/continue" },
+  { label: "Saved", href: "/account/saved" },
+  { label: "History", href: "/account/history" },
+  { label: "For you", href: "/account/recommended" },
+  { label: "Interests", href: "/account/interests" },
+  { label: "Preferences", href: "/account/preferences" },
+  { label: "Billing", href: "/account/billing" },
 ] as const;
 
 export const DIFFICULTY_OPTIONS = [

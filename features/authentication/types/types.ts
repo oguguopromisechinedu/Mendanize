@@ -1,33 +1,61 @@
-/** MES-006 authentication types — single session contract. */
+/** MES-030 dual-domain authentication types */
 
-import type { UserRole } from "@prisma/client";
+import type { AdminRoleKey } from "@prisma/client";
 
-export type { UserRole };
+export type { AdminRoleKey };
 
-export type AuthUser = {
+/** @deprecated Use AdminRoleKey — kept for transitional imports */
+export type UserRole = AdminRoleKey | "LEARNER" | "USER";
+
+export type PublicUser = {
   id: string;
   email: string;
   name?: string | null;
   image?: string | null;
-  role: UserRole;
+  domain: "public";
 };
 
-export type AuthSession = {
-  user: AuthUser;
+export type AdminUser = {
+  id: string;
+  email: string;
+  name?: string | null;
+  image?: string | null;
+  domain: "admin";
+  roleKey: AdminRoleKey;
+  roleName: string;
+  permissions: string[];
+};
+
+export type PublicSession = {
+  user: PublicUser;
   expires: string;
 };
 
-/** Profile foundation fields (MES-006) — editing UI is out of scope. */
-export type UserProfileFoundation = {
+export type AdminSession = {
+  admin: AdminUser;
+  expires: string;
+};
+
+/** @deprecated Prefer PublicSession | AdminSession */
+export type AuthUser = PublicUser | (AdminUser & { role?: UserRole });
+
+/** @deprecated Prefer PublicSession */
+export type AuthSession = PublicSession;
+
+export type PublicUserProfile = {
   id: string;
   fullName: string | null;
   email: string;
   image: string | null;
-  role: UserRole;
   emailVerified: Date | null;
   createdAt: Date;
   updatedAt: Date;
   accountStatus: "active" | "unverified";
+};
+
+/** @deprecated Prefer PublicUserProfile */
+export type UserProfileFoundation = PublicUserProfile & {
+  role?: UserRole;
 };
 
 export type SignInInput = {

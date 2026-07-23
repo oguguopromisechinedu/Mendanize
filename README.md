@@ -375,32 +375,44 @@ Mendanize is governed by a specification hierarchy under [`docs/`](./docs/README
 - **[MSEM Appendix A](./docs/core/MSEM-Appendix-A-Engineering-Standards.md)** — binding
   engineering standards referenced by every spec.
 - **[Project Rules](./docs/core/Project-Rules.md)** — process rules.
-- **[MES Index](./docs/engineering/MES-INDEX.md)** — MES-001 → MES-029, implemented in
+- **[MES Index](./docs/engineering/MES-INDEX.md)** — MES-001 → **MES-035**, implemented in
   order. Layers:
-  - **Foundation** (MES-001–007): platform, Shared Services & API, design system, public
-    structure, homepage, auth, admin dashboard.
+  - **Foundation** (MES-001–007 + MES-030 retrofit): platform, Shared Services & API, design
+    system, public structure, homepage, dual auth, admin dashboard.
   - **Content modules** (MES-008–016): articles, categories/topics, guides, AI Studio, AI
     tools, homepage CMS, media library, SEO center, navigation manager.
-  - **Platform services** (MES-017–021): search, recommendations, Ask Mendanize, platform
-    settings, billing.
+  - **Platform services** (MES-017–021 + MES-031): search, recommendations, Ask Mendanize,
+    platform settings, billing, AI Knowledge Generation Pipeline.
   - **User experience** (MES-022–024): learning personalization, analytics, notifications.
   - **Public surfaces** (MES-025–027): public articles, guides, AI tools directory.
-  - **Launch** (MES-028–029): performance/security/production readiness, final QA & launch.
+  - **Launch** (MES-028–029 + MES-032–035): production readiness, final QA, observability,
+    caching, backup/recovery, privacy basics.
 
-Per-spec completion handoffs live at `docs/MES-XXX-COMPLETION.md`.
+Live status: [MES-DOCUMENTS-STATUS.md](./docs/MES-DOCUMENTS-STATUS.md). Per-spec completion
+handoffs live at `docs/MES-XXX-COMPLETION.md` when each MES is finished.
 
 **How to work (agents & contributors):** read the
-[Cursor System Prompt](./docs/core/Cursor-System-Prompt.md) and the
-[MES Index](./docs/engineering/MES-INDEX.md) first, then proceed spec by spec, confirming
-folder ownership in the [Module Map](./docs/architecture/Module-Map.md).
+[Cursor System Prompt](./docs/core/Cursor-System-Prompt.md), the
+[MES Index](./docs/engineering/MES-INDEX.md), and
+[MES Documents Status](./docs/MES-DOCUMENTS-STATUS.md) first, then proceed spec by spec,
+confirming folder ownership in the [Module Map](./docs/architecture/Module-Map.md).
 
 ---
 
 ## Roadmap
 
-v1.0 covers MES-001 → MES-029. The following are **explicitly out of the current
-sequence** and each becomes its own MES-03X spec once designed
-([MES Index](./docs/engineering/MES-INDEX.md)):
+**v1.0 baseline** covered MES-001 → MES-029. The **current sequence continues through MES-035**
+([MES Index](./docs/engineering/MES-INDEX.md); status in
+[MES-DOCUMENTS-STATUS](./docs/MES-DOCUMENTS-STATUS.md)):
+
+- MES-030 Dual Authentication (retrofit)
+- MES-031 AI Knowledge Generation Pipeline
+- MES-032 Observability & Logging
+- MES-033 Caching & Performance
+- MES-034 Backup & Recovery
+- MES-035 Privacy & Compliance Basics
+
+The following remain **explicitly out of this sequence** until separately designed:
 
 - Real ML-based recommendations
 - Real learning-progress tracking and completion certificates

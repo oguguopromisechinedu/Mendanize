@@ -12,8 +12,8 @@ export function LearningNav() {
     <nav className="flex flex-wrap gap-1 border-b border-border pb-3">
       {LEARNING_NAV.map((item) => {
         const active =
-          item.href === "/learning"
-            ? pathname === "/learning"
+          item.href === "/account"
+            ? pathname === "/account"
             : pathname.startsWith(item.href);
         return (
           <Link

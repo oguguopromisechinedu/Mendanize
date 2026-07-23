@@ -1,24 +1,21 @@
-import type { Metadata } from "next"
-import { redirect } from "next/navigation"
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import { requireUser } from "@/features/authentication/server"
-import {
-  NotificationPreferencesView,
-  loadPreferences,
-} from "@/features/notifications"
+import { requireEditor } from "@/features/authentication/server";
 
 export const metadata: Metadata = {
   title: "Notification preferences",
   robots: { index: false },
-}
+};
 
+/**
+ * Learner notification preferences are PublicUser-scoped at /account/preferences.
+ * Admin delivery settings live under platform settings.
+ */
 export default async function Page() {
-  const session = await requireUser()
-  if (!session?.user?.id) {
-    redirect(
-      `/sign-in?callbackUrl=${encodeURIComponent("/dashboard/notifications/preferences")}`,
-    )
+  const session = await requireEditor();
+  if (!session?.admin?.id) {
+    redirect("/dashboard/login");
   }
-  const preferences = await loadPreferences(session.user.id)
-  return <NotificationPreferencesView preferences={preferences} />
+  redirect("/dashboard/settings");
 }

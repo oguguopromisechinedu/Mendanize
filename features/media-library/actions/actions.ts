@@ -59,7 +59,7 @@ export async function uploadMediaAction(
       width: data.width,
       height: data.height,
       sizeBytes: data.sizeBytes,
-      uploadedById: session.user.id,
+      uploadedById: session.admin.id,
     })
     revalidateMedia()
     return { ok: true, message: "Asset uploaded", data: asset }

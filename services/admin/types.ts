@@ -1,3 +1,5 @@
+import type { AdminRoleKey } from "@prisma/client"
+
 export type ListResult<T> = {
   items: T[]
   total: number
@@ -20,7 +22,7 @@ export type UserAdminRecord = {
   id: string
   name: string | null
   email: string
-  role: "USER" | "LEARNER" | "EDITOR" | "ADMIN" | "SUPER_ADMIN"
+  role: AdminRoleKey
   emailVerified: string | null
   createdAt: string
   updatedAt: string

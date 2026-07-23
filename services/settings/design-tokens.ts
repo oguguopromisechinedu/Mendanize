@@ -58,7 +58,7 @@ export type DesignTokens = {
   zIndex: Record<string, string>;
 };
 
-/** Deep navy + violet neon — Mendanize brand palette. */
+/** Live mendanize.com public homepage palette. */
 export const SEEDED_DESIGN_TOKENS: DesignTokens = {
   colors: {
     background: "#0A0B1E",
@@ -66,19 +66,19 @@ export const SEEDED_DESIGN_TOKENS: DesignTokens = {
     surface: "#12132A",
     card: "#16172E",
     border: "rgba(139, 92, 246, 0.15)",
-    primary: "#8B5CF6",
+    primary: "#E8940C",
     primaryForeground: "#FFFFFF",
-    secondary: "#1E1F3A",
+    secondary: "#12132A",
     secondaryForeground: "#F5F5F4",
-    accent: "#6366F1",
+    accent: "#E8940C",
     accentForeground: "#FFFFFF",
-    muted: "#1A1B35",
+    muted: "#16172E",
     mutedForeground: "#A8A29E",
     success: "#22C55E",
     warning: "#F59E0B",
     error: "#EF4444",
-    hover: "rgba(139, 92, 246, 0.12)",
-    focus: "#8B5CF6",
+    hover: "rgba(232, 148, 12, 0.12)",
+    focus: "#E8940C",
   },
   colorsLight: {
     background: "#FAFAF9",
@@ -105,7 +105,7 @@ export const SEEDED_DESIGN_TOKENS: DesignTokens = {
     fontBody: "var(--font-body)",
     display: "clamp(2.75rem, 5vw, 4.5rem)",
     h1: "clamp(2rem, 3.5vw, 3rem)",
-    h2: "clamp(1.5rem, 2.5vw, 2.25rem)",
+    h2: "1.5rem",
     h3: "1.5rem",
     h4: "1.25rem",
     bodyLarge: "1.125rem",

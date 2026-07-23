@@ -462,14 +462,14 @@ async function userRecommendations(
   limit: number,
 ): Promise<RecommendationItem[]> {
   const [interests, saved, history] = await Promise.all([
-    db().userInterest.findMany({ where: { userId }, take: 40 }),
+    db().userInterest.findMany({ where: { publicUserId: userId }, take: 40 }),
     db().savedContent.findMany({
-      where: { userId },
+      where: { publicUserId: userId },
       orderBy: { createdAt: "desc" },
       take: 20,
     }),
     db().learningHistory.findMany({
-      where: { userId },
+      where: { publicUserId: userId },
       orderBy: { viewedAt: "desc" },
       take: 20,
     }),
@@ -676,7 +676,7 @@ export async function recordContentView(input: {
             : "TOPIC";
   await db().learningHistory.create({
     data: {
-      userId: input.userId,
+      publicUserId: input.userId,
       entityType: kind,
       entityId: input.entityId,
     },

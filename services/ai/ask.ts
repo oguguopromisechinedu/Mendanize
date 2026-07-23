@@ -746,12 +746,31 @@ export async function askTier1(input: AskTier1Request): Promise<AskTier1Result> 
 
   const surface = input.surface ?? "public";
 
+  // MES-031 — prefer existing knowledge before generation
+  const { searchExistingKnowledge, enqueueKnowledgeGeneration } = await import(
+    "./knowledge-pipeline"
+  );
+  const knowledgeHits = await withTimeout(
+    searchExistingKnowledge(question),
+    3_000,
+    [],
+  );
+  const hasKnowledge = knowledgeHits.length > 0;
+
+  const groundedExcerpt = hasKnowledge
+    ? knowledgeHits
+        .map((h, i) => `${i + 1}. ${h.title} (${h.type}) — ${h.href}`)
+        .join("\n")
+    : input.contextExcerpt;
+
   const [reply, related] = await Promise.all([
     generateAskReply({
       question,
       contextType: input.contextType,
-      contextTitle: input.contextTitle,
-      contextExcerpt: input.contextExcerpt,
+      contextTitle: hasKnowledge
+        ? "Mendanize knowledge base"
+        : input.contextTitle,
+      contextExcerpt: groundedExcerpt ?? input.contextExcerpt,
       surface,
     }),
     withTimeout(
@@ -765,6 +784,14 @@ export async function askTier1(input: AskTier1Request): Promise<AskTier1Result> 
       [],
     ),
   ]);
+
+  // Knowledge gap → enqueue AI Draft asynchronously (never blocks the visitor)
+  if (!hasKnowledge) {
+    void enqueueKnowledgeGeneration({
+      question,
+      sourceSeed: `${surface}:${input.contextType ?? "none"}:${question.slice(0, 40)}`,
+    });
+  }
 
   let handoffId = `local-${Date.now()}`;
   // Persist handoff when DB is healthy; skip for homepage to keep Tier-1 instant.
@@ -832,7 +859,7 @@ export async function listConversationsForUser(
 ): Promise<AskDashboardPayload["conversations"]> {
   if (!isDatabaseConfigured()) return [];
   const rows = await db().conversation.findMany({
-    where: { userId },
+    where: { publicUserId: userId },
     orderBy: { updatedAt: "desc" },
     take: 40,
   });
@@ -851,7 +878,7 @@ export async function getConversationForUser(
 ): Promise<AskConversationRecord | null> {
   if (!isDatabaseConfigured()) return null;
   const row = await db().conversation.findFirst({
-    where: { id: conversationId, userId },
+    where: { id: conversationId, publicUserId: userId },
     include: { messages: { orderBy: { createdAt: "asc" } } },
   });
   return row ? mapConversation(row) : null;
@@ -870,7 +897,7 @@ export async function createConversation(input: {
   }
   const row = await db().conversation.create({
     data: {
-      userId: input.userId,
+      publicUserId: input.userId,
       title: input.title?.trim() || "New conversation",
       contextType: input.contextType ?? "GENERAL",
       contextId: input.contextId ?? null,
@@ -899,7 +926,7 @@ export async function claimHandoff(input: {
 
   const conversation = await db().conversation.create({
     data: {
-      userId: input.userId,
+      publicUserId: input.userId,
       title,
       contextType: handoff.contextType,
       contextId: handoff.contextId,
@@ -940,7 +967,7 @@ export async function sendConversationMessage(input: {
     throw new Error("Database not configured.");
   }
   const conversation = await db().conversation.findFirst({
-    where: { id: input.conversationId, userId: input.userId },
+    where: { id: input.conversationId, publicUserId: input.userId },
     include: { messages: { orderBy: { createdAt: "asc" } } },
   });
   if (!conversation) {

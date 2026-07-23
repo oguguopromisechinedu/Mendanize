@@ -41,13 +41,11 @@ const databaseUrl = process.env.DATABASE_URL?.trim();
 const resolvedDirectUrl = directUrl || databaseUrl;
 
 if (!resolvedDirectUrl) {
-  if (process.env.NODE_ENV === "production") {
-    throw new Error(
-      "DIRECT_URL is required for Prisma migrations. Set DIRECT_URL to your direct Postgres connection (port 5432).",
-    );
-  }
-  // Fallback for local development if environment variables are missing.
-  // This allows Prisma code generation without requiring a configured database.
+  // `prisma generate` (Vercel build / postinstall) must not fail when env
+  // secrets are injected later at runtime. Migrations still need a real URL.
+  console.warn(
+    "[prisma.config] DIRECT_URL/DATABASE_URL unset — using local placeholder for Prisma CLI generate only. Set DIRECT_URL (and DATABASE_URL) in Vercel Production/Preview.",
+  );
   process.env.DIRECT_URL =
     "postgresql://postgres:postgres@localhost:5432/mendanize?schema=public";
 } else {

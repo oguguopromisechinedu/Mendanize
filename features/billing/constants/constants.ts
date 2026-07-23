@@ -1,7 +1,11 @@
 export const BILLING_PATHS = {
   pricing: "/pricing",
-  dashboard: "/dashboard/settings/billing",
-  legacyDashboard: "/dashboard/billing",
+  /** PublicUser billing management (MES-021 / MES-030) */
+  dashboard: "/account/billing",
+  /** @deprecated moved out of Admin dashboard */
+  legacyDashboard: "/dashboard/settings/billing",
+  /** Admin read-only revenue overview */
+  adminOverview: "/dashboard/billing-overview",
 } as const;
 
 export const PAID_PLAN_OPTIONS = [

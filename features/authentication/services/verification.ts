@@ -71,7 +71,7 @@ export async function verifyEmailToken(email: string, token: string) {
     return { ok: false as const, message: "Verification link is invalid or expired." };
   }
 
-  await getPrisma().user.update({
+  await getPrisma().publicUser.update({
     where: { email: normalized },
     data: { emailVerified: new Date() },
   });

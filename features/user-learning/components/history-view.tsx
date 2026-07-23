@@ -60,7 +60,7 @@ export function HistoryView({ items }: { items: HistoryItem[] }) {
       <AdminPanel title="Ask Mendanize history">
         <p className="text-sm text-muted-foreground">
           Use{" "}
-          <Link href="/dashboard/ask" className="text-primary underline">
+          <Link href="/ask" className="text-primary underline">
             Ask Mendanize
           </Link>{" "}
           for Tier 2 conversation history.

@@ -44,7 +44,7 @@ function revalidateSettings() {
     "/dashboard/settings/backup",
     "/dashboard/settings/billing",
     "/dashboard/search-settings",
-    "/dashboard/ask",
+    "/ask",
     "/dashboard/ai-studio",
   ]) {
     revalidatePath(path);

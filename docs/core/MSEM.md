@@ -25,10 +25,11 @@ None — this document is foundational. All MES documents depend on MSEM and App
 
 ## Platform Thesis
 
-Mendanize is an AI-native learning and content platform with two primary surfaces:
+Mendanize is an AI-native learning and content platform with **three** primary surfaces (MES-001 v3.0 / MES-030):
 
 1. **Teaching Frontend (public)** — Learn / Discover / Explore without requiring authentication.
-2. **Dashboard (auth-gated)** — Practice / Ask / Create / Administer for signed-in users and operators.
+2. **Learner Account Area (`/account/*`)** — billing, learning, profile for signed-in `PublicUser` learners.
+3. **Admin Dashboard (`/dashboard/*`)** — Create / Administer — **Admin-only** (never learner billing/learning).
 
 These surfaces share data and Shared Services but intentionally separate routing, layouts, and permission boundaries.
 

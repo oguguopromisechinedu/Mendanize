@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireUser } from "@/features/authentication/server";
+import { requirePublicUser } from "@/features/authentication/server";
 import {
   deleteLearningGoal,
   saveContent,
@@ -28,7 +28,7 @@ function revalidateLearning() {
 }
 
 async function gate(): Promise<{ userId: string } | ActionResult> {
-  const session = await requireUser();
+  const session = await requirePublicUser();
   if (!session?.user?.id) return { ok: false, message: "Sign in required" };
   return { userId: session.user.id };
 }

@@ -150,9 +150,52 @@ describe("MES-006 email verification end-to-end seams", () => {
   })
 
   it("credentials authorize respects emailVerification setting", () => {
-    const auth = read("auth.ts")
+    const auth = read("lib/auth/public.ts")
     expect(auth).toContain("getAuthenticationSettings")
     expect(auth).toContain("emailVerified")
+  })
+})
+
+describe("MES-030 dual authentication isolation", () => {
+  it("keeps PublicUser and Admin Auth.js instances on separate cookies", () => {
+    const cookies = read("lib/auth/cookies.ts")
+    const publicAuth = read("lib/auth/public.ts")
+    const adminAuth = read("lib/auth/admin.ts")
+    expect(cookies).toContain("mendanize.public")
+    expect(cookies).toContain("mendanize.admin")
+    expect(publicAuth).toContain("PUBLIC_SESSION_COOKIE")
+    expect(adminAuth).toContain("ADMIN_SESSION_COOKIE")
+    expect(adminAuth).toContain("admin-credentials")
+    expect(adminAuth).not.toContain("Google(")
+  })
+
+  it("proxy never cross-grants dashboard and account sessions", () => {
+    const proxy = read("proxy.ts")
+    expect(proxy).toContain("adminAuth")
+    expect(proxy).toContain("publicAuth")
+    expect(proxy).toContain("/dashboard/login")
+    expect(proxy).toContain("/account")
+    expect(proxy).toContain("/ask")
+  })
+
+  it("billing and learning live under /account for PublicUser", () => {
+    expect(existsSync(path.join(root, "app/(account)/account/billing/page.tsx"))).toBe(
+      true
+    )
+    expect(existsSync(path.join(root, "app/(account)/account/page.tsx"))).toBe(true)
+    const billingConstants = read("features/billing/constants/constants.ts")
+    expect(billingConstants).toContain('/account/billing')
+    const learningNav = read("features/user-learning/constants/constants.ts")
+    expect(learningNav).toContain('/account')
+  })
+
+  it("schema models PublicUser and Admin separately with AuthorizationLog", () => {
+    const schema = read("prisma/schema.prisma")
+    expect(schema).toContain("model PublicUser")
+    expect(schema).toContain("model Admin")
+    expect(schema).toContain("model AuthorizationLog")
+    expect(schema).toContain("publicUserId")
+    expect(schema).toContain("AdminRoleKey")
   })
 })
 

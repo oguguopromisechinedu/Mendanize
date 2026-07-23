@@ -62,7 +62,7 @@ export async function POST(req: Request) {
     if (userId && isDatabaseConfigured()) {
       await getPrisma().generation.create({
         data: {
-          userId,
+          publicUserId: userId,
           toolId,
           prompt: userPrompt,
           output: result,

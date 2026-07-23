@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { requireEditor } from "@/features/authentication/server"
 import { invalidateDashboardHome } from "@/features/admin-dashboard/server"
+import { invalidatePublicContent } from "@/lib/cache/content"
 import {
   bulkUpdateToolStatus,
   createTool,
@@ -24,6 +25,7 @@ function revalidateTools() {
   revalidatePath("/dashboard/ai-tools/drafts")
   revalidatePath("/dashboard/ai-tools/published")
   revalidatePath("/dashboard/ai-tools/archived")
+  invalidatePublicContent()
 }
 
 export async function createToolAction(

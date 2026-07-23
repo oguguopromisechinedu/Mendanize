@@ -6,6 +6,7 @@ import {
   listCommunicationLogs,
   listEmailTemplates,
   listForUser,
+  listNotificationsForAdmin,
   listNotificationTemplates,
   getNotificationTypeMeta,
 } from "@/services/notification";
@@ -17,8 +18,19 @@ export async function loadDashboard(userId?: string) {
 export async function loadCenter(
   userId: string,
   params?: Parameters<typeof listForUser>[1],
+  opts?: { domain?: "public" | "admin" },
 ) {
+  if (opts?.domain === "admin") {
+    return listNotificationsForAdmin(userId, params);
+  }
   return listForUser(userId, params);
+}
+
+export async function loadAdminCenter(
+  adminId: string,
+  params?: Parameters<typeof listForUser>[1],
+) {
+  return listNotificationsForAdmin(adminId, params);
 }
 
 export async function loadTemplates() {

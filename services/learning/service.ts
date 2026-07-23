@@ -161,9 +161,9 @@ async function seedPlaceholderProgress(
     const total = 6;
     const percent = Math.round((completed / total) * 100);
     const row = await db().learningProgress.upsert({
-      where: { userId_guideId: { userId, guideId: g.id } },
+      where: { publicUserId_guideId: { publicUserId: userId, guideId: g.id } },
       create: {
-        userId,
+        publicUserId: userId,
         guideId: g.id,
         lastLessonTitle: `Lesson ${completed}: Getting started`,
         completedLessons: completed,
@@ -200,7 +200,7 @@ export async function listContinueLearning(
   }
 
   const rows = await db().learningProgress.findMany({
-    where: { userId },
+    where: { publicUserId: userId },
     orderBy: { lastOpenedAt: "desc" },
     take: 12,
   });
@@ -254,7 +254,7 @@ export async function listSavedContent(
 
   const rows = await db().savedContent.findMany({
     where: {
-      userId,
+      publicUserId: userId,
       ...(whereType
         ? { entityType: whereType }
         : {
@@ -308,14 +308,14 @@ export async function saveContent(input: {
   const entityType = KIND_MAP[input.entityType];
   const row = await db().savedContent.upsert({
     where: {
-      userId_entityType_entityId: {
-        userId: input.userId,
+      publicUserId_entityType_entityId: {
+        publicUserId: input.userId,
         entityType,
         entityId: input.entityId,
       },
     },
     create: {
-      userId: input.userId,
+      publicUserId: input.userId,
       entityType,
       entityId: input.entityId,
     },
@@ -347,14 +347,14 @@ export async function unsaveContent(input: {
       where: { id: input.savedId },
     });
     if (!row) return;
-    assertOwner(input.userId, row.userId);
+    assertOwner(input.userId, row.publicUserId);
     await db().savedContent.delete({ where: { id: input.savedId } });
     return;
   }
   if (input.entityType && input.entityId) {
     await db().savedContent.deleteMany({
       where: {
-        userId: input.userId,
+        publicUserId: input.userId,
         entityType: KIND_MAP[input.entityType],
         entityId: input.entityId,
       },
@@ -368,7 +368,7 @@ export async function listLearningHistory(
 ): Promise<HistoryItem[]> {
   if (!isDatabaseConfigured()) return [];
   const rows = await db().learningHistory.findMany({
-    where: { userId },
+    where: { publicUserId: userId },
     orderBy: { viewedAt: "desc" },
     take: opts?.limit ?? 50,
   });
@@ -463,7 +463,7 @@ export async function listUserInterests(
 ): Promise<UserInterestRecord[]> {
   if (!isDatabaseConfigured()) return [];
   const rows = await db().userInterest.findMany({
-    where: { userId },
+    where: { publicUserId: userId },
     orderBy: { createdAt: "desc" },
   });
   const categoryIds = rows.map((r) => r.categoryId).filter(Boolean) as string[];
@@ -510,12 +510,12 @@ export async function setInterest(input: {
   }
 
   const existing = await db().userInterest.findFirst({
-    where: { userId: input.userId, categoryId, topicId },
+    where: { publicUserId: input.userId, categoryId, topicId },
   });
 
   if (!input.enabled) {
     if (existing) {
-      assertOwner(input.userId, existing.userId);
+      assertOwner(input.userId, existing.publicUserId);
       await db().userInterest.delete({ where: { id: existing.id } });
     }
     return;
@@ -523,7 +523,7 @@ export async function setInterest(input: {
 
   if (existing) return;
   await db().userInterest.create({
-    data: { userId: input.userId, categoryId, topicId },
+    data: { publicUserId: input.userId, categoryId, topicId },
   });
 }
 
@@ -541,10 +541,10 @@ export async function getUserPreferences(
       updatedAt: new Date().toISOString(),
     };
   }
-  let row = await db().userPreference.findUnique({ where: { userId } });
+  let row = await db().userPreference.findUnique({ where: { publicUserId: userId } });
   if (!row) {
     row = await db().userPreference.create({
-      data: { userId },
+      data: { publicUserId: userId },
     });
   }
   return {
@@ -573,7 +573,7 @@ export async function updateUserPreferences(
     return getUserPreferences(userId);
   }
   const row = await db().userPreference.update({
-    where: { userId },
+    where: { publicUserId: userId },
     data: {
       ...(input.preferredDifficulty !== undefined
         ? { preferredDifficulty: input.preferredDifficulty }
@@ -598,8 +598,8 @@ export async function updateUserPreferences(
   // Keep legacy UserSettings.theme loosely in sync when present
   if (input.themePreference && input.themePreference !== "system") {
     await db().userSettings.upsert({
-      where: { userId },
-      create: { userId, theme: input.themePreference },
+      where: { publicUserId: userId },
+      create: { publicUserId: userId, theme: input.themePreference },
       update: { theme: input.themePreference },
     });
   }
@@ -620,7 +620,7 @@ export async function listLearningGoals(
 ): Promise<LearningGoalRecord[]> {
   if (!isDatabaseConfigured()) return [];
   const rows = await db().learningGoal.findMany({
-    where: { userId },
+    where: { publicUserId: userId },
     orderBy: { createdAt: "desc" },
   });
   return rows.map((r) => ({
@@ -649,7 +649,7 @@ export async function upsertLearningGoal(input: {
       where: { id: input.id },
     });
     if (!existing) throw new ValidationError("Goal not found.");
-    assertOwner(input.userId, existing.userId);
+    assertOwner(input.userId, existing.publicUserId);
     const row = await db().learningGoal.update({
       where: { id: input.id },
       data: {
@@ -670,7 +670,7 @@ export async function upsertLearningGoal(input: {
   }
   const row = await db().learningGoal.create({
     data: {
-      userId: input.userId,
+      publicUserId: input.userId,
       title: input.title.trim(),
       description: input.description?.trim() || null,
       targetNote: input.targetNote?.trim() || null,
@@ -694,7 +694,7 @@ export async function deleteLearningGoal(
   if (!isDatabaseConfigured()) return;
   const existing = await db().learningGoal.findUnique({ where: { id: goalId } });
   if (!existing) return;
-  assertOwner(userId, existing.userId);
+  assertOwner(userId, existing.publicUserId);
   await db().learningGoal.delete({ where: { id: goalId } });
 }
 
@@ -711,10 +711,10 @@ export async function getLearningStats(userId: string): Promise<LearningStats> {
   }
   const [savedCount, historyCount, interestCount, continueCount] =
     await Promise.all([
-      db().savedContent.count({ where: { userId } }),
-      db().learningHistory.count({ where: { userId } }),
-      db().userInterest.count({ where: { userId } }),
-      db().learningProgress.count({ where: { userId } }),
+      db().savedContent.count({ where: { publicUserId: userId } }),
+      db().learningHistory.count({ where: { publicUserId: userId } }),
+      db().userInterest.count({ where: { publicUserId: userId } }),
+      db().learningProgress.count({ where: { publicUserId: userId } }),
     ]);
   return {
     savedCount,

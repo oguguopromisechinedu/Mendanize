@@ -1,4 +1,4 @@
-/** Client-safe exports — features/authentication (MES-006)
+/** Client-safe exports — features/authentication (MES-030)
  * Session/require helpers: `@/features/authentication/server`
  */
 
@@ -6,7 +6,10 @@ export {
   isAdminRole,
   isStaffRole,
   isLearnerRole,
-} from "./roles"
+  isAdminRoleKey,
+  isStaffRoleKey,
+  PERMISSIONS,
+} from "./roles";
 
 export {
   signInWithCredentials,
@@ -16,18 +19,26 @@ export {
   resetPassword,
   verifyEmailWithToken,
   resendVerificationEmail,
-} from "./actions/actions"
+  adminSignInWithCredentials,
+  adminSignOutAction,
+} from "./actions/actions";
 
 export {
   signInSchema,
   signUpSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
-} from "./validators/schema"
+} from "./validators/schema";
 
 export type {
   AuthSession,
   AuthUser,
+  PublicSession,
+  AdminSession,
+  PublicUser,
+  AdminUser,
+  PublicUserProfile,
   UserProfileFoundation,
   UserRole,
-} from "./types/types"
+  AdminRoleKey,
+} from "./types/types";

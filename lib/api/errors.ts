@@ -167,15 +167,18 @@ export class InternalServerError extends AppError {
 /**
  * Map thrown errors to the MES-002 envelope `{ data, error, meta }`.
  */
-export function handleApiError(error: unknown) {
+export function handleApiError(error: unknown, requestId?: string) {
   logger.error("API error", {
     message: error instanceof Error ? error.message : String(error),
     name: error instanceof Error ? error.name : undefined,
+    stack: error instanceof Error ? error.stack : undefined,
+    module: "api",
+    requestId,
   });
 
   if (error instanceof NotImplementedError) {
     const body = error.toApiResponse();
-    body.meta = { placeholder: true };
+    body.meta = { placeholder: true, ...(requestId ? { requestId } : {}) };
     return NextResponse.json(body, { status: 501 });
   }
 

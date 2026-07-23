@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { requireEditor } from "@/features/authentication/server"
 import { invalidateDashboardHome } from "@/features/admin-dashboard/server"
+import { invalidatePublicContent } from "@/lib/cache/content"
 import {
   bulkUpdateArticleStatus,
   createArticle,
@@ -30,6 +31,7 @@ function revalidateArticles(slug?: string) {
   if (slug) {
     revalidatePath(`/dashboard/articles/${slug}/preview`)
   }
+  invalidatePublicContent({ articleSlug: slug })
 }
 
 export async function createArticleAction(
@@ -73,7 +75,7 @@ export async function createArticleAction(
       featuredImageUrl: data.featuredImageUrl || null,
       featuredImageAlt: data.featuredImageAlt || null,
       tagNames: data.tagNames ?? [],
-      authorId: session.user.id,
+      authorId: session.admin.id,
     })
     revalidateArticles(article.slug)
     return { ok: true, message: "Article saved", data: article }

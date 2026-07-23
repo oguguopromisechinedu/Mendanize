@@ -15,6 +15,7 @@ export {
 } from "./components/settings-views";
 export {
   loadAnnouncements,
+  loadAdminCenter,
   loadCenter,
   loadDashboard,
   loadDelivery,

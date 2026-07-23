@@ -26,6 +26,27 @@ Docs-only history. Application release notes may mirror entries when behaviour l
 
 ## Releases
 
+### 1.3.0 — 2026-07-23 (MES-030–035 implementation handoffs)
+
+#### Added
+- Completion handoffs: [MES-030](./MES-030-COMPLETION.md) … [MES-035](./MES-035-COMPLETION.md)
+- Restore runbook: [docs/runbooks/restore.md](./runbooks/restore.md)
+
+#### Changed
+- [MES-DOCUMENTS-STATUS.md](./MES-DOCUMENTS-STATUS.md) marks MES-030–035 **Complete** (MVP / process)
+
+### 1.2.0 — 2026-07-23 (Doc system connected through MES-035)
+
+#### Changed
+- Linked governance, maps, status, and contributor/agent prompts to **MES-INDEX v1.5** (MES-001 → MES-035)
+- [MES-DOCUMENTS-STATUS.md](./MES-DOCUMENTS-STATUS.md) is now the operational next-MES board
+- Architecture maps + App Router paths reflect three surfaces and MES-030–035 ownership
+- Root README, CONTRIBUTING, Cursor System Prompt, Project Rules, MSEM thesis aligned
+
+#### Notes
+- No MES-030–035 product code in this docs pass — status marks 030 Partial / 031–035 Specified|Process
+- Audit reports under `docs/reports/` still evidence MES-001–029; status board covers the rest until audits refresh
+
 ### 1.1.0 — 2026-07-15 (Mendanize platform v1.0 freeze)
 
 #### Added

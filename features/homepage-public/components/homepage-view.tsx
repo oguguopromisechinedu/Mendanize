@@ -19,7 +19,12 @@ function renderSection(id: HomepageSectionId, content: HomepageContent) {
   switch (id) {
     case "hero":
       return (
-        <HeroSection key={id} content={content.hero} ask={content.ask} />
+        <HeroSection
+          key={id}
+          content={content.hero}
+          ask={content.ask}
+          stats={content.stats}
+        />
       )
     case "ask":
       return null

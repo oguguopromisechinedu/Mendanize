@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getSession } from "@/features/authentication/server";
+import { requirePublicUser } from "@/features/authentication/server";
 import {
   createConversation,
   sendConversationMessage,
@@ -15,13 +15,13 @@ import {
 import type { ActionResult } from "../types/types";
 
 function revalidateAsk() {
-  revalidatePath("/dashboard/ask");
+  revalidatePath("/ask");
 }
 
 export async function createAskConversationAction(
   input: unknown,
 ): Promise<ActionResult> {
-  const session = await getSession();
+  const session = await requirePublicUser();
   if (!session?.user?.id) return { ok: false, message: "Sign in required" };
   const parsed = createConversationSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Validation failed" };
@@ -43,7 +43,7 @@ export async function createAskConversationAction(
 export async function sendAskMessageAction(
   input: unknown,
 ): Promise<ActionResult> {
-  const session = await getSession();
+  const session = await requirePublicUser();
   if (!session?.user?.id) return { ok: false, message: "Sign in required" };
   const parsed = sendMessageSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Validation failed" };
@@ -66,7 +66,7 @@ export async function sendAskMessageAction(
 export async function submitAskFeedbackAction(
   input: unknown,
 ): Promise<ActionResult> {
-  const session = await getSession();
+  const session = await requirePublicUser();
   const parsed = feedbackSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Validation failed" };
   await submitAskFeedback({

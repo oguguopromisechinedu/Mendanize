@@ -31,13 +31,17 @@ export const SEEDED_ADMIN_NAVIGATION: AdminNavigationConfig = {
       items: [
         { label: "Dashboard", href: "/dashboard", icon: "layout-dashboard" },
         { label: "AI Studio", href: "/dashboard/ai-studio", icon: "sparkles" },
+        {
+          label: "AI Knowledge",
+          href: "/dashboard/ai-knowledge",
+          icon: "library",
+        },
         { label: "AI Tools", href: "/dashboard/ai-tools", icon: "cpu" },
         { label: "Articles", href: "/dashboard/articles", icon: "file-text" },
         { label: "Categories", href: "/dashboard/categories", icon: "folder" },
         { label: "Topics", href: "/dashboard/topics", icon: "tags" },
         { label: "Learning Guides", href: "/dashboard/guides", icon: "book-open" },
         { label: "Homepage", href: "/dashboard/homepage", icon: "home" },
-        { label: "Ask Mendanize", href: "/dashboard/ask", icon: "sparkles" },
         { label: "Navbar Manager", href: "/dashboard/navigation", icon: "menu" },
         { label: "Media Library", href: "/dashboard/media", icon: "image" },
         { label: "Pages", href: "/dashboard/pages", icon: "layout" },
@@ -73,6 +77,11 @@ export const SEEDED_ADMIN_NAVIGATION: AdminNavigationConfig = {
         { label: "Users & Roles", href: "/dashboard/users", icon: "shield" },
         { label: "Workflow", href: "/dashboard/workflow", icon: "git-branch" },
         { label: "Activity Log", href: "/dashboard/activity-log", icon: "activity" },
+        {
+          label: "System Logs",
+          href: "/dashboard/system-logs",
+          icon: "activity",
+        },
       ],
     },
     {
@@ -83,7 +92,11 @@ export const SEEDED_ADMIN_NAVIGATION: AdminNavigationConfig = {
         { label: "Automation", href: "/dashboard/automation", icon: "zap" },
         { label: "Knowledge Base", href: "/dashboard/knowledge-base", icon: "library" },
         { label: "Settings", href: "/dashboard/settings", icon: "settings" },
-        { label: "Billing", href: "/dashboard/settings/billing", icon: "credit-card" },
+        {
+          label: "Billing overview",
+          href: "/dashboard/billing-overview",
+          icon: "credit-card",
+        },
       ],
     },
   ],
