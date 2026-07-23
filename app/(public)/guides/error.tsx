@@ -3,7 +3,7 @@
 import { useEffect } from "react"
 
 import { ErrorState } from "@/components/ui/error-state"
-import { logUnhandledError } from "@/lib/observability"
+import { logUnhandledError } from "@/lib/client-error-log"
 
 export default function Error({
   error,

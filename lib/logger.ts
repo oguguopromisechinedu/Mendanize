@@ -31,7 +31,11 @@ function emit(level: LogLevel, message: string, context?: LogContext) {
       break;
   }
 
-  if (level === "error" || level === "warn") {
+  // Persist only on the server — never pull Prisma/pg into client bundles.
+  if (
+    (level === "error" || level === "warn") &&
+    typeof window === "undefined"
+  ) {
     void import("@/services/admin/application-logs")
       .then(({ persistApplicationLog }) =>
         persistApplicationLog({
