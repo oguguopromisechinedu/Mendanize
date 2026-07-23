@@ -16,7 +16,7 @@ export function LearningDashboardView({ data }: { data: LearningDashboard }) {
         description="Your personalized learning space — continue guides, saved resources, and recommendations."
         actions={
           <Button asChild size="sm" variant="outline">
-            <Link href="/learning/interests">Edit interests</Link>
+            <Link href="/account/interests">Edit interests</Link>
           </Button>
         }
       />
@@ -37,7 +37,7 @@ export function LearningDashboardView({ data }: { data: LearningDashboard }) {
         title="Continue learning"
         action={
           <Button asChild size="sm" variant="ghost">
-            <Link href="/learning/continue">View all</Link>
+            <Link href="/account/continue">View all</Link>
           </Button>
         }
       >
@@ -73,7 +73,7 @@ export function LearningDashboardView({ data }: { data: LearningDashboard }) {
           title="Recently viewed"
           action={
             <Button asChild size="sm" variant="ghost">
-              <Link href="/learning/history">History</Link>
+              <Link href="/account/history">History</Link>
             </Button>
           }
         >
@@ -99,7 +99,7 @@ export function LearningDashboardView({ data }: { data: LearningDashboard }) {
           title="Saved"
           action={
             <Button asChild size="sm" variant="ghost">
-              <Link href="/learning/saved">All saved</Link>
+              <Link href="/account/saved">All saved</Link>
             </Button>
           }
         >

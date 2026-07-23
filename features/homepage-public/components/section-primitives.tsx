@@ -1,4 +1,6 @@
 import type { ReactNode } from "react"
+import Link from "next/link"
+import { ChevronRight } from "lucide-react"
 
 import { Container } from "@/components/ui/container"
 import { cn } from "@/lib/utils"
@@ -45,21 +47,47 @@ export function SectionHeading({
   title,
   description,
   titleOverride,
+  action,
 }: {
   eyebrow?: string
   title: string
   description?: string
   titleOverride?: string | null
+  /** Right-side explore / view-all link (MES-005). */
+  action?: { label: string; href: string; className?: string }
 }) {
   const displayTitle = titleOverride?.trim() || title
   return (
-    <div className="mb-8 max-w-2xl lg:mb-10">
-      {eyebrow ? (
-        <p className="type-caption text-primary mb-3">{eyebrow}</p>
-      ) : null}
-      <h2 className="type-h2 text-foreground">{displayTitle}</h2>
-      {description ? (
-        <p className="mt-3 text-muted-foreground type-body-lg">{description}</p>
+    <div
+      className={cn(
+        "mb-8 lg:mb-10",
+        action
+          ? "flex flex-wrap items-end justify-between gap-3"
+          : "max-w-2xl",
+      )}
+    >
+      <div className={action ? "min-w-0 max-w-2xl" : undefined}>
+        {eyebrow ? (
+          <p className="type-eyebrow mb-3 text-primary">{eyebrow}</p>
+        ) : null}
+        <h2 className="type-h2 text-foreground">{displayTitle}</h2>
+        {description ? (
+          <p className="mt-3 text-lg leading-[1.6] text-muted-foreground">
+            {description}
+          </p>
+        ) : null}
+      </div>
+      {action ? (
+        <Link
+          href={action.href}
+          className={cn(
+            "inline-flex shrink-0 items-center gap-1 text-sm text-primary hover:underline",
+            action.className,
+          )}
+        >
+          {action.label}
+          <ChevronRight className="size-3.5" aria-hidden />
+        </Link>
       ) : null}
     </div>
   )

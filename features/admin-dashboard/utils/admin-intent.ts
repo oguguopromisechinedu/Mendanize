@@ -211,7 +211,7 @@ export function resolveAdminIntent(raw: string): AdminIntent {
     return {
       kind: "ask_general",
       label: "Ask Admin",
-      href: "/dashboard/ask",
+      href: "/dashboard/ai-studio",
       draft: "",
       openAsk: true,
     }
@@ -240,7 +240,7 @@ export function resolveAdminIntent(raw: string): AdminIntent {
   return {
     kind: "ask_general",
     label: "Ask Admin",
-    href: "/dashboard/ask",
+    href: "/dashboard/ai-studio",
     draft: q,
     openAsk: true,
   }

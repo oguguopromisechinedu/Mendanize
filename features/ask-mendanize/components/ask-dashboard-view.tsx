@@ -57,7 +57,7 @@ export function AskDashboardView({
 
   function selectConversation(id: string) {
     setActiveId(id);
-    router.push(`/dashboard/ask?c=${id}`);
+    router.push(`/ask?c=${id}`);
   }
 
   function newChat() {
@@ -69,7 +69,7 @@ export function AskDashboardView({
       }
       const data = res.data as { id: string };
       toast.success(res.message);
-      router.push(`/dashboard/ask?c=${data.id}`);
+      router.push(`/ask?c=${data.id}`);
       router.refresh();
     });
   }
@@ -95,7 +95,7 @@ export function AskDashboardView({
         if (!sent.ok) toast.error(sent.message);
         else {
           setDraft("");
-          router.push(`/dashboard/ask?c=${conv.id}`);
+          router.push(`/ask?c=${conv.id}`);
           router.refresh();
         }
       });

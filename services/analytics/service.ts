@@ -622,7 +622,7 @@ export async function getUserAnalyticsDomain(): Promise<DomainAnalyticsPayload> 
     : null;
   let userCount = 0;
   if (isDatabaseConfigured()) {
-    userCount = await db().user.count();
+    userCount = await db().publicUser.count();
   }
   return {
     title: "User analytics",

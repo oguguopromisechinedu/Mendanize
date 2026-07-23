@@ -1,5 +1,12 @@
 /**
- * @deprecated Import from `@/features/authentication` (MES-006).
- * Kept as a thin re-export for existing dashboard imports.
+ * @deprecated Import from `@/features/authentication/server` (MES-030).
  */
-export { requireAdmin, requireUser, getSession } from "@/features/authentication/server"
+export {
+  requireAdmin,
+  requireUser,
+  requirePublicUser,
+  requireEditor,
+  getSession,
+  getPublicSession,
+  getAdminSession,
+} from "@/features/authentication/server";

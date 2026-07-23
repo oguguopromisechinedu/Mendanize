@@ -191,7 +191,7 @@ function interpolate(
 
 function mapInApp(row: {
   id: string;
-  userId: string;
+  publicUserId: string | null;
   type: NotificationType;
   priority: NotificationPriority;
   status: NotificationStatus;
@@ -206,7 +206,7 @@ function mapInApp(row: {
 }): InAppNotification {
   return {
     id: row.id,
-    userId: row.userId,
+    userId: row.publicUserId ?? "",
     type: row.type as NotificationTypeValue,
     priority: row.priority,
     status: row.status,
@@ -371,13 +371,15 @@ export async function getNotificationPreferences(
       updatedAt: new Date().toISOString(),
     };
   }
-  let row = await db().notificationPreference.findUnique({ where: { userId } });
+  let row = await db().notificationPreference.findUnique({
+    where: { publicUserId: userId },
+  });
   if (!row) {
-    row = await db().notificationPreference.create({ data: { userId } });
+    row = await db().notificationPreference.create({ data: { publicUserId: userId } });
   }
   return {
     id: row.id,
-    userId: row.userId,
+    userId: row.publicUserId,
     learningUpdates: row.learningUpdates,
     aiUpdates: row.aiUpdates,
     securityAlerts: row.securityAlerts,
@@ -407,12 +409,12 @@ export async function updateNotificationPreferences(
     return getNotificationPreferences(userId);
   }
   const row = await db().notificationPreference.update({
-    where: { userId },
+    where: { publicUserId: userId },
     data: { ...input },
   });
   return {
     id: row.id,
-    userId: row.userId,
+    userId: row.publicUserId,
     learningUpdates: row.learningUpdates,
     aiUpdates: row.aiUpdates,
     securityAlerts: row.securityAlerts,
@@ -448,7 +450,7 @@ export async function dispatch(
     if (isDatabaseConfigured()) {
       const log = await db().communicationLog.create({
         data: {
-          userId: params.userId ?? null,
+          publicUserId: params.userId ?? null,
           channel: "email",
           templateKey: params.template,
           subject,
@@ -528,7 +530,7 @@ export async function dispatch(
   if (blocked) {
     const log = await db().communicationLog.create({
       data: {
-        userId: params.userId,
+        publicUserId: params.userId,
         channel: "in_app",
         templateKey: params.template,
         subject: title,
@@ -547,7 +549,7 @@ export async function dispatch(
 
   const row = await db().notification.create({
     data: {
-      userId: params.userId,
+      publicUserId: params.userId,
       type,
       priority,
       status: NotificationStatus.UNREAD,
@@ -562,7 +564,7 @@ export async function dispatch(
   });
   await db().communicationLog.create({
     data: {
-      userId: params.userId,
+      publicUserId: params.userId,
       channel: "in_app",
       templateKey: params.template,
       subject: title,
@@ -591,12 +593,12 @@ export async function listForUser(
   await ensureSeeded();
 
   const where: {
-    userId: string;
+    publicUserId: string;
     archived?: boolean;
     status?: NotificationStatus;
     type?: NotificationType;
     OR?: Array<{ title?: { contains: string; mode: "insensitive" }; preview?: { contains: string; mode: "insensitive" } }>;
-  } = { userId };
+  } = { publicUserId: userId };
 
   if (params?.status && params.status !== "ALL") {
     where.status = params.status as NotificationStatus;
@@ -619,7 +621,72 @@ export async function listForUser(
   const [total, unreadCount, rows] = await Promise.all([
     db().notification.count({ where }),
     db().notification.count({
-      where: { userId, read: false, archived: false },
+      where: { publicUserId: userId, read: false, archived: false },
+    }),
+    db().notification.findMany({
+      where,
+      orderBy: {
+        createdAt: params?.sort === "oldest" ? "asc" : "desc",
+      },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+  ]);
+
+  return {
+    items: rows.map(mapInApp),
+    total,
+    page,
+    pageSize,
+    unreadCount,
+  };
+}
+
+/** Admin in-app notifications (MES-024 / MES-030). */
+export async function listNotificationsForAdmin(
+  adminId: string,
+  params?: NotificationListParams,
+): Promise<NotificationListResult> {
+  const page = Math.max(1, params?.page ?? 1);
+  const pageSize = Math.min(50, Math.max(1, params?.pageSize ?? 20));
+  if (!isDatabaseConfigured()) {
+    return { items: [], total: 0, page, pageSize, unreadCount: 0 };
+  }
+  await ensureSeeded();
+
+  const where: {
+    adminId: string;
+    archived?: boolean;
+    status?: NotificationStatus;
+    type?: NotificationType;
+    OR?: Array<{
+      title?: { contains: string; mode: "insensitive" };
+      preview?: { contains: string; mode: "insensitive" };
+    }>;
+  } = { adminId };
+
+  if (params?.status && params.status !== "ALL") {
+    where.status = params.status as NotificationStatus;
+    if (params.status === "ARCHIVED") where.archived = true;
+    else where.archived = false;
+  } else {
+    where.archived = false;
+  }
+  if (params?.type && params.type !== "ALL") {
+    where.type = params.type as NotificationType;
+  }
+  if (params?.query?.trim()) {
+    const q = params.query.trim();
+    where.OR = [
+      { title: { contains: q, mode: "insensitive" } },
+      { preview: { contains: q, mode: "insensitive" } },
+    ];
+  }
+
+  const [total, unreadCount, rows] = await Promise.all([
+    db().notification.count({ where }),
+    db().notification.count({
+      where: { adminId, read: false, archived: false },
     }),
     db().notification.findMany({
       where,
@@ -648,7 +715,9 @@ export async function markNotification(
   if (!isDatabaseConfigured()) return;
   const row = await db().notification.findUnique({ where: { id } });
   if (!row) return;
-  if (row.userId !== userId) {
+  const ownsAsPublic = row.publicUserId === userId;
+  const ownsAsAdmin = row.adminId === userId;
+  if (!ownsAsPublic && !ownsAsAdmin) {
     throw new AuthorizationError("Not allowed to modify this notification.");
   }
   if (action === "delete") {
@@ -813,7 +882,7 @@ export async function listCommunicationLogs(input?: {
     total,
     items: rows.map((r) => ({
       id: r.id,
-      userId: r.userId,
+      userId: r.publicUserId,
       channel: r.channel,
       templateKey: r.templateKey,
       subject: r.subject,
@@ -844,16 +913,16 @@ export async function getNotificationsDashboard(
     await Promise.all([
       userId
         ? db().notification.count({
-            where: { userId, read: false, archived: false },
+            where: { publicUserId: userId, read: false, archived: false },
           })
         : db().notification.count({
             where: { read: false, archived: false },
           }),
       userId
-        ? db().notification.count({ where: { userId } })
+        ? db().notification.count({ where: { publicUserId: userId } })
         : db().notification.count(),
       userId
-        ? db().notification.count({ where: { userId, archived: true } })
+        ? db().notification.count({ where: { publicUserId: userId, archived: true } })
         : db().notification.count({ where: { archived: true } }),
       db().announcement.count({ where: { active: true } }),
       db().communicationLog.count({

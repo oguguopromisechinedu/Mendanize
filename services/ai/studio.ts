@@ -39,7 +39,7 @@ function providerEnum(id: AiProviderId): AIGenerationProviderValue {
 
 function mapRow(row: {
   id: string;
-  userId: string;
+  adminId: string;
   type: AIGenerationTypeValue;
   provider: AIGenerationProviderValue;
   status: AIGenerationStatusValue;
@@ -62,7 +62,7 @@ function mapRow(row: {
 }): AIGenerationRecord {
   return {
     id: row.id,
-    userId: row.userId,
+    userId: row.adminId,
     type: row.type,
     provider: row.provider,
     status: row.status,
@@ -252,7 +252,7 @@ async function persistGeneration(
   const created = await getPrisma().aIGeneration.create({
     data: {
       id: full.id,
-      userId: full.userId,
+      adminId: full.userId,
       type: full.type,
       provider: full.provider,
       status: full.status,

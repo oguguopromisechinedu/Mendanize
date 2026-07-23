@@ -36,39 +36,65 @@ async function main() {
 
   const prisma = getPrisma();
   const passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 12);
-  const existing = await prisma.user.findUnique({
+
+  let role = await prisma.adminRole.findUnique({
+    where: { key: "SUPER_ADMINISTRATOR" },
+  });
+  if (!role) {
+    role = await prisma.adminRole.create({
+      data: {
+        key: "SUPER_ADMINISTRATOR",
+        name: "Super Administrator",
+        description: "Full platform access",
+      },
+    });
+  }
+
+  const existing = await prisma.admin.findUnique({
     where: { email: ADMIN_EMAIL },
     select: { id: true },
   });
 
-  const user = existing
-    ? await prisma.user.update({
+  const admin = existing
+    ? await prisma.admin.update({
         where: { email: ADMIN_EMAIL },
         data: {
-          role: "ADMIN",
+          roleId: role.id,
           passwordHash,
           emailVerified: new Date(),
           name: "Mendanize Admin",
+          active: true,
         },
-        select: { id: true, email: true, role: true, emailVerified: true },
+        select: {
+          id: true,
+          email: true,
+          active: true,
+          role: { select: { key: true } },
+        },
       })
-    : await prisma.user.create({
+    : await prisma.admin.create({
         data: {
           name: "Mendanize Admin",
           email: ADMIN_EMAIL,
-          role: "ADMIN",
+          roleId: role.id,
           passwordHash,
           emailVerified: new Date(),
-          profile: {
-            create: {
-              bio: "Local development administrator",
-            },
-          },
+          active: true,
         },
-        select: { id: true, email: true, role: true, emailVerified: true },
+        select: {
+          id: true,
+          email: true,
+          active: true,
+          role: { select: { key: true } },
+        },
       });
 
-  console.log("Dev admin ready:", user);
+  console.log("Dev admin ready:", {
+    id: admin.id,
+    email: admin.email,
+    role: admin.role.key,
+    active: admin.active,
+  });
 }
 
 main()
@@ -77,5 +103,5 @@ main()
     process.exitCode = 1;
   })
   .finally(async () => {
-    await resetPrismaClient();
+    await resetPrismaClient({ immediate: true });
   });

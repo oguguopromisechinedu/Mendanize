@@ -3,7 +3,8 @@
 import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import { AuthError } from "next-auth";
-import { signIn, signOut } from "@/auth";
+import { publicSignIn, publicSignOut } from "@/lib/auth/public";
+import { adminSignIn, adminSignOut } from "@/lib/auth/admin";
 import { getPrisma, isDatabaseConfigured } from "@/lib/db/prisma";
 import {
   forgotPasswordSchema,
@@ -17,20 +18,23 @@ export type ActionResult =
   | { ok: false; message: string; fieldErrors?: Record<string, string[]> };
 
 export async function signInWithCredentials(
-  input: unknown
+  input: unknown,
 ): Promise<ActionResult> {
   const parsed = signInSchema.safeParse(input);
   if (!parsed.success) {
     return {
       ok: false,
       message: "Invalid credentials",
-      fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+      fieldErrors: parsed.error.flatten().fieldErrors as Record<
+        string,
+        string[]
+      >,
     };
   }
 
   if (isDatabaseConfigured()) {
     const email = parsed.data.email.toLowerCase();
-    const user = await getPrisma().user.findUnique({ where: { email } });
+    const user = await getPrisma().publicUser.findUnique({ where: { email } });
     if (user?.passwordHash) {
       const { getAuthenticationSettings } = await import(
         "@/services/settings/platform"
@@ -47,7 +51,37 @@ export async function signInWithCredentials(
   }
 
   try {
-    await signIn("credentials", {
+    await publicSignIn("credentials", {
+      email: parsed.data.email,
+      password: parsed.data.password,
+      redirect: false,
+    });
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return { ok: false, message: "Invalid email or password" };
+    }
+    throw error;
+  }
+}
+
+export async function adminSignInWithCredentials(
+  input: unknown,
+): Promise<ActionResult> {
+  const parsed = signInSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: "Invalid credentials",
+      fieldErrors: parsed.error.flatten().fieldErrors as Record<
+        string,
+        string[]
+      >,
+    };
+  }
+
+  try {
+    await adminSignIn("admin-credentials", {
       email: parsed.data.email,
       password: parsed.data.password,
       redirect: false,
@@ -62,14 +96,17 @@ export async function signInWithCredentials(
 }
 
 export async function signUpWithCredentials(
-  input: unknown
+  input: unknown,
 ): Promise<ActionResult> {
   const parsed = signUpSchema.safeParse(input);
   if (!parsed.success) {
     return {
       ok: false,
       message: "Fix the highlighted fields",
-      fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+      fieldErrors: parsed.error.flatten().fieldErrors as Record<
+        string,
+        string[]
+      >,
     };
   }
 
@@ -81,20 +118,27 @@ export async function signUpWithCredentials(
   const normalizedEmail = email.toLowerCase();
   const prisma = getPrisma();
 
-  const existing = await prisma.user.findUnique({
+  const existing = await prisma.publicUser.findUnique({
     where: { email: normalizedEmail },
   });
   if (existing) {
     return { ok: false, message: "An account with this email already exists" };
   }
 
+  // Never allow registering into Admin via public sign-up
+  const adminCollision = await prisma.admin.findUnique({
+    where: { email: normalizedEmail },
+  });
+  if (adminCollision) {
+    return { ok: false, message: "An account with this email already exists" };
+  }
+
   const passwordHash = await bcrypt.hash(password, 12);
-  const user = await prisma.user.create({
+  const user = await prisma.publicUser.create({
     data: {
       name,
       email: normalizedEmail,
       passwordHash,
-      role: "LEARNER",
       profile: { create: {} },
       subscription: { create: { plan: "FREE" } },
       settings: { create: {} },
@@ -130,13 +174,16 @@ export async function signUpWithCredentials(
       title: "Welcome to Mendanize",
       body: "Your learning space is ready. Explore guides and Ask Mendanize AI anytime.",
       type: "SUCCESS",
-      link: "/learning",
+      link: "/account",
     });
   } catch {
     /* welcome notification failures must not block signup */
   }
 
-  return { ok: true, message: "Account created. Check your email to verify your address." };
+  return {
+    ok: true,
+    message: "Account created. Check your email to verify your address.",
+  };
 }
 
 export async function verifyEmailWithToken(input: {
@@ -163,7 +210,10 @@ export async function resendVerificationEmail(input: {
   email: string;
 }): Promise<ActionResult> {
   if (!isDatabaseConfigured()) {
-    return { ok: true, message: "If an account exists, a verification email has been sent." };
+    return {
+      ok: true,
+      message: "If an account exists, a verification email has been sent.",
+    };
   }
 
   const email = input.email?.trim().toLowerCase();
@@ -171,10 +221,12 @@ export async function resendVerificationEmail(input: {
     return { ok: false, message: "Enter a valid email" };
   }
 
-  const user = await getPrisma().user.findUnique({ where: { email } });
+  const user = await getPrisma().publicUser.findUnique({ where: { email } });
   if (user && !user.emailVerified) {
     try {
-      const { sendEmailVerification } = await import("../services/verification");
+      const { sendEmailVerification } = await import(
+        "../services/verification"
+      );
       await sendEmailVerification({
         userId: user.id,
         email,
@@ -189,28 +241,36 @@ export async function resendVerificationEmail(input: {
 
   return {
     ok: true,
-    message: "If an account exists and is unverified, a new verification email has been sent.",
+    message:
+      "If an account exists and is unverified, a new verification email has been sent.",
   };
 }
 
 export async function signOutAction(): Promise<ActionResult> {
-  await signOut({ redirect: false });
+  await publicSignOut({ redirect: false });
+  return { ok: true };
+}
+
+export async function adminSignOutAction(): Promise<ActionResult> {
+  await adminSignOut({ redirect: false });
   return { ok: true };
 }
 
 export async function requestPasswordReset(
-  input: unknown
+  input: unknown,
 ): Promise<ActionResult> {
   const parsed = forgotPasswordSchema.safeParse(input);
   if (!parsed.success) {
     return {
       ok: false,
       message: "Enter a valid email",
-      fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+      fieldErrors: parsed.error.flatten().fieldErrors as Record<
+        string,
+        string[]
+      >,
     };
   }
 
-  // Always succeed from the client perspective (no email enumeration).
   if (!isDatabaseConfigured()) {
     return {
       ok: true,
@@ -219,7 +279,7 @@ export async function requestPasswordReset(
   }
 
   const email = parsed.data.email.toLowerCase();
-  const user = await getPrisma().user.findUnique({ where: { email } });
+  const user = await getPrisma().publicUser.findUnique({ where: { email } });
   if (user?.passwordHash) {
     const token = randomBytes(32).toString("hex");
     const expires = new Date(Date.now() + 1000 * 60 * 60);
@@ -233,7 +293,6 @@ export async function requestPasswordReset(
         expires,
       },
     });
-    // Email delivery via Notification Service (MES-024) — SMTP still a placeholder.
     try {
       const base =
         process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
@@ -266,7 +325,10 @@ export async function resetPassword(input: unknown): Promise<ActionResult> {
     return {
       ok: false,
       message: "Fix the highlighted fields",
-      fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+      fieldErrors: parsed.error.flatten().fieldErrors as Record<
+        string,
+        string[]
+      >,
     };
   }
 
@@ -287,7 +349,7 @@ export async function resetPassword(input: unknown): Promise<ActionResult> {
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
-  await getPrisma().user.update({
+  await getPrisma().publicUser.update({
     where: { email },
     data: { passwordHash },
   });

@@ -1,24 +1,37 @@
-import { redirect } from "next/navigation"
+import { redirect } from "next/navigation";
 
-import { requireEditor } from "@/features/authentication/server"
-import { DashboardShell } from "@/features/admin-dashboard"
-import { getAdminNavigationConfig } from "@/services/settings/admin-navigation"
+import { requireEditor } from "@/features/authentication/server";
+import { DashboardShell } from "@/features/admin-dashboard";
+import { getAdminNavigationConfig } from "@/services/settings/admin-navigation";
 
 export default async function Layout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  const session = await requireEditor()
+  const session = await requireEditor();
   if (!session) {
-    redirect("/sign-in")
+    redirect("/dashboard/login");
   }
 
-  const nav = await getAdminNavigationConfig()
+  // Adapt AdminSession into the shape DashboardShell historically expected
+  const shellSession = {
+    user: {
+      id: session.admin.id,
+      email: session.admin.email,
+      name: session.admin.name,
+      image: session.admin.image,
+      role: session.admin.roleKey,
+      roleName: session.admin.roleName,
+    },
+    expires: session.expires,
+  };
+
+  const nav = await getAdminNavigationConfig();
 
   return (
-    <DashboardShell session={session} nav={nav}>
+    <DashboardShell session={shellSession} nav={nav}>
       {children}
     </DashboardShell>
-  )
+  );
 }

@@ -29,8 +29,9 @@ export const routes = {
   onboarding: "/onboarding",
   admin: "/dashboard",
   settings: "/dashboard/settings",
-  billing: "/dashboard/settings/billing",
-  saved: "/dashboard/saved",
+  billing: "/account/billing",
+  account: "/account",
+  saved: "/account/saved",
 };
 
 /** Layout / typography class presets backed by MES-003 tokens. */

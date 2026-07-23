@@ -13,8 +13,19 @@ datasource db {
   provider = "postgresql"
 }
 
+/// MES-030 admin RBAC role keys — extendable via AdminRole rows.
+enum AdminRoleKey {
+  SUPER_ADMINISTRATOR
+  ADMINISTRATOR
+  EDITOR
+  CONTENT_MANAGER
+  ANALYTICS_MANAGER
+  SUPPORT_MANAGER
+}
+
+/// @deprecated MES-030 — kept only so the dual-auth migration can read legacy rows.
+/// Remove after scripts/migrate-dual-auth.ts has been run and verified.
 enum UserRole {
-  /// @deprecated Prefer LEARNER — kept for existing rows
   USER
   LEARNER
   EDITOR
@@ -67,50 +78,147 @@ enum AnnouncementKind {
   LEARNING
 }
 
-model User {
+// === MES-030 Dual Authentication ===
+// PublicUser = learners/subscribers (www). Admin = staff (/dashboard).
+// Sessions are fully independent (PublicSession vs AdminSession).
+
+model PublicUser {
   id            String    @id @default(cuid())
   name          String?
   email         String    @unique
   emailVerified DateTime?
   image         String?
   passwordHash  String?
-  role          UserRole  @default(LEARNER)
+  /// MES-035 — analytics/cookie consent captured on the public site
+  cookieConsentAt    DateTime?
+  analyticsConsent   Boolean   @default(false)
+  marketingConsent   Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts      Account[]
-  sessions      Session[]
-  profile       Profile?
-  subscription  Subscription?
-  usageRecords  UsageRecord[]
-  workspaces    WorkspaceMember[]
-  chats         Chat[]
-  generations   Generation[]
-  savedOutputs  SavedOutput[]
-  projects      Project[]
-  promptPresets PromptPreset[]
-  notifications Notification[]
+  accounts               Account[]
+  sessions               PublicSession[]
+  profile                Profile?
+  subscription           Subscription?
+  usageRecords           UsageRecord[]
+  workspaces             WorkspaceMember[]
+  chats                  Chat[]
+  generations            Generation[]
+  savedOutputs           SavedOutput[]
+  projects               Project[]
+  promptPresets          PromptPreset[]
+  notifications          Notification[]
   notificationPreference NotificationPreference?
-  communicationLogs CommunicationLog[]
-  settings      UserSettings?
-  posts         Post[]
-  articles      Article[]
-  articleRevisions ArticleRevision[]
-  guides        Guide[]
-  guideRevisions GuideRevision[]
-  aiGenerations AIGeneration[]
-  userInterests UserInterest[]
-  savedContents SavedContent[]
-  learningHistory LearningHistory[]
-  learningGoals LearningGoal[]
-  learningProgress LearningProgress[]
-  userPreference UserPreference?
-  conversations Conversation[]
+  communicationLogs      CommunicationLog[]
+  settings               UserSettings?
+  userInterests          UserInterest[]
+  savedContents          SavedContent[]
+  learningHistory        LearningHistory[]
+  learningGoals          LearningGoal[]
+  learningProgress       LearningProgress[]
+  guideProgress          GuideProgress[]
+  userPreference         UserPreference?
+  conversations          Conversation[]
 }
 
+model Admin {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  active        Boolean   @default(true)
+  roleId        String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  role             AdminRole        @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  sessions         AdminSession[]
+  posts            Post[]
+  articles         Article[]
+  articleRevisions ArticleRevision[]
+  guides           Guide[]
+  guideRevisions   GuideRevision[]
+  aiGenerations    AIGeneration[]
+  notifications    Notification[]
+  authorizationLogs AuthorizationLog[]
+}
+
+model AdminRole {
+  id          String       @id @default(cuid())
+  key         AdminRoleKey @unique
+  name        String
+  description String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  admins      Admin[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         AdminRole  @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model PublicSession {
+  id           String     @id @default(cuid())
+  sessionToken String     @unique
+  publicUserId String
+  expires      DateTime
+  publicUser   PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+
+  @@index([publicUserId])
+}
+
+model AdminSession {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  adminId      String
+  expires      DateTime
+  admin        Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+}
+
+model AuthorizationLog {
+  id           String   @id @default(cuid())
+  adminId      String?
+  actorEmail   String?
+  action       String
+  entityType   String?
+  entityId     String?
+  summary      String
+  metadataJson String?  @db.Text
+  ipAddress    String?
+  createdAt    DateTime @default(now())
+  admin        Admin?   @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([adminId])
+  @@index([action])
+}
+
+/// OAuth accounts for PublicUser only (Admin never uses social/OAuth).
 model Account {
   id                String  @id @default(cuid())
-  userId            String
+  publicUserId      String
   type              String
   provider          String
   providerAccountId String
@@ -122,17 +230,10 @@ model Account {
   id_token          String? @db.Text
   session_state     String?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publicUser PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([publicUserId])
 }
 
 model VerificationToken {
@@ -144,45 +245,45 @@ model VerificationToken {
 }
 
 model Profile {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  bio         String?
-  company     String?
-  website     String?
-  timezone    String?  @default("UTC")
-  onboarded   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String     @id @default(cuid())
+  publicUserId String     @unique
+  bio          String?
+  company      String?
+  website      String?
+  timezone     String?    @default("UTC")
+  onboarded    Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  publicUser   PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
 }
 
 model Subscription {
-  id                   String    @id @default(cuid())
-  userId               String    @unique
-  plan                 PlanTier  @default(FREE)
-  stripeCustomerId     String?   @unique
-  stripeSubscriptionId String?   @unique
+  id                   String     @id @default(cuid())
+  publicUserId         String     @unique
+  plan                 PlanTier   @default(FREE)
+  stripeCustomerId     String?    @unique
+  stripeSubscriptionId String?    @unique
   stripePriceId        String?
-  status               String    @default("active")
+  status               String     @default("active")
   currentPeriodEnd     DateTime?
-  cancelAtPeriodEnd    Boolean   @default(false)
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cancelAtPeriodEnd    Boolean    @default(false)
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+  publicUser           PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
 }
 
 model UsageRecord {
-  id               String   @id @default(cuid())
-  userId           String
+  id               String     @id @default(cuid())
+  publicUserId     String
   month            String
-  generationsCount Int      @default(0)
-  tokensUsed       Int      @default(0)
+  generationsCount Int        @default(0)
+  tokensUsed       Int        @default(0)
   workspaceId      String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  publicUser       PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, month])
+  @@unique([publicUserId, month])
 }
 
 model Workspace {
@@ -199,15 +300,15 @@ model Workspace {
 }
 
 model WorkspaceMember {
-  id          String    @id @default(cuid())
-  workspaceId String
-  userId      String
-  role        String    @default("member")
-  joinedAt    DateTime  @default(now())
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String     @id @default(cuid())
+  workspaceId  String
+  publicUserId String
+  role         String     @default("member")
+  joinedAt     DateTime   @default(now())
+  workspace    Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  publicUser   PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
 
-  @@unique([workspaceId, userId])
+  @@unique([workspaceId, publicUserId])
 }
 
 model Team {
@@ -219,29 +320,29 @@ model Team {
 }
 
 model Project {
-  id          String     @id @default(cuid())
-  name        String
-  description String?
-  userId      String
-  workspaceId String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
-  generations Generation[]
+  id           String     @id @default(cuid())
+  name         String
+  description  String?
+  publicUserId String
+  workspaceId  String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  publicUser   PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  workspace    Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  generations  Generation[]
 }
 
 model Chat {
-  id          String     @id @default(cuid())
-  title       String     @default("New conversation")
-  userId      String
-  workspaceId String?
-  model       String     @default("gpt-4o-mini")
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
-  messages    ChatMessage[]
+  id           String     @id @default(cuid())
+  title        String     @default("New conversation")
+  publicUserId String
+  workspaceId  String?
+  model        String     @default("gpt-4o-mini")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  publicUser   PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  workspace    Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  messages     ChatMessage[]
 }
 
 model ChatMessage {
@@ -256,33 +357,33 @@ model ChatMessage {
 }
 
 model Generation {
-  id          String           @id @default(cuid())
-  userId      String
-  workspaceId String?
-  projectId   String?
-  toolId      String
-  prompt      String           @db.Text
-  output      String?          @db.Text
-  model       String           @default("gpt-4o-mini")
-  status      GenerationStatus @default(PENDING)
-  metadata    Json?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workspace   Workspace?       @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
-  project     Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  id           String           @id @default(cuid())
+  publicUserId String
+  workspaceId  String?
+  projectId    String?
+  toolId       String
+  prompt       String           @db.Text
+  output       String?          @db.Text
+  model        String           @default("gpt-4o-mini")
+  status       GenerationStatus @default(PENDING)
+  metadata     Json?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  publicUser   PublicUser       @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  workspace    Workspace?       @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  project      Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
 }
 
 model SavedOutput {
-  id        String   @id @default(cuid())
-  userId    String
-  title     String
-  content   String   @db.Text
-  toolId    String?
-  tags      String[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String     @id @default(cuid())
+  publicUserId String
+  title        String
+  content      String     @db.Text
+  toolId       String?
+  tags         String[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  publicUser   PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
 }
 
 model PromptTemplate {
@@ -300,50 +401,53 @@ model PromptTemplate {
 }
 
 model PromptPreset {
-  id        String   @id @default(cuid())
-  userId    String
-  name      String
-  content   String   @db.Text
-  toolId    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String     @id @default(cuid())
+  publicUserId String
+  name         String
+  content      String     @db.Text
+  toolId       String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  publicUser   PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
 }
 
 model Notification {
-  id        String               @id @default(cuid())
-  userId    String
-  type      NotificationType     @default(INFO)
-  priority  NotificationPriority @default(NORMAL)
-  status    NotificationStatus   @default(UNREAD)
-  title     String
-  preview   String?
-  body      String?
-  read      Boolean              @default(false)
-  archived  Boolean              @default(false)
-  link      String?
-  templateKey String?
-  createdAt DateTime             @default(now())
-  updatedAt DateTime             @updatedAt
-  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String               @id @default(cuid())
+  publicUserId String?
+  adminId      String?
+  type         NotificationType     @default(INFO)
+  priority     NotificationPriority @default(NORMAL)
+  status       NotificationStatus   @default(UNREAD)
+  title        String
+  preview      String?
+  body         String?
+  read         Boolean              @default(false)
+  archived     Boolean              @default(false)
+  link         String?
+  templateKey  String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  publicUser   PublicUser?          @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  admin        Admin?               @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
-  @@index([userId, createdAt])
-  @@index([userId, status])
+  @@index([publicUserId, createdAt])
+  @@index([publicUserId, status])
+  @@index([adminId, createdAt])
   @@index([type])
 }
 
 model NotificationPreference {
-  id               String   @id @default(cuid())
-  userId           String   @unique
-  learningUpdates  Boolean  @default(true)
-  aiUpdates        Boolean  @default(true)
-  securityAlerts   Boolean  @default(true)
-  newsletter       Boolean  @default(false)
-  productUpdates   Boolean  @default(true)
-  announcements    Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String     @id @default(cuid())
+  publicUserId     String     @unique
+  learningUpdates  Boolean    @default(true)
+  aiUpdates        Boolean    @default(true)
+  securityAlerts   Boolean    @default(true)
+  newsletter       Boolean    @default(false)
+  productUpdates   Boolean    @default(true)
+  announcements    Boolean    @default(true)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  publicUser       PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
 }
 
 model NotificationTemplate {
@@ -388,18 +492,18 @@ model Announcement {
 }
 
 model CommunicationLog {
-  id          String   @id @default(cuid())
-  userId      String?
-  channel     String
-  templateKey String?
-  subject     String?
-  status      String   @default("queued")
-  detail      String?  @db.Text
-  createdAt   DateTime @default(now())
-  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id           String      @id @default(cuid())
+  publicUserId String?
+  channel      String
+  templateKey  String?
+  subject      String?
+  status       String      @default("queued")
+  detail       String?     @db.Text
+  createdAt    DateTime    @default(now())
+  publicUser   PublicUser? @relation(fields: [publicUserId], references: [id], onDelete: SetNull)
 
   @@index([createdAt])
-  @@index([userId, createdAt])
+  @@index([publicUserId, createdAt])
   @@index([channel, status])
 }
 
@@ -416,13 +520,13 @@ model DeliverySetting {
 }
 
 model UserSettings {
-  id              String  @id @default(cuid())
-  userId          String  @unique
-  defaultModel    String  @default("gpt-4o-mini")
-  emailDigest     Boolean @default(true)
-  marketingEmails Boolean @default(false)
-  theme           String  @default("dark")
-  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String     @id @default(cuid())
+  publicUserId    String     @unique
+  defaultModel    String     @default("gpt-4o-mini")
+  emailDigest     Boolean    @default(true)
+  marketingEmails Boolean    @default(false)
+  theme           String     @default("dark")
+  publicUser      PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
 }
 
 model FeatureFlag {
@@ -548,6 +652,7 @@ model Tag {
 
 enum ArticleStatus {
   DRAFT
+  AI_DRAFT
   REVIEW
   SCHEDULED
   PUBLISHED
@@ -578,12 +683,14 @@ model Article {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
-  author           User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author           Admin          @relation(fields: [authorId], references: [id], onDelete: Cascade)
   category         Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   topic            Topic?         @relation(fields: [topicId], references: [id], onDelete: SetNull)
   tags             ArticleTag[]
   featuredImage    FeaturedImage?
   revisions        ArticleRevision[]
+  aiGenerationJobs AIGenerationJob[]
+  duplicateHits    DuplicateCandidate[]
 
   @@index([status])
   @@index([publishedAt])
@@ -619,7 +726,7 @@ model ArticleRevision {
   createdById String?
   createdAt   DateTime @default(now())
   article     Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy   Admin?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([articleId])
 }
@@ -666,7 +773,7 @@ model Guide {
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt
 
-  author                User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author                Admin           @relation(fields: [authorId], references: [id], onDelete: Cascade)
   category              Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   topic                 Topic           @relation(fields: [topicId], references: [id], onDelete: Restrict)
   sections              GuideSection[]
@@ -728,25 +835,26 @@ model GuideRevision {
   createdById String?
   createdAt   DateTime @default(now())
   guide       Guide    @relation(fields: [guideId], references: [id], onDelete: Cascade)
-  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy   Admin?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([guideId])
 }
 
-/// Modeled for MES-021 personalization — not implemented in MES-010.
+/// Modeled for MES-022 personalization — not implemented in MES-010.
 model GuideProgress {
-  id              String    @id @default(cuid())
-  userId          String
-  guideId         String
-  completedLessonIds String[] @default([])
-  percentComplete Int       @default(0)
-  lastLessonId    String?
-  startedAt       DateTime  @default(now())
-  completedAt     DateTime?
-  updatedAt       DateTime  @updatedAt
-  guide           Guide     @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  id                 String     @id @default(cuid())
+  publicUserId       String
+  guideId            String
+  completedLessonIds String[]   @default([])
+  percentComplete    Int        @default(0)
+  lastLessonId       String?
+  startedAt          DateTime   @default(now())
+  completedAt        DateTime?
+  updatedAt          DateTime   @updatedAt
+  guide              Guide      @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  publicUser         PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, guideId])
+  @@unique([publicUserId, guideId])
   @@index([guideId])
 }
 
@@ -771,7 +879,7 @@ model Post {
   seoKeywords   String?
   
   // Relations
-  author        User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author        Admin       @relation(fields: [authorId], references: [id], onDelete: Cascade)
   category      Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   postTags      PostTag[]
 }
@@ -956,7 +1064,7 @@ enum AIGenerationStatus {
 
 model AIGeneration {
   id              String               @id @default(cuid())
-  userId          String
+  adminId         String
   type            AIGenerationType
   provider        AIGenerationProvider
   status          AIGenerationStatus   @default(PENDING)
@@ -977,9 +1085,9 @@ model AIGeneration {
   meta            Json?
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
-  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  admin           Admin                @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
+  @@index([adminId])
   @@index([type])
   @@index([status])
   @@index([createdAt])
@@ -1574,40 +1682,40 @@ enum RecommendationEntityKind {
 }
 
 model UserInterest {
-  id         String   @id @default(cuid())
-  userId     String
-  categoryId String?
-  topicId    String?
-  createdAt  DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String     @id @default(cuid())
+  publicUserId String
+  categoryId   String?
+  topicId      String?
+  createdAt    DateTime   @default(now())
+  publicUser   PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
+  @@index([publicUserId])
   @@index([categoryId])
   @@index([topicId])
-  @@unique([userId, categoryId, topicId])
+  @@unique([publicUserId, categoryId, topicId])
 }
 
 model SavedContent {
-  id         String                   @id @default(cuid())
-  userId     String
-  entityType RecommendationEntityKind
-  entityId   String
-  createdAt  DateTime                 @default(now())
-  user       User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String                   @id @default(cuid())
+  publicUserId String
+  entityType   RecommendationEntityKind
+  entityId     String
+  createdAt    DateTime                 @default(now())
+  publicUser   PublicUser               @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, entityType, entityId])
-  @@index([userId, createdAt])
+  @@unique([publicUserId, entityType, entityId])
+  @@index([publicUserId, createdAt])
 }
 
 model LearningHistory {
-  id         String                   @id @default(cuid())
-  userId     String
-  entityType RecommendationEntityKind
-  entityId   String
-  viewedAt   DateTime                 @default(now())
-  user       User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String                   @id @default(cuid())
+  publicUserId String
+  entityType   RecommendationEntityKind
+  entityId     String
+  viewedAt     DateTime                 @default(now())
+  publicUser   PublicUser               @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
 
-  @@index([userId, viewedAt])
+  @@index([publicUserId, viewedAt])
   @@index([entityType, entityId])
 }
 
@@ -1616,48 +1724,48 @@ model LearningHistory {
 // LearningProgress is placeholder until guide lesson completion exists.
 
 model LearningGoal {
-  id          String   @id @default(cuid())
-  userId      String
-  title       String
-  description String?
-  targetNote  String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String     @id @default(cuid())
+  publicUserId String
+  title        String
+  description  String?
+  targetNote   String?
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  publicUser   PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
 
-  @@index([userId, isActive])
+  @@index([publicUserId, isActive])
 }
 
 model UserPreference {
-  id                       String   @id @default(cuid())
-  userId                   String   @unique
-  preferredDifficulty      String   @default("INTERMEDIATE")
-  dailyReminderEnabled     Boolean  @default(false)
-  preferredCategoryIdsJson String?  @db.Text
-  preferredTopicIdsJson    String?  @db.Text
-  themePreference          String   @default("system")
-  createdAt                DateTime @default(now())
-  updatedAt                DateTime @updatedAt
-  user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                       String     @id @default(cuid())
+  publicUserId             String     @unique
+  preferredDifficulty      String     @default("INTERMEDIATE")
+  dailyReminderEnabled     Boolean    @default(false)
+  preferredCategoryIdsJson String?    @db.Text
+  preferredTopicIdsJson    String?    @db.Text
+  themePreference          String     @default("system")
+  createdAt                DateTime   @default(now())
+  updatedAt                DateTime   @updatedAt
+  publicUser               PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
 }
 
 model LearningProgress {
-  id                   String   @id @default(cuid())
-  userId               String
+  id                   String     @id @default(cuid())
+  publicUserId         String
   guideId              String
   lastLessonTitle      String?
-  completedLessons     Int      @default(0)
-  totalLessons         Int      @default(5)
+  completedLessons     Int        @default(0)
+  totalLessons         Int        @default(5)
   estimatedMinutesLeft Int?
-  percentComplete      Int      @default(0)
-  lastOpenedAt         DateTime @default(now())
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  percentComplete      Int        @default(0)
+  lastOpenedAt         DateTime   @default(now())
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+  publicUser           PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, guideId])
-  @@index([userId, lastOpenedAt])
+  @@unique([publicUserId, guideId])
+  @@index([publicUserId, lastOpenedAt])
 }
 
 // === MES-019 Ask Mendanize AI ===
@@ -1678,7 +1786,7 @@ enum AskContextType {
 
 model Conversation {
   id              String         @id @default(cuid())
-  userId          String
+  publicUserId    String
   title           String         @default("New conversation")
   contextType     AskContextType @default(GENERAL)
   contextId       String?
@@ -1686,11 +1794,11 @@ model Conversation {
   handoffId       String?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
-  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publicUser      PublicUser     @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
   messages        Message[]
   feedback        AskFeedback[]
 
-  @@index([userId, updatedAt])
+  @@index([publicUserId, updatedAt])
 }
 
 model Message {
@@ -2150,4 +2258,60 @@ model KnowledgeArticle {
   updatedAt DateTime @updatedAt
 
   @@index([category])
+}
+
+// === MES-031 AI Knowledge Generation Pipeline ===
+
+enum AIGenerationJobStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  MERGED
+}
+
+model AIGenerationJob {
+  id                   String                 @id @default(cuid())
+  question             String                 @db.Text
+  /// Anonymized fingerprint of the asker — never stores PublicUser.id (MES-031)
+  sourceFingerprint    String?
+  status               AIGenerationJobStatus  @default(QUEUED)
+  articleId            String?
+  errorMessage         String?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  article              Article?               @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  duplicates           DuplicateCandidate[]
+
+  @@index([status, createdAt])
+}
+
+model DuplicateCandidate {
+  id               String          @id @default(cuid())
+  jobId            String
+  existingArticleId String
+  similarityNote   String?
+  createdAt        DateTime        @default(now())
+  job              AIGenerationJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  existingArticle  Article         @relation(fields: [existingArticleId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([existingArticleId])
+}
+
+// === MES-032 Application logs (structured, filterable) ===
+
+model ApplicationLog {
+  id        String   @id @default(cuid())
+  level     String
+  message   String
+  module    String?
+  requestId String?
+  stack     String?  @db.Text
+  contextJson String? @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([level, createdAt])
+  @@index([requestId])
+  @@index([createdAt])
 }

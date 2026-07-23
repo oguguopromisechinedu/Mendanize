@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import ThemeToggle from "@/components/ui/ThemeToggle"
-import type { AuthSession } from "@/features/authentication/types/types"
+import type { AdminShellSession } from "../types/shell"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -32,7 +32,7 @@ export function AdminTopBar({
   labelByHref,
   onOpenMobileNav,
 }: {
-  session: AuthSession
+  session: AdminShellSession
   labelByHref: Record<string, string>
   onOpenMobileNav: () => void
 }) {

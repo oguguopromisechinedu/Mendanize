@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { requireEditor } from "@/features/authentication/server"
 import { invalidateDashboardHome } from "@/features/admin-dashboard/server"
+import { invalidatePublicContent } from "@/lib/cache/content"
 import {
   bulkUpdateGuideStatus,
   createGuide,
@@ -24,6 +25,7 @@ function revalidateGuides() {
   revalidatePath("/dashboard/guides/drafts")
   revalidatePath("/dashboard/guides/published")
   revalidatePath("/dashboard/guides/archived")
+  invalidatePublicContent()
 }
 
 export async function createGuideAction(
@@ -48,7 +50,7 @@ export async function createGuideAction(
       slug: data.slug || undefined,
       categoryId: data.categoryId || null,
       canonicalUrl: data.canonicalUrl || null,
-      authorId: session.user.id,
+      authorId: session.admin.id,
     })
     revalidateGuides()
     return { ok: true, message: "Guide saved", data: guide }

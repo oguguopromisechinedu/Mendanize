@@ -1,6 +1,6 @@
 /**
- * Structured logging seam (MES-028).
- * Wraps console today; swap sink for Sentry/Datadog post-launch without rewriting call sites.
+ * Structured logging seam (MES-028 / MES-032).
+ * Wraps console today; optionally persists errors to ApplicationLog.
  */
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
@@ -29,6 +29,26 @@ function emit(level: LogLevel, message: string, context?: LogContext) {
     case "error":
       console.error(line);
       break;
+  }
+
+  if (level === "error" || level === "warn") {
+    void import("@/services/admin/application-logs")
+      .then(({ persistApplicationLog }) =>
+        persistApplicationLog({
+          level,
+          message,
+          module:
+            typeof context?.module === "string" ? context.module : undefined,
+          requestId:
+            typeof context?.requestId === "string"
+              ? context.requestId
+              : undefined,
+          stack:
+            typeof context?.stack === "string" ? context.stack : undefined,
+          context,
+        }),
+      )
+      .catch(() => undefined);
   }
 }
 

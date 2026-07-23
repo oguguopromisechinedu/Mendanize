@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react"
 
-import type { AuthSession } from "@/features/authentication/types/types"
+import type { AdminShellSession } from "../types/shell"
 import type { AdminNavigationConfig } from "@/services/settings/admin-navigation"
 import { AdminSidebar } from "./admin-sidebar"
 import { AdminTopBar } from "./admin-topbar"
@@ -19,7 +19,7 @@ export function DashboardShell({
   nav,
   children,
 }: {
-  session: AuthSession
+  session: AdminShellSession
   nav: AdminNavigationConfig
   children: ReactNode
 }) {

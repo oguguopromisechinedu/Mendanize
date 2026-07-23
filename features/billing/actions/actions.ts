@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireUser } from "@/features/authentication/server";
+import { requirePublicUser } from "@/features/authentication/server";
 import {
   createCheckoutSession,
   createCustomerPortalSession,
@@ -13,14 +13,13 @@ import { BILLING_PATHS } from "../constants/constants";
 
 function revalidateBilling() {
   revalidatePath(BILLING_PATHS.dashboard);
-  revalidatePath(BILLING_PATHS.legacyDashboard);
   revalidatePath(BILLING_PATHS.pricing);
 }
 
 export async function startCheckoutAction(
   input: unknown,
 ): Promise<ActionResult> {
-  const session = await requireUser();
+  const session = await requirePublicUser();
   if (!session?.user?.id || !session.user.email) {
     return { ok: false, message: "Sign in required" };
   }
@@ -48,7 +47,7 @@ export async function startCheckoutAction(
 }
 
 export async function openBillingPortalAction(): Promise<ActionResult> {
-  const session = await requireUser();
+  const session = await requirePublicUser();
   if (!session?.user?.id) {
     return { ok: false, message: "Sign in required" };
   }

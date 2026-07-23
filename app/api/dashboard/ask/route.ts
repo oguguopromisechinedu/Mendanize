@@ -1,17 +1,16 @@
 /**
- * Dashboard Ask API - Tier 2 seam (MES-019).
- * Prefer server actions from the dashboard UI; this route exposes list/dashboard payload.
+ * Ask Tier 2 API — PublicUser gated (MES-019 / MES-030).
  */
 import { handleApiError } from "@/lib/api/errors";
 import { ok } from "@/lib/api/response";
-import { getSession } from "@/features/authentication/server";
+import { requirePublicUser } from "@/features/authentication/server";
 import { clientKeyFromRequest } from "@/lib/observability";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { getAskDashboard } from "@/services/ai/ask";
 
 export async function GET(req: Request) {
   try {
-    const session = await getSession();
+    const session = await requirePublicUser();
     if (!session?.user?.id) {
       return Response.json(
         {

@@ -8,12 +8,12 @@ import type {
   Category,
   Tag,
   Subscriber,
-  User,
+  Admin,
   PostTag,
 } from '@prisma/client'
 
 export type PostWithRelations = Post & {
-  author: User
+  author: Admin
   category: Category | null
   postTags: (PostTag & { tag: Tag })[]
 }

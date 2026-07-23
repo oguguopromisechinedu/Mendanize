@@ -1,32 +1,69 @@
 /**
- * Auth route constants for proxy/middleware (MES-006).
- * Session resolution lives in `features/authentication` + root `auth.ts` (Auth.js / NextAuth).
+ * Auth route constants for proxy/middleware (MES-030).
+ * Public and Admin sessions are fully independent.
  */
 
-export const protectedPrefixes = [
-  "/dashboard",
+export const publicProtectedPrefixes = [
+  "/account",
+  "/ask",
   "/workspace",
   "/onboarding",
   "/learning",
-  "/ask",
-] as const
+] as const;
 
-export const adminPrefixes = ["/dashboard"] as const
+export const adminPrefixes = ["/dashboard"] as const;
 
-export const authRoutes = [
+/** Admin login is public within the dashboard prefix */
+export const adminAuthRoutes = [
+  "/dashboard/login",
+  "/dashboard/forgot-password",
+] as const;
+
+export const publicAuthRoutes = [
   "/sign-in",
   "/sign-up",
   "/forgot-password",
   "/reset-password",
   "/verify-email",
-] as const
+] as const;
+
+/** @deprecated Prefer publicProtectedPrefixes */
+export const protectedPrefixes = [
+  "/dashboard",
+  ...publicProtectedPrefixes,
+] as const;
+
+export const authRoutes = publicAuthRoutes;
+
+export function isPublicProtectedRoute(pathname: string) {
+  return publicProtectedPrefixes.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
+}
+
+export function isAdminRoute(pathname: string) {
+  if (
+    adminAuthRoutes.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+  ) {
+    return false;
+  }
+  return adminPrefixes.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
+}
+
+export function isAdminAuthRoute(pathname: string) {
+  return adminAuthRoutes.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
+}
 
 export function isProtectedRoute(pathname: string) {
-  return protectedPrefixes.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`)
-  )
+  return isAdminRoute(pathname) || isPublicProtectedRoute(pathname);
 }
 
 export function isAuthRoute(pathname: string) {
-  return authRoutes.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+  return publicAuthRoutes.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
 }

@@ -1,18 +1,36 @@
 /**
- * Canonical session / authorization helpers (MES-006).
- * All modules must use these — do not invent parallel session logic.
+ * Canonical dual-domain session helpers (MES-030).
+ * PublicUser and Admin sessions are fully independent.
  */
 
-import { auth } from "@/auth";
-import type { AuthSession, UserProfileFoundation } from "../types/types";
+import { publicAuth } from "@/lib/auth/public";
+import { adminAuth } from "@/lib/auth/admin";
+import type { AdminRoleKey } from "@prisma/client";
 import { getPrisma, isDatabaseConfigured } from "@/lib/db/prisma";
-import { isAdminRole, isStaffRole } from "../roles";
+import {
+  isAdminRoleKey,
+  isStaffRoleKey,
+  type PermissionKey,
+} from "../roles";
+import type {
+  AdminSession,
+  PublicSession,
+  PublicUserProfile,
+} from "../types/types";
 
-export { isAdminRole, isLearnerRole, isStaffRole } from "../roles";
+export {
+  isAdminRole,
+  isAdminRoleKey,
+  isLearnerRole,
+  isStaffRole,
+  isStaffRoleKey,
+  PERMISSIONS,
+} from "../roles";
 
-export async function getSession(): Promise<AuthSession | null> {
-  const session = await auth();
+export async function getPublicSession(): Promise<PublicSession | null> {
+  const session = await publicAuth();
   if (!session?.user?.id || !session.user.email) return null;
+  if (session.user.domain !== "public") return null;
 
   return {
     user: {
@@ -20,44 +38,90 @@ export async function getSession(): Promise<AuthSession | null> {
       email: session.user.email,
       name: session.user.name,
       image: session.user.image,
-      role: session.user.role,
+      domain: "public",
     },
     expires: session.expires,
   };
 }
 
-/** Returns session or null when unauthenticated. */
-export async function requireUser() {
-  return getSession();
+export async function getAdminSession(): Promise<AdminSession | null> {
+  const session = await adminAuth();
+  if (!session?.admin?.id || !session.admin.email) return null;
+
+  return {
+    admin: {
+      id: session.admin.id,
+      email: session.admin.email,
+      name: session.admin.name,
+      image: session.admin.image,
+      domain: "admin",
+      roleKey: session.admin.roleKey,
+      roleName: session.admin.roleName,
+      permissions: session.admin.permissions,
+    },
+    expires: session.expires,
+  };
 }
 
-/** Admin or Super Admin — used by dashboard surfaces. */
+/** Authenticated PublicUser or null. */
+export async function requirePublicUser() {
+  return getPublicSession();
+}
+
+/** Authenticated Admin or null. */
 export async function requireAdmin() {
-  const session = await getSession();
-  if (!session || !isAdminRole(session.user.role)) return null;
+  return getAdminSession();
+}
+
+/** Admin with dashboard.access (or any staff role). */
+export async function requireEditor() {
+  const session = await getAdminSession();
+  if (!session) return null;
+  if (
+    !isStaffRoleKey(session.admin.roleKey) &&
+    !session.admin.permissions.includes("dashboard.access")
+  ) {
+    return null;
+  }
   return session;
 }
 
-/** Editor and above. */
-export async function requireEditor() {
-  const session = await getSession();
-  if (!session || !isStaffRole(session.user.role)) return null;
+/** Admin with a specific permission key (server-side RBAC). */
+export async function requirePermission(permission: PermissionKey | string) {
+  const session = await getAdminSession();
+  if (!session) return null;
+  if (session.admin.roleKey === "SUPER_ADMINISTRATOR") return session;
+  if (!session.admin.permissions.includes(permission)) return null;
   return session;
+}
+
+/**
+ * @deprecated Use requirePublicUser or requireAdmin explicitly.
+ * Returns a public session when present (never an admin session).
+ */
+export async function getSession() {
+  return getPublicSession();
+}
+
+/**
+ * @deprecated Use requirePublicUser.
+ */
+export async function requireUser() {
+  return getPublicSession();
 }
 
 export async function getUserProfileFoundation(
-  userId: string
-): Promise<UserProfileFoundation | null> {
+  publicUserId: string,
+): Promise<PublicUserProfile | null> {
   if (!isDatabaseConfigured()) return null;
 
-  const user = await getPrisma().user.findUnique({
-    where: { id: userId },
+  const user = await getPrisma().publicUser.findUnique({
+    where: { id: publicUserId },
     select: {
       id: true,
       name: true,
       email: true,
       image: true,
-      role: true,
       emailVerified: true,
       createdAt: true,
       updatedAt: true,
@@ -71,10 +135,23 @@ export async function getUserProfileFoundation(
     fullName: user.name,
     email: user.email,
     image: user.image,
-    role: user.role,
     emailVerified: user.emailVerified,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
     accountStatus: user.emailVerified ? "active" : "unverified",
   };
 }
+
+export function adminHasPermission(
+  session: AdminSession,
+  permission: string,
+) {
+  if (session.admin.roleKey === "SUPER_ADMINISTRATOR") return true;
+  return session.admin.permissions.includes(permission);
+}
+
+export function isSuperAdministrator(roleKey: AdminRoleKey) {
+  return roleKey === "SUPER_ADMINISTRATOR";
+}
+
+export { isAdminRoleKey as isAdminPlus };

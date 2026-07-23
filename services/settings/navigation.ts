@@ -23,6 +23,11 @@ export type SocialLink = {
   href: string;
 };
 
+export type PopularTopic = {
+  label: string;
+  href: string;
+};
+
 export type NavigationConfig = {
   brand: {
     name: string;
@@ -35,6 +40,8 @@ export type NavigationConfig = {
   signInHref: string;
   footer: FooterSection[];
   social: SocialLink[];
+  /** Footer chip row (MES-004 Popular Topics). */
+  popularTopics: PopularTopic[];
   newsletter: {
     enabled: boolean;
     headline: string;
@@ -54,13 +61,11 @@ export const SEEDED_NAVIGATION_CONFIG: NavigationConfig = {
     { label: "Guides", href: "/guides" },
     { label: "Categories", href: "/categories" },
     { label: "AI Tools", href: "/ai-tools" },
-    { label: "About", href: "/about" },
-    { label: "Contact", href: "/contact" },
   ],
   signInHref: "/sign-in",
   footer: [
     {
-      id: "categories",
+      id: "explore",
       title: "Learning Categories",
       links: [
         { label: "Categories", href: "/categories" },
@@ -73,10 +78,15 @@ export const SEEDED_NAVIGATION_CONFIG: NavigationConfig = {
       title: "Resources",
       links: [
         { label: "Learn", href: "/learn" },
-        { label: "My Learning", href: "/sign-in?callbackUrl=/learning" },
+        { label: "My Learning", href: "/my-learning" },
         { label: "AI Tools", href: "/ai-tools" },
         { label: "Search", href: "/search" },
         { label: "Articles", href: "/articles" },
+        { label: "Prompt Library", href: "/prompt-library" },
+        { label: "Newsletter", href: "/newsletter" },
+        { label: "Free Resources", href: "/free-resources" },
+        { label: "Glossary", href: "/glossary" },
+        { label: "AI Courses", href: "/ai-courses" },
       ],
     },
     {
@@ -86,12 +96,6 @@ export const SEEDED_NAVIGATION_CONFIG: NavigationConfig = {
         { label: "About", href: "/about" },
         { label: "Contact", href: "/contact" },
         { label: "Pricing", href: "/pricing" },
-      ],
-    },
-    {
-      id: "legal",
-      title: "Legal",
-      links: [
         { label: "Privacy", href: "/privacy" },
         { label: "Terms", href: "/terms" },
       ],
@@ -103,10 +107,24 @@ export const SEEDED_NAVIGATION_CONFIG: NavigationConfig = {
     { label: "GitHub", href: "#" },
     { label: "YouTube", href: "#" },
   ],
+  popularTopics: [
+    { label: "ChatGPT", href: "/search?q=ChatGPT" },
+    { label: "Claude", href: "/search?q=Claude" },
+    { label: "Gemini", href: "/search?q=Gemini" },
+    { label: "Midjourney", href: "/search?q=Midjourney" },
+    { label: "AI Agents", href: "/search?q=AI+Agents" },
+    { label: "Prompt Engineering", href: "/search?q=Prompt+Engineering" },
+    { label: "OpenAI", href: "/search?q=OpenAI" },
+    { label: "Stable Diffusion", href: "/search?q=Stable+Diffusion" },
+    { label: "LangChain", href: "/search?q=LangChain" },
+    { label: "Llama 2", href: "/search?q=Llama+2" },
+    { label: "Fine-tuning", href: "/search?q=Fine-tuning" },
+    { label: "Vector DB", href: "/search?q=Vector+DB" },
+  ],
   newsletter: {
     enabled: true,
     headline: "Get learning tips in your inbox",
-    placeholder: "you@example.com",
+    placeholder: "diana.k@example.org",
   },
 };
 

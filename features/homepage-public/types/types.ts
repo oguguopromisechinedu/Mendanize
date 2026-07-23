@@ -26,6 +26,8 @@ export type HeroContent = {
   brand: string;
   eyebrow?: string;
   headline: string;
+  /** Second line before accent, e.g. "Master" → "Master Ai." */
+  headlineLead?: string;
   headlineAccent?: string;
   description: string;
   primaryCta: { label: string; href: string };

@@ -14,7 +14,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { SearchModal } from "@/components/layout/SearchModal"
-import ThemeToggle from "@/components/ui/ThemeToggle"
+import { routes } from "@/lib/design"
 import { cn } from "@/lib/utils"
 import type { NavLink } from "@/services/settings/navigation"
 
@@ -161,13 +161,13 @@ export function PublicHeader({
   brandHref,
   primary,
   mobile,
-  signInHref: _signInHref,
+  signInHref,
 }: PublicHeaderProps) {
   const pathname = usePathname()
   const mobileLinks = mobile?.length ? mobile : primary
 
   return (
-    <header className="sticky top-0 z-[var(--z-sticky)] border-b border-border bg-background/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-[var(--z-sticky)] border-b border-border bg-header/95 backdrop-blur-xl">
       <div className="container-app flex h-16 items-center justify-between gap-4">
         <Link
           href={brandHref}
@@ -194,9 +194,16 @@ export function PublicHeader({
 
         <div className="flex items-center gap-1.5">
           <SearchModal />
-          <ThemeToggle />
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="hidden rounded-lg sm:inline-flex"
+          >
+            <Link href={signInHref}>Sign in</Link>
+          </Button>
           <Button asChild size="sm" className="hidden rounded-lg sm:inline-flex">
-            <Link href="/#newsletter">Subscribe</Link>
+            <Link href={routes.signUp}>Create account</Link>
           </Button>
 
           <Sheet>
@@ -235,10 +242,15 @@ export function PublicHeader({
               <nav aria-label="Mobile primary">
                 <MobileNavTree links={mobileLinks} pathname={pathname} />
               </nav>
-              <div className="mt-8 border-t border-border pt-6">
+              <div className="mt-8 space-y-2 border-t border-border pt-6">
+                <SheetClose asChild>
+                  <Button asChild variant="outline" className="w-full rounded-lg">
+                    <Link href={signInHref}>Sign in</Link>
+                  </Button>
+                </SheetClose>
                 <SheetClose asChild>
                   <Button asChild className="w-full rounded-lg">
-                    <Link href="/#newsletter">Subscribe</Link>
+                    <Link href={routes.signUp}>Create account</Link>
                   </Button>
                 </SheetClose>
               </div>

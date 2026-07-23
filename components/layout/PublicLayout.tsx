@@ -1,5 +1,6 @@
 import { PublicHeader } from "@/components/layout/PublicHeader"
 import { PublicFooter } from "@/components/layout/PublicFooter"
+import { ConsentBanner } from "@/features/privacy/components/consent-banner"
 import { getNavigationConfig } from "@/services/settings/navigation"
 
 /**
@@ -30,10 +31,12 @@ export default async function PublicLayout({
           brand: nav.brand,
           footer: nav.footer,
           social: nav.social,
+          popularTopics: nav.popularTopics,
           newsletter: nav.newsletter,
           copyrightText: nav.copyrightText,
         }}
       />
+      <ConsentBanner />
     </div>
   )
 }

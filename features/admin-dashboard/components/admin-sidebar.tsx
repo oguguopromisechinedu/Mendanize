@@ -13,6 +13,7 @@ import {
   ChevronRight,
   CornerDownRight,
   Cpu,
+  CreditCard,
   ExternalLink,
   FileText,
   Folder,
@@ -39,7 +40,7 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import type { AuthSession } from "@/features/authentication/types/types"
+import type { AdminShellSession } from "../types/shell"
 import type { AdminNavigationConfig } from "@/services/settings/admin-navigation"
 
 const ICONS: Record<string, ComponentType<{ className?: string }>> = {
@@ -71,6 +72,7 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   zap: Zap,
   library: Library,
   settings: Settings,
+  "credit-card": CreditCard,
 }
 
 export function AdminSidebar({
@@ -82,7 +84,7 @@ export function AdminSidebar({
   config: AdminNavigationConfig
   collapsed: boolean
   onToggle: () => void
-  session?: AuthSession
+  session?: AdminShellSession
 }) {
   const pathname = usePathname()
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() =>

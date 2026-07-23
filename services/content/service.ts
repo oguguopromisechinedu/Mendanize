@@ -254,12 +254,23 @@ export async function listAuthors(): Promise<AuthorSummary[]> {
     ];
   }
 
-  const rows = await getPrisma().user.findMany({
+  const rows = await getPrisma().admin.findMany({
     where: {
       OR: [
         { articles: { some: {} } },
         { guides: { some: {} } },
-        { role: { in: ["EDITOR", "ADMIN", "SUPER_ADMIN"] } },
+        {
+          role: {
+            key: {
+              in: [
+                "EDITOR",
+                "CONTENT_MANAGER",
+                "ADMINISTRATOR",
+                "SUPER_ADMINISTRATOR",
+              ],
+            },
+          },
+        },
       ],
     },
     select: { id: true, name: true, email: true },

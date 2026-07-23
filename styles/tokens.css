@@ -8,7 +8,7 @@
   /* Typography roles */
   --type-display: clamp(2.75rem, 5vw, 4.5rem);
   --type-h1: clamp(2rem, 3.5vw, 3rem);
-  --type-h2: clamp(1.5rem, 2.5vw, 2.25rem);
+  --type-h2: 1.5rem;
   --type-h3: 1.5rem;
   --type-h4: 1.25rem;
   --type-body-lg: 1.125rem;
@@ -99,45 +99,48 @@
   --chart-5: #292524;
 }
 
-/* Dark-first product surface (MES-003) */
+/* Dark-first — matches live mendanize.com public homepage */
 .dark {
+  /* Surfaces */
   --background: #0a0b1e;
-  --foreground: #f5f5f4;
+  --header: #0a0b1e;
   --surface: #12132a;
+  --foreground: #f5f5f4;
   --card: #16172e;
   --card-foreground: #f5f5f4;
   --popover: #16172e;
   --popover-foreground: #f5f5f4;
-  --primary: #8b5cf6;
+  /* Brand */
+  --primary: #e8940c;
   --primary-foreground: #ffffff;
-  --secondary: #1e1f3a;
-  --secondary-foreground: #f5f5f4;
-  --muted: #1a1b35;
-  --muted-foreground: #a8a29e;
-  --accent: #6366f1;
+  --accent: #e8940c;
   --accent-foreground: #ffffff;
+  --secondary: #12132a;
+  --secondary-foreground: #f5f5f4;
+  --muted: #16172e;
+  --muted-foreground: #a8a29e;
   --destructive: #ef4444;
   --success: #22c55e;
   --warning: #f59e0b;
   --border: rgba(139, 92, 246, 0.15);
-  --input: rgba(139, 92, 246, 0.2);
-  --ring: #8b5cf6;
-  --hover: rgba(139, 92, 246, 0.12);
+  --input: rgba(139, 92, 246, 0.12);
+  --ring: #e8940c;
+  --hover: rgba(232, 148, 12, 0.12);
 
   --sidebar: #12132a;
-  --sidebar-foreground: #f5f5f4;
-  --sidebar-primary: #8b5cf6;
+  --sidebar-foreground: #f8fafc;
+  --sidebar-primary: #e8940c;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1a1b35;
+  --sidebar-accent: #16172e;
   --sidebar-accent-foreground: #f5f5f4;
   --sidebar-border: rgba(139, 92, 246, 0.15);
-  --sidebar-ring: #8b5cf6;
+  --sidebar-ring: #e8940c;
 
-  --chart-1: #8b5cf6;
-  --chart-2: #a8a29e;
-  --chart-3: #78716c;
-  --chart-4: #57534e;
-  --chart-5: #292524;
+  --chart-1: #e8940c;
+  --chart-2: #3b82f6;
+  --chart-3: #14b8a6;
+  --chart-4: #f59e0b;
+  --chart-5: #ec4899;
 }
 
 @media (prefers-reduced-motion: reduce) {

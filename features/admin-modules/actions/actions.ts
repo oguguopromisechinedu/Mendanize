@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import type { UserRole } from "@prisma/client"
+import type { AdminRoleKey } from "@prisma/client"
 
 import { requireAdmin, requireEditor } from "@/features/authentication/server"
 import {
@@ -55,7 +55,7 @@ function revalidate(...paths: string[]) {
 }
 
 async function audit(
-  session: { user?: { id?: string; email?: string | null } } | null,
+  session: { admin?: { id?: string; email?: string | null } } | null,
   action: string,
   entityType: string,
   summary: string,
@@ -63,8 +63,8 @@ async function audit(
 ) {
   try {
     await recordAudit({
-      actorId: session?.user?.id ?? null,
-      actorEmail: session?.user?.email ?? null,
+      actorId: session?.admin?.id ?? null,
+      actorEmail: session?.admin?.email ?? null,
       action,
       entityType,
       entityId,
@@ -154,8 +154,8 @@ export async function updateUserRoleAction(
   try {
     const user = await updateUserRole(
       parsed.data.id,
-      parsed.data.role as UserRole,
-      session.user?.id
+      parsed.data.role as AdminRoleKey,
+      session.admin?.id
     )
     await audit(
       session,

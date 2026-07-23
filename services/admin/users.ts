@@ -1,4 +1,4 @@
-import type { UserRole } from "@prisma/client"
+import type { AdminRoleKey } from "@prisma/client"
 
 import {
   assertDatabaseForProductionWrites,
@@ -9,7 +9,14 @@ import type { ListResult, UserAdminRecord } from "./types"
 
 const nowIso = () => new Date().toISOString()
 
-const STAFF: UserRole[] = ["EDITOR", "ADMIN", "SUPER_ADMIN"]
+const ADMIN_ROLE_KEYS: AdminRoleKey[] = [
+  "SUPER_ADMINISTRATOR",
+  "ADMINISTRATOR",
+  "EDITOR",
+  "CONTENT_MANAGER",
+  "ANALYTICS_MANAGER",
+  "SUPPORT_MANAGER",
+]
 
 const memory = {
   users: [] as UserAdminRecord[],
@@ -22,34 +29,34 @@ function seed() {
   const t = nowIso()
   memory.users = [
     {
-      id: "usr_admin",
+      id: "adm_super",
       name: "Platform Admin",
       email: "admin@mendanize.local",
-      role: "SUPER_ADMIN",
+      role: "SUPER_ADMINISTRATOR",
       emailVerified: t,
       createdAt: t,
       updatedAt: t,
-      plan: "PRO",
+      plan: null,
     },
     {
-      id: "usr_editor",
+      id: "adm_editor",
       name: "Content Editor",
       email: "editor@mendanize.local",
       role: "EDITOR",
       emailVerified: t,
       createdAt: t,
       updatedAt: t,
-      plan: "FREE",
+      plan: null,
     },
     {
-      id: "usr_learner",
-      name: "Sample Learner",
-      email: "learner@mendanize.local",
-      role: "LEARNER",
-      emailVerified: null,
+      id: "adm_admin",
+      name: "Administrator",
+      email: "administrator@mendanize.local",
+      role: "ADMINISTRATOR",
+      emailVerified: t,
       createdAt: t,
       updatedAt: t,
-      plan: "FREE",
+      plan: null,
     },
   ]
 }
@@ -58,22 +65,25 @@ function mapRow(row: {
   id: string
   name: string | null
   email: string
-  role: UserRole
   emailVerified: Date | null
   createdAt: Date
   updatedAt: Date
-  subscription?: { plan: string } | null
+  role: { key: AdminRoleKey }
 }): UserAdminRecord {
   return {
     id: row.id,
     name: row.name,
     email: row.email,
-    role: row.role,
+    role: row.role.key,
     emailVerified: row.emailVerified?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
-    plan: row.subscription?.plan ?? null,
+    plan: null,
   }
+}
+
+function isAdminRoleKey(value: string): value is AdminRoleKey {
+  return (ADMIN_ROLE_KEYS as string[]).includes(value)
 }
 
 export async function listUsersAdmin(params: {
@@ -90,7 +100,6 @@ export async function listUsersAdmin(params: {
   if (!isDatabaseConfigured()) {
     seed()
     let items = [...memory.users]
-    if (params.staffOnly) items = items.filter((u) => STAFF.includes(u.role as UserRole))
     if (params.role) items = items.filter((u) => u.role === params.role)
     if (q) {
       items = items.filter(
@@ -107,12 +116,18 @@ export async function listUsersAdmin(params: {
 
   const prisma = getPrisma()
   const where: {
-    role?: UserRole | { in: UserRole[] }
-    OR?: Array<{ email?: { contains: string; mode: "insensitive" }; name?: { contains: string; mode: "insensitive" } }>
+    role?: { key: AdminRoleKey | { in: AdminRoleKey[] } }
+    OR?: Array<{
+      email?: { contains: string; mode: "insensitive" }
+      name?: { contains: string; mode: "insensitive" }
+    }>
   } = {}
 
-  if (params.role) where.role = params.role as UserRole
-  else if (params.staffOnly) where.role = { in: STAFF }
+  if (params.role && isAdminRoleKey(params.role)) {
+    where.role = { key: params.role }
+  } else if (params.staffOnly) {
+    where.role = { key: { in: [...ADMIN_ROLE_KEYS] } }
+  }
   if (q) {
     where.OR = [
       { email: { contains: q, mode: "insensitive" } },
@@ -121,13 +136,13 @@ export async function listUsersAdmin(params: {
   }
 
   const [total, rows] = await Promise.all([
-    prisma.user.count({ where }),
-    prisma.user.findMany({
+    prisma.admin.count({ where }),
+    prisma.admin.findMany({
       where,
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * pageSize,
       take: pageSize,
-      include: { subscription: { select: { plan: true } } },
+      include: { role: { select: { key: true } } },
     }),
   ])
 
@@ -141,11 +156,11 @@ export async function listUsersAdmin(params: {
 
 export async function updateUserRole(
   id: string,
-  role: UserRole,
+  role: AdminRoleKey,
   actorId?: string
 ): Promise<UserAdminRecord> {
   assertDatabaseForProductionWrites("services/admin/users")
-  if (!STAFF.includes(role) && role !== "LEARNER" && role !== "USER") {
+  if (!isAdminRoleKey(role)) {
     throw new Error("Invalid role")
   }
 
@@ -153,12 +168,23 @@ export async function updateUserRole(
     seed()
     const user = memory.users.find((u) => u.id === id)
     if (!user) throw new Error("User not found")
-    if (user.role === "SUPER_ADMIN" && role !== "SUPER_ADMIN") {
-      const supers = memory.users.filter((u) => u.role === "SUPER_ADMIN")
-      if (supers.length <= 1) throw new Error("Cannot demote the last SUPER_ADMIN")
+    if (
+      user.role === "SUPER_ADMINISTRATOR" &&
+      role !== "SUPER_ADMINISTRATOR"
+    ) {
+      const supers = memory.users.filter(
+        (u) => u.role === "SUPER_ADMINISTRATOR"
+      )
+      if (supers.length <= 1)
+        throw new Error("Cannot demote the last SUPER_ADMINISTRATOR")
     }
-    if (actorId && actorId === id && role !== "SUPER_ADMIN" && user.role === "SUPER_ADMIN") {
-      throw new Error("Cannot demote yourself from SUPER_ADMIN")
+    if (
+      actorId &&
+      actorId === id &&
+      role !== "SUPER_ADMINISTRATOR" &&
+      user.role === "SUPER_ADMINISTRATOR"
+    ) {
+      throw new Error("Cannot demote yourself from SUPER_ADMINISTRATOR")
     }
     user.role = role
     user.updatedAt = nowIso()
@@ -166,21 +192,54 @@ export async function updateUserRole(
   }
 
   const prisma = getPrisma()
-  const existing = await prisma.user.findUnique({ where: { id } })
+  const existing = await prisma.admin.findUnique({
+    where: { id },
+    include: { role: { select: { key: true } } },
+  })
   if (!existing) throw new Error("User not found")
 
-  if (existing.role === "SUPER_ADMIN" && role !== "SUPER_ADMIN") {
-    const count = await prisma.user.count({ where: { role: "SUPER_ADMIN" } })
-    if (count <= 1) throw new Error("Cannot demote the last SUPER_ADMIN")
+  if (
+    existing.role.key === "SUPER_ADMINISTRATOR" &&
+    role !== "SUPER_ADMINISTRATOR"
+  ) {
+    const count = await prisma.admin.count({
+      where: { role: { key: "SUPER_ADMINISTRATOR" } },
+    })
+    if (count <= 1)
+      throw new Error("Cannot demote the last SUPER_ADMINISTRATOR")
   }
-  if (actorId && actorId === id && existing.role === "SUPER_ADMIN" && role !== "SUPER_ADMIN") {
-    throw new Error("Cannot demote yourself from SUPER_ADMIN")
+  if (
+    actorId &&
+    actorId === id &&
+    existing.role.key === "SUPER_ADMINISTRATOR" &&
+    role !== "SUPER_ADMINISTRATOR"
+  ) {
+    throw new Error("Cannot demote yourself from SUPER_ADMINISTRATOR")
   }
 
-  const row = await prisma.user.update({
+  const nextRole = await prisma.adminRole.findUnique({ where: { key: role } })
+  if (!nextRole) throw new Error(`Admin role ${role} is not seeded`)
+
+  const row = await prisma.admin.update({
     where: { id },
-    data: { role },
-    include: { subscription: { select: { plan: true } } },
+    data: { roleId: nextRole.id },
+    include: { role: { select: { key: true } } },
   })
+
+  try {
+    const { logAuthorization } = await import(
+      "@/features/authentication/services/audit"
+    )
+    await logAuthorization({
+      adminId: actorId,
+      action: "admin.role_update",
+      entityType: "Admin",
+      entityId: id,
+      summary: `Role changed to ${role}`,
+    })
+  } catch {
+    /* audit must not block */
+  }
+
   return mapRow(row)
 }

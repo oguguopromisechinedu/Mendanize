@@ -2,9 +2,9 @@
 
 | Field | Value |
 |-------|-------|
-| **Version** | 1.1.0 |
+| **Version** | 1.2.0 |
 | **Status** | Approved |
-| **Last Updated** | 2026-07-15 |
+| **Last Updated** | 2026-07-23 |
 | **Owner** | Mendanize Platform Architecture |
 
 ## Purpose
@@ -16,9 +16,10 @@ This directory is the **single source of truth** for the Mendanize platform. Doc
 ```
 docs/
   README.md                 ← you are here
+  MES-DOCUMENTS-STATUS.md   ← implementation status of every MES
   ENVIRONMENT.md            ← runtime env (ops)
   DEPLOYMENT.md
-  FINAL-DEPLOYMENT-CHECKLIST.md  ← v1.0 go-live checklist
+  FINAL-DEPLOYMENT-CHECKLIST.md
   LAUNCH-CHECKLIST.md
   CHANGELOG.md
 
@@ -43,9 +44,11 @@ docs/
     Dependency-Map.md
     MES-Module-Map.md
 
-  engineering/              ← MES-001 … MES-029 + index
+  engineering/              ← MES-001 … MES-035 + index
     MES-INDEX.md
-    MES-001.md … MES-029.md
+    MES-001.md … MES-035.md
+
+  reports/                  ← audit / roadmap (evidence-based)
 ```
 
 | Folder | Role |
@@ -53,31 +56,46 @@ docs/
 | [core/](./core/) | Manifesto, agent prompt, binding project rules |
 | [standards/](./standards/) | API, coding, security, database, UI, components, testing |
 | [architecture/](./architecture/) | Router paths, module & dependency maps |
-| [engineering/](./engineering/) | MES specifications in execution order |
+| [engineering/](./engineering/) | MES specifications in execution order (through MES-035) |
+| [reports/](./reports/) | Audit verdicts and implementation roadmap |
 
 ## Document Hierarchy
 
 1. **[core/MSEM.md](./core/MSEM.md)** + **[core/MSEM-Appendix-A-Engineering-Standards.md](./core/MSEM-Appendix-A-Engineering-Standards.md)** + **[core/Project-Rules.md](./core/Project-Rules.md)** — highest authority
-2. **[engineering/MES-001.md](./engineering/MES-001.md)** / **[MES-002.md](./engineering/MES-002.md)** — platform & Shared Services
-3. **MES-003–MES-029** — feature and surface specs
-4. **[standards/](./standards/)** — applied to every implementation
-5. **[architecture/](./architecture/)** + ops docs — structural and runtime reality
+2. **[engineering/MES-INDEX.md](./engineering/MES-INDEX.md)** — master sequence (v1.5: MES-001 → MES-035)
+3. **[engineering/MES-001.md](./engineering/MES-001.md)** / **[MES-002.md](./engineering/MES-002.md)** — platform & Shared Services
+4. **MES-003–MES-035** — feature, surface, retrofit, and launch specs (see index)
+5. **[standards/](./standards/)** — applied to every implementation
+6. **[architecture/](./architecture/)** + ops docs — structural and runtime reality
+7. **[MES-DOCUMENTS-STATUS.md](./MES-DOCUMENTS-STATUS.md)** — which specs are implemented vs pending
 
-## How Cursor Must Work
+## How Cursor / contributors must work
 
 Follow **[core/Cursor-System-Prompt.md](./core/Cursor-System-Prompt.md)**. Then:
 
-1. Read [engineering/MES-INDEX.md](./engineering/MES-INDEX.md)
-2. Read [core/Project-Rules.md](./core/Project-Rules.md), [core/MSEM-Appendix-A-Engineering-Standards.md](./core/MSEM-Appendix-A-Engineering-Standards.md), and [engineering/MES-002.md](./engineering/MES-002.md)
-3. Read the target MES and its dependencies
-4. Confirm [architecture/Module-Map.md](./architecture/Module-Map.md)
-5. Implement only in mapped folders — never fork Shared Services
+1. Read [engineering/MES-INDEX.md](./engineering/MES-INDEX.md) (current sequence through **MES-035**)
+2. Read [MES-DOCUMENTS-STATUS.md](./MES-DOCUMENTS-STATUS.md) — know what is done vs next
+3. Read [core/Project-Rules.md](./core/Project-Rules.md), [core/MSEM-Appendix-A-Engineering-Standards.md](./core/MSEM-Appendix-A-Engineering-Standards.md), and [engineering/MES-002.md](./engineering/MES-002.md)
+4. Read the **target MES** and its **dependencies** (do not skip)
+5. Confirm [architecture/Module-Map.md](./architecture/Module-Map.md) and [architecture/App-Router-Paths.md](./architecture/App-Router-Paths.md)
+6. Implement only in mapped folders — never fork Shared Services
+7. Satisfy the MES **ACCEPTANCE CRITERIA**, honour **WHAT NOT TO BUILD**, then **STOP** and wait for approval before the next MES
+
+## Three surfaces (MES-001 v3.0 / MES-030)
+
+| Surface | Who | URL root |
+|---------|-----|----------|
+| Teaching Frontend | Anyone | `app/(public)` → `/`, `/articles`, … |
+| Learner Account | `PublicUser` | `/account/*` (billing, learning, profile) |
+| Admin Dashboard | `Admin` only | `/dashboard/*`, `/ai-studio`, … |
+
+Never put learner billing/learning under Admin-only `/dashboard/*`.
 
 ## Single Contracts
 
 | Concern | Document | Location |
 |---------|----------|----------|
-| Session | [MES-006](./engineering/MES-006.md) | `features/authentication` |
+| Session | [MES-006](./engineering/MES-006.md) / [MES-030](./engineering/MES-030.md) | `features/authentication` |
 | Recommendations | [MES-018](./engineering/MES-018.md) | `services/recommendations` |
 | AI configuration | [MES-020](./engineering/MES-020.md) | `services/settings` |
 | API envelope | [API-Standards](./standards/API-Standards.md) | `{ data, error, meta }` |
@@ -86,35 +104,10 @@ Follow **[core/Cursor-System-Prompt.md](./core/Cursor-System-Prompt.md)**. Then:
 
 - [Cursor System Prompt](./core/Cursor-System-Prompt.md)
 - [MES Index](./engineering/MES-INDEX.md)
+- [MES Documents Status](./MES-DOCUMENTS-STATUS.md)
 - [Module Map](./architecture/Module-Map.md)
-- [MES-002 completion handoff](./MES-002-COMPLETION.md)
-- [MES-003 completion handoff](./MES-003-COMPLETION.md)
-- [MES-004 completion handoff](./MES-004-COMPLETION.md)
-- [MES-005 completion handoff](./MES-005-COMPLETION.md)
-- [MES-006 completion handoff](./MES-006-COMPLETION.md)
-- [MES-007 completion handoff](./MES-007-COMPLETION.md)
-- [MES-008 completion handoff](./MES-008-COMPLETION.md)
-- [MES-009 completion handoff](./MES-009-COMPLETION.md)
-- [MES-010 completion handoff](./MES-010-COMPLETION.md)
-- [MES-011 completion handoff](./MES-011-COMPLETION.md)
-- [MES-012 completion handoff](./MES-012-COMPLETION.md)
-- [MES-013 completion handoff](./MES-013-COMPLETION.md)
-- [MES-014 completion handoff](./MES-014-COMPLETION.md)
-- [MES-015 completion handoff](./MES-015-COMPLETION.md)
-- [MES-016 completion handoff](./MES-016-COMPLETION.md)
-- [MES-017 completion handoff](./MES-017-COMPLETION.md)
-- [MES-018 completion handoff](./MES-018-COMPLETION.md)
-- [MES-019 completion handoff](./MES-019-COMPLETION.md)
-- [MES-020 completion handoff](./MES-020-COMPLETION.md)
-- [MES-021 completion handoff](./MES-021-COMPLETION.md)
-- [MES-022 completion handoff](./MES-022-COMPLETION.md)
-- [MES-023 completion handoff](./MES-023-COMPLETION.md)
-- [MES-024 completion handoff](./MES-024-COMPLETION.md)
-- [MES-025 completion handoff](./MES-025-COMPLETION.md)
-- [MES-026 completion handoff](./MES-026-COMPLETION.md)
-- [MES-027 completion handoff](./MES-027-COMPLETION.md)
-- [MES-028 completion handoff](./MES-028-COMPLETION.md)
-- [MES-029 completion / v1.0 Production Readiness Report](./MES-029-COMPLETION.md)
+- Completion handoffs: [MES-002](./MES-002-COMPLETION.md) … [MES-029](./MES-029-COMPLETION.md) (MES-030–035 handoffs are created when that MES is completed)
+- [Audit reports](./reports/README.md)
 
 ## Ops & contributor docs
 

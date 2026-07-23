@@ -15,7 +15,14 @@ import {
 import { Button } from "@/components/ui/button"
 import { updateUserRoleAction } from "../actions/actions"
 
-const ROLES = ["LEARNER", "EDITOR", "ADMIN", "SUPER_ADMIN"] as const
+const ROLES = [
+  "SUPER_ADMINISTRATOR",
+  "ADMINISTRATOR",
+  "EDITOR",
+  "CONTENT_MANAGER",
+  "ANALYTICS_MANAGER",
+  "SUPPORT_MANAGER",
+] as const
 
 export function UsersListView({
   initial,
@@ -121,7 +128,7 @@ export function UsersListView({
         </AdminDataTable>
       )}
       <p className="mt-4 text-xs text-muted-foreground">
-        {initial.total} user(s). The last SUPER_ADMIN cannot be demoted.
+        {initial.total} admin(s). The last SUPER_ADMINISTRATOR cannot be demoted.
       </p>
     </div>
   )

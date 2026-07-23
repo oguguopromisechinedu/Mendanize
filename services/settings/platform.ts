@@ -883,17 +883,12 @@ export async function loadDesignTokensWithOverrides(): Promise<DesignTokens> {
   const tokens = structuredClone(SEEDED_DESIGN_TOKENS);
   try {
     const branding = await getBrandingSettings();
-    tokens.colors.primary = branding.primaryColor;
-    tokens.colors.accent = branding.accentColor;
-    tokens.colors.secondary = branding.secondaryColor;
-    tokens.colorsLight.primary = branding.primaryColor;
-    tokens.colorsLight.accent = branding.accentColor;
-    tokens.colorsLight.secondary = branding.secondaryColor;
     if (branding.tokenOverridesJson) {
       const overrides = JSON.parse(branding.tokenOverridesJson) as Partial<DesignTokens>;
-      if (overrides.colors) {
-        tokens.colors = { ...tokens.colors, ...overrides.colors };
-      }
+      if (overrides.colors) tokens.colors = { ...tokens.colors, ...overrides.colors };
+      if (overrides.colorsLight) tokens.colorsLight = { ...tokens.colorsLight, ...overrides.colorsLight };
+      // Only apply explicit token overrides JSON. Primary/accent/secondary are taken from SEEDED_DESIGN_TOKENS
+      // to keep the homepage palette consistent.
     }
   } catch {
     // seed fallback

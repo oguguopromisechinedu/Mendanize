@@ -47,7 +47,7 @@ export async function generateArticleAction(
   }
 
   const generation = await generateStudioArticle({
-    userId: session.user.id,
+    userId: session.admin.id,
     ...parsed.data,
   })
   revalidateStudio()
@@ -77,7 +77,7 @@ export async function generateImageAction(
   }
 
   const generation = await generateStudioImage({
-    userId: session.user.id,
+    userId: session.admin.id,
     ...parsed.data,
   })
   revalidateStudio()
@@ -107,7 +107,7 @@ export async function prepareVideoAction(
   }
 
   const generation = await prepareStudioVideo({
-    userId: session.user.id,
+    userId: session.admin.id,
     ...parsed.data,
   })
   revalidateStudio()
@@ -144,7 +144,7 @@ export async function sendToArticleEditorAction(
       status: "DRAFT",
       categoryId: parsed.data.categoryId || null,
       topicId: parsed.data.topicId || null,
-      authorId: session.user.id,
+      authorId: session.admin.id,
       tagNames: ["ai-studio"],
       featuredImageUrl,
     })

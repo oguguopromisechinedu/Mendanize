@@ -249,17 +249,23 @@ async function ensureSeeded(): Promise<void> {
     });
 
     const legalSection = seed.footer.find((s) => s.id === "legal");
-    await tx.legalLink.createMany({
-      data: (legalSection?.links ?? [
-        { label: "Privacy", href: "/privacy" },
-        { label: "Terms", href: "/terms" },
-      ]).map((l, index) => ({
-        label: l.label,
-        href: l.href,
-        visible: true,
-        sortOrder: index,
-      })),
-    });
+    const companySection = seed.footer.find((s) => s.id === "company");
+    const legalSeed =
+      legalSection?.links ??
+      companySection?.links.filter((l) =>
+        ["/privacy", "/terms"].includes(l.href),
+      ) ??
+      [];
+    if (legalSeed.length) {
+      await tx.legalLink.createMany({
+        data: legalSeed.map((l, index) => ({
+          label: l.label,
+          href: l.href,
+          visible: true,
+          sortOrder: index,
+        })),
+      });
+    }
   });
 }
 
@@ -344,6 +350,20 @@ export async function getPersistedNavigationConfig(): Promise<NavigationConfig |
     })
     .filter((s) => s.links.length > 0);
 
+  // Drop legacy standalone Legal column — links fold into Company (MES-004).
+  let linkColumns = footerSections.filter(
+    (s) =>
+      s.id !== "legal" &&
+      s.title.toLowerCase() !== "legal" &&
+      s.id !== "categories" &&
+      s.title.toLowerCase() !== "learning categories",
+  );
+
+  // Persisted footer menus seeded before MES-004 refresh may have wrong columns.
+  if (linkColumns.length !== SEEDED_NAVIGATION_CONFIG.footer.length) {
+    linkColumns = structuredClone(SEEDED_NAVIGATION_CONFIG.footer);
+  }
+
   const [social, legal] = await Promise.all([
     db().socialLink.findMany({
       where: { visible: true },
@@ -355,12 +375,27 @@ export async function getPersistedNavigationConfig(): Promise<NavigationConfig |
     }),
   ]);
 
+  // MES-004: legal links fold into Company (no separate Legal column).
   if (legal.length) {
-    footerSections.push({
-      id: "legal",
-      title: "Legal",
-      links: legal.map((l) => ({ label: l.label, href: l.href })),
-    });
+    const legalLinks = legal.map((l) => ({ label: l.label, href: l.href }));
+    const company = linkColumns.find(
+      (s) => s.id === "company" || s.title.toLowerCase() === "company",
+    );
+    if (company) {
+      const existingHrefs = new Set(company.links.map((l) => l.href));
+      for (const link of legalLinks) {
+        if (!existingHrefs.has(link.href)) {
+          company.links.push(link);
+          existingHrefs.add(link.href);
+        }
+      }
+    } else {
+      linkColumns.push({
+        id: "legal",
+        title: "Legal",
+        links: legalLinks,
+      });
+    }
   }
 
   return {
@@ -372,8 +407,9 @@ export async function getPersistedNavigationConfig(): Promise<NavigationConfig |
     primary,
     mobile: mobile.length ? mobile : primary,
     signInHref: settings.signInHref,
-    footer: footerSections,
+    footer: linkColumns,
     social: social.map((s) => ({ label: s.label, href: s.href })),
+    popularTopics: structuredClone(SEEDED_NAVIGATION_CONFIG.popularTopics),
     newsletter: {
       enabled: settings.newsletterEnabled,
       headline: settings.newsletterHeadline ?? "Get learning tips in your inbox",

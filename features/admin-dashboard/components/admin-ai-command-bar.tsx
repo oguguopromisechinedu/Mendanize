@@ -25,7 +25,7 @@ export function AdminAiCommandBar({ className }: { className?: string }) {
       if (intent.openAsk) {
         // Organizing / planning work → Ask Admin with CMS surface
         router.push(
-          `/dashboard/ask?draft=${encodeURIComponent(intent.draft)}&intent=${encodeURIComponent(intent.kind)}`,
+          `/ask?draft=${encodeURIComponent(intent.draft)}&intent=${encodeURIComponent(intent.kind)}`,
         )
         return
       }

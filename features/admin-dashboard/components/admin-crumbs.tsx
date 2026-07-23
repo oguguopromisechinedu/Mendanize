@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from "next/navigation"
 import { useTransition } from "react"
 
-import { signOutAction } from "@/features/authentication"
+import { adminSignOutAction } from "@/features/authentication"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 
 export function SignOutMenuItem() {
@@ -16,8 +16,8 @@ export function SignOutMenuItem() {
       onSelect={(e) => {
         e.preventDefault()
         startTransition(async () => {
-          await signOutAction()
-          router.push("/sign-in")
+          await adminSignOutAction()
+          router.push("/dashboard/login")
           router.refresh()
         })
       }}

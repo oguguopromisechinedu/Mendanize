@@ -2,14 +2,17 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 
-declare global {
-  var prisma: PrismaClient | undefined;
-  var prismaPool: Pool | undefined;
-}
+/** Client + pool created together so they are always swapped atomically. */
+type PrismaBundle = {
+  client: PrismaClient;
+  pool: Pool;
+  /** Set when this bundle has been retired by resetPrismaClient(). */
+  retired: boolean;
+};
 
 const globalForPrisma = globalThis as typeof globalThis & {
-  prisma?: PrismaClient;
-  prismaPool?: Pool;
+  prismaBundle?: PrismaBundle;
+  prismaLastResetAt?: number;
 };
 
 /** Ensure pooler-friendly query params without rewriting credentials. */
@@ -34,12 +37,12 @@ function normalizeDatabaseUrl(raw: string): string {
 }
 
 /**
- * Create a single PrismaClient backed by a pg Pool on DATABASE_URL.
+ * Create a PrismaClient backed by a pg Pool on DATABASE_URL.
  *
  * For Supabase: DATABASE_URL should be the transaction pooler
  * (port 6543, ?pgbouncer=true). Migrations use DIRECT_URL via prisma.config.ts.
  */
-function createPrismaClient() {
+function createPrismaBundle(): PrismaBundle {
   const connectionString = normalizeDatabaseUrl(
     process.env.DATABASE_URL?.trim() ?? "",
   );
@@ -58,7 +61,9 @@ function createPrismaClient() {
     // so allow enough headroom to avoid "timeout exceeded when trying to connect"
     // while still staying well under the Supabase pooler's per-project budget.
     max: Number(process.env.DATABASE_POOL_MAX ?? 12),
-    connectionTimeoutMillis: 20_000,
+    connectionTimeoutMillis: Number(
+      process.env.DATABASE_CONNECT_TIMEOUT_MS ?? 20_000,
+    ),
     idleTimeoutMillis: 30_000,
     keepAlive: true,
     // Supabase pooler TLS often needs this on Windows/Node pg clients.
@@ -70,36 +75,36 @@ function createPrismaClient() {
     console.error("[prisma] Unexpected pool error:", err.message);
   });
 
-  // Always retain the pool so resetPrismaClient() can dispose it.
-  globalForPrisma.prismaPool = pool;
-
-  return new PrismaClient({
+  const client = new PrismaClient({
     adapter: new PrismaPg(pool),
     log:
       process.env.NODE_ENV === "development"
         ? ["query", "error", "warn"]
         : ["error"],
   });
+
+  return { client, pool, retired: false };
 }
 
-let prisma: PrismaClient | undefined = globalForPrisma.prisma;
-
 /**
- * Singleton PrismaClient. Reuses one instance across hot reloads (dev)
- * and within the process (production / serverless).
+ * Singleton PrismaClient. State lives exclusively on globalThis so that
+ * Next.js HMR and duplicate module graphs always share (and always see)
+ * the current client — a module-local cache can hand out a client whose
+ * pool has already been ended by resetPrismaClient().
  */
-export function getPrisma() {
-  if (!prisma) {
-    if (!process.env.DATABASE_URL?.trim()) {
-      throw new Error("Database not configured. Set DATABASE_URL.");
-    }
-
-    prisma = createPrismaClient();
-    // Cache on globalThis so Next.js HMR (and duplicate module graphs) share one client.
-    globalForPrisma.prisma = prisma;
+export function getPrisma(): PrismaClient {
+  const bundle = globalForPrisma.prismaBundle;
+  if (bundle && !bundle.retired) {
+    return bundle.client;
   }
 
-  return prisma;
+  if (!process.env.DATABASE_URL?.trim()) {
+    throw new Error("Database not configured. Set DATABASE_URL.");
+  }
+
+  const fresh = createPrismaBundle();
+  globalForPrisma.prismaBundle = fresh;
+  return fresh.client;
 }
 
 export function isDatabaseConfigured(): boolean {
@@ -147,30 +152,77 @@ export function isTransientConnectionError(error: unknown): boolean {
     message.includes("connection terminated") ||
     message.includes("can't reach database server") ||
     message.includes("connection timeout") ||
+    message.includes("timeout exceeded when trying to connect") ||
     message.includes("connect econnreset") ||
     message.includes("connect etimedout") ||
-    message.includes("timed out fetching a new connection")
+    message.includes("timed out fetching a new connection") ||
+    // A retired pool that a stale reference kept using — recoverable by
+    // retrying against the fresh client from getPrisma().
+    message.includes("cannot use a pool after calling end on the pool")
   );
 }
 
-/** Drop a dead client/pool so the next getPrisma() opens a fresh connection. */
-export async function resetPrismaClient(): Promise<void> {
-  const client = prisma;
-  const pool = globalForPrisma.prismaPool;
+/** How long retired pools stay alive so in-flight queries can finish. */
+const RETIRED_POOL_GRACE_MS = 30_000;
 
-  prisma = undefined;
-  globalForPrisma.prisma = undefined;
-  globalForPrisma.prismaPool = undefined;
+/** Ignore repeat resets shortly after one another (concurrent failures). */
+const RESET_DEBOUNCE_MS = 5_000;
 
-  try {
-    await client?.$disconnect();
-  } catch {
-    // Client may already be closed.
+function disposeBundle(bundle: PrismaBundle): Promise<void> {
+  return (async () => {
+    try {
+      await bundle.client.$disconnect();
+    } catch {
+      // Client may already be closed.
+    }
+    try {
+      await bundle.pool.end();
+    } catch {
+      // Pool may already be ended.
+    }
+  })();
+}
+
+/**
+ * Retire a dead client/pool so the next getPrisma() opens a fresh connection.
+ *
+ * The retired pool is NOT closed immediately: other requests may still hold
+ * the old client mid-query, and ending the pool under them raises
+ * "Cannot use a pool after calling end on the pool". Instead the pool is
+ * drained after a grace period. Pass `immediate: true` from one-shot scripts
+ * that need the process to exit right away.
+ */
+export async function resetPrismaClient(options?: {
+  immediate?: boolean;
+}): Promise<void> {
+  const bundle = globalForPrisma.prismaBundle;
+
+  if (options?.immediate) {
+    globalForPrisma.prismaBundle = undefined;
+    if (bundle) {
+      bundle.retired = true;
+      await disposeBundle(bundle);
+    }
+    return;
   }
 
-  try {
-    await pool?.end();
-  } catch {
-    // Pool may already be ended.
+  // Concurrent transient failures each call reset; only the first should
+  // retire the bundle, otherwise a freshly created replacement gets torn
+  // down before it ever serves a query.
+  const now = Date.now();
+  if (now - (globalForPrisma.prismaLastResetAt ?? 0) < RESET_DEBOUNCE_MS) {
+    return;
   }
+  globalForPrisma.prismaLastResetAt = now;
+
+  if (!bundle || bundle.retired) return;
+
+  bundle.retired = true;
+  globalForPrisma.prismaBundle = undefined;
+
+  const timer = setTimeout(() => {
+    void disposeBundle(bundle);
+  }, RETIRED_POOL_GRACE_MS);
+  // Never keep the process alive just to garbage-collect an old pool.
+  timer.unref?.();
 }

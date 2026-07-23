@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireUser, requireEditor } from "@/features/authentication/server";
+import { requirePublicUser, requireEditor } from "@/features/authentication/server";
 import {
   markNotification,
   updateDeliverySettings,
@@ -20,22 +20,20 @@ import { NOTIFICATIONS_NAV } from "../constants/constants";
 
 function revalidateAll() {
   for (const item of NOTIFICATIONS_NAV) revalidatePath(item.href);
-  revalidatePath("/learning/preferences");
+  revalidatePath("/account/preferences");
 }
 
 export async function markNotificationAction(
   input: unknown,
 ): Promise<ActionResult> {
-  const session = await requireUser();
-  if (!session?.user?.id) return { ok: false, message: "Sign in required" };
+  const publicSession = await requirePublicUser();
+  const adminSession = await requireEditor();
+  const actorId = publicSession?.user?.id ?? adminSession?.admin?.id;
+  if (!actorId) return { ok: false, message: "Sign in required" };
   const parsed = markSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Invalid request" };
   try {
-    await markNotification(
-      session.user.id,
-      parsed.data.id,
-      parsed.data.action,
-    );
+    await markNotification(actorId, parsed.data.id, parsed.data.action);
     revalidateAll();
     return { ok: true, message: "Updated" };
   } catch (err) {
@@ -49,7 +47,7 @@ export async function markNotificationAction(
 export async function saveNotificationPreferencesAction(
   input: unknown,
 ): Promise<ActionResult> {
-  const session = await requireUser();
+  const session = await requirePublicUser();
   if (!session?.user?.id) return { ok: false, message: "Sign in required" };
   const parsed = preferencesSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Invalid preferences" };

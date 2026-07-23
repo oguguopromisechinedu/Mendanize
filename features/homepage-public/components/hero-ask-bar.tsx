@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react"
 import Link from "next/link"
-import { ArrowRight, Sparkles } from "lucide-react"
+import { ArrowRight, Bot } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -79,10 +79,9 @@ export function HeroAskBar({ content }: { content: AskContent }) {
   return (
     <div className="mt-8 space-y-3">
       <div className="flex items-center gap-2 rounded-2xl border border-border bg-card/80 p-2 shadow-glow backdrop-blur-sm">
-        <Sparkles
-          className="ml-2 size-4 shrink-0 text-primary"
-          aria-hidden
-        />
+        <div className="ml-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <Bot className="size-4" aria-hidden />
+        </div>
         <Input
           value={question}
           onChange={(e) => setQuestion(e.target.value)}

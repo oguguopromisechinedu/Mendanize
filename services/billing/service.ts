@@ -53,7 +53,7 @@ function toPlanTier(value: PlanTierValue): PlanTier {
 
 function mapSubscription(row: {
   id: string;
-  userId: string;
+  publicUserId: string;
   plan: PlanTier;
   status: string;
   stripeCustomerId: string | null;
@@ -65,7 +65,7 @@ function mapSubscription(row: {
 }): SubscriptionRecord {
   return {
     id: row.id,
-    userId: row.userId,
+    userId: row.publicUserId,
     plan: row.plan as PlanTierValue,
     status: row.status,
     stripeCustomerId: row.stripeCustomerId,
@@ -99,11 +99,13 @@ export async function ensureSubscription(
   if (!isDatabaseConfigured()) {
     return localFreeSubscription(userId);
   }
-  const existing = await db().subscription.findUnique({ where: { userId } });
+  const existing = await db().subscription.findUnique({
+    where: { publicUserId: userId },
+  });
   if (existing) return mapSubscription(existing);
   const created = await db().subscription.create({
     data: {
-      userId,
+      publicUserId: userId,
       plan: PlanTier.FREE,
       status: "active",
     },
@@ -124,12 +126,12 @@ async function ensureStripeCustomer(userId: string, email: string): Promise<stri
 
   const customer = await stripe.customers.create({
     email,
-    metadata: { userId },
+    metadata: { publicUserId: userId },
   });
 
   if (isDatabaseConfigured()) {
     await db().subscription.update({
-      where: { userId },
+      where: { publicUserId: userId },
       data: { stripeCustomerId: customer.id },
     });
   }
@@ -163,12 +165,12 @@ export async function createCheckoutSession(input: {
     mode: "subscription",
     customer: customerId,
     line_items: [{ price: catalog.stripePriceId, quantity: 1 }],
-    success_url: `${base}/dashboard/settings/billing?checkout=success`,
-    cancel_url: `${base}/dashboard/settings/billing?checkout=canceled`,
+    success_url: `${base}/account/billing?checkout=success`,
+    cancel_url: `${base}/account/billing?checkout=canceled`,
     client_reference_id: input.userId,
-    metadata: { userId: input.userId, planId: input.planId },
+    metadata: { publicUserId: input.userId, planId: input.planId },
     subscription_data: {
-      metadata: { userId: input.userId, planId: input.planId },
+      metadata: { publicUserId: input.userId, planId: input.planId },
     },
     allow_promotion_codes: true,
   });
@@ -194,7 +196,7 @@ export async function createCustomerPortalSession(input: {
   const stripe = getStripe();
   const portal = await stripe.billingPortal.sessions.create({
     customer: sub.stripeCustomerId,
-    return_url: `${getAppBaseUrl()}/dashboard/settings/billing`,
+    return_url: `${getAppBaseUrl()}/account/billing`,
   });
   return { url: portal.url };
 }
@@ -304,6 +306,7 @@ export async function syncSubscriptionFromStripe(
 
   const userId =
     userIdHint ||
+    stripeSub.metadata?.publicUserId ||
     stripeSub.metadata?.userId ||
     (
       await db().subscription.findFirst({
@@ -314,7 +317,7 @@ export async function syncSubscriptionFromStripe(
           ],
         },
       })
-    )?.userId;
+    )?.publicUserId;
 
   if (!userId) return;
 
@@ -331,7 +334,7 @@ export async function syncSubscriptionFromStripe(
 
   await ensureSubscription(userId);
   await db().subscription.update({
-    where: { userId },
+    where: { publicUserId: userId },
     data: {
       plan: toPlanTier(status === "canceled" ? "FREE" : plan),
       status,
@@ -380,7 +383,10 @@ export async function handleStripeWebhook(
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
-      const userId = session.metadata?.userId || session.client_reference_id;
+      const userId =
+        session.metadata?.publicUserId ||
+        session.metadata?.userId ||
+        session.client_reference_id;
       if (session.subscription && typeof session.subscription === "string") {
         const sub = await stripe.subscriptions.retrieve(session.subscription);
         await syncSubscriptionFromStripe(sub, userId);
@@ -390,14 +396,17 @@ export async function handleStripeWebhook(
     case "customer.subscription.created":
     case "customer.subscription.updated": {
       const sub = event.data.object as Stripe.Subscription;
-      await syncSubscriptionFromStripe(sub, sub.metadata?.userId);
+      await syncSubscriptionFromStripe(
+        sub,
+        sub.metadata?.publicUserId || sub.metadata?.userId,
+      );
       break;
     }
     case "customer.subscription.deleted": {
       const sub = event.data.object as Stripe.Subscription;
       await syncSubscriptionFromStripe(
         { ...sub, status: "canceled" },
-        sub.metadata?.userId,
+        sub.metadata?.publicUserId || sub.metadata?.userId,
       );
       break;
     }

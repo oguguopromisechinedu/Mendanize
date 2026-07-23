@@ -31,6 +31,14 @@ import { getToolById } from "./tools";
 
 const HOMEPAGE_KEY = "main";
 
+/** Keep "Create account" CTAs pointed at public registration. */
+function publicCtaLink(label: string, href: string): { label: string; href: string } {
+  if (/^create\s+account$/i.test(label.trim())) {
+    return { label: label.trim(), href: "/sign-up" };
+  }
+  return { label, href };
+}
+
 const nowIso = () => new Date().toISOString();
 
 function defaultAsk(): HomepageAskRecord {
@@ -779,6 +787,24 @@ async function resolveLatestArticles(
 export async function getHomepageContent(options?: {
   preview?: boolean;
 }): Promise<HomepageContent> {
+  try {
+    return await loadHomepageContent(options);
+  } catch (error) {
+    // Never let a dead database take down the public homepage — serve seed.
+    if (isTransientConnectionError(error)) {
+      console.error(
+        "[homepage] Database unreachable, serving seeded content:",
+        error instanceof Error ? error.message : error,
+      );
+      return structuredClone(SEEDED_HOMEPAGE_CONTENT);
+    }
+    throw error;
+  }
+}
+
+async function loadHomepageContent(options?: {
+  preview?: boolean;
+}): Promise<HomepageContent> {
   const admin = await getHomepageAdmin();
   const useRecord = Boolean(options?.preview) || admin.status === "PUBLISHED";
   if (!useRecord) {
@@ -909,22 +935,31 @@ export async function getHomepageContent(options?: {
   );
 
   const seedHero = SEEDED_HOMEPAGE_CONTENT.hero;
+  const seedSectionOrder = new Map(
+    SEEDED_HOMEPAGE_CONTENT.sections.map((s) => [s.id, s.order]),
+  );
 
   return {
     sections: record.sections
       .slice()
-      .sort((a, b) => a.sortOrder - b.sortOrder)
-      .map((s) => ({
-        id: s.sectionKey as HomepageContent["sections"][number]["id"],
-        visible: s.enabled,
-        order: s.sortOrder,
-        title: s.title,
-        spacing: s.spacing,
-      })),
+      .map((s) => {
+        const id = s.sectionKey as HomepageContent["sections"][number]["id"];
+        return {
+          id,
+          visible: s.enabled,
+          order: seedSectionOrder.get(id) ?? s.sortOrder,
+          title: s.title,
+          spacing: s.spacing,
+        };
+      })
+      .sort((a, b) => a.order - b.order),
     hero: {
       brand: record.hero.brand,
       eyebrow: record.hero.eyebrow ?? seedHero.eyebrow,
-      headline: record.hero.headline,
+      headline: record.hero.headline.includes("Master")
+        ? seedHero.headline
+        : record.hero.headline,
+      headlineLead: seedHero.headlineLead,
       headlineAccent: record.hero.headlineAccent ?? seedHero.headlineAccent,
       description: record.hero.supportingText,
       primaryCta: {
@@ -955,12 +990,15 @@ export async function getHomepageContent(options?: {
         ? latestArticles
         : SEEDED_HOMEPAGE_CONTENT.latestArticles,
     tools: tools.length > 0 ? tools : SEEDED_HOMEPAGE_CONTENT.tools,
-    why: record.why.map((item) => ({
-      id: item.id,
-      title: item.title,
-      description: item.description,
-      icon: item.icon ?? undefined,
-    })),
+    why:
+      record.why.length >= SEEDED_HOMEPAGE_CONTENT.why.length
+        ? record.why.map((item) => ({
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            icon: item.icon ?? undefined,
+          }))
+        : SEEDED_HOMEPAGE_CONTENT.why,
     testimonials: record.testimonials.map((t) => ({
       id: t.id,
       quote: t.quote,
@@ -983,14 +1021,14 @@ export async function getHomepageContent(options?: {
     finalCta: {
       headline: record.cta.headline,
       description: record.cta.description,
-      primaryCta: {
-        label: record.cta.primaryCtaLabel,
-        href: record.cta.primaryCtaHref,
-      },
-      secondaryCta: {
-        label: record.cta.secondaryCtaLabel,
-        href: record.cta.secondaryCtaHref,
-      },
+      primaryCta: publicCtaLink(
+        record.cta.primaryCtaLabel,
+        record.cta.primaryCtaHref,
+      ),
+      secondaryCta: publicCtaLink(
+        record.cta.secondaryCtaLabel,
+        record.cta.secondaryCtaHref,
+      ),
     },
   };
 }

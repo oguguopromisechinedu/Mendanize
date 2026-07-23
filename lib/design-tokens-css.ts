@@ -7,6 +7,7 @@ function colorBlock(colors: DesignColorTokens): string {
   const entries: Array<[string, string]> = [
     ["background", colors.background],
     ["foreground", colors.foreground],
+    ["header", "#0A0B1E"],
     ["surface", colors.surface],
     ["card", colors.card],
     ["card-foreground", colors.foreground],

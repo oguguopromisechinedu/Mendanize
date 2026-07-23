@@ -23,23 +23,53 @@ function seoDescription(text: string): string {
 async function main() {
   console.log("[seed:content] starting…");
 
-  const admin = await prisma.user.upsert({
+  let adminRole = await prisma.adminRole.findUnique({
+    where: { key: "SUPER_ADMINISTRATOR" },
+  });
+  if (!adminRole) {
+    adminRole = await prisma.adminRole.create({
+      data: {
+        key: "SUPER_ADMINISTRATOR",
+        name: "Super Administrator",
+        description: "Full platform access",
+      },
+    });
+  }
+
+  let editorRole = await prisma.adminRole.findUnique({
+    where: { key: "EDITOR" },
+  });
+  if (!editorRole) {
+    editorRole = await prisma.adminRole.create({
+      data: {
+        key: "EDITOR",
+        name: "Editor",
+        description: "Create and publish educational content",
+      },
+    });
+  }
+
+  const admin = await prisma.admin.upsert({
     where: { email: "admin@mendanize.com" },
-    update: {},
+    update: { roleId: adminRole.id, active: true },
     create: {
       name: "Mendanize Admin",
       email: "admin@mendanize.com",
-      role: "ADMIN",
+      roleId: adminRole.id,
+      active: true,
+      emailVerified: new Date(),
     },
   });
 
-  const editor = await prisma.user.upsert({
+  const editor = await prisma.admin.upsert({
     where: { email: "editorial@mendanize.com" },
-    update: {},
+    update: { roleId: editorRole.id, active: true },
     create: {
       name: "Editorial Team",
       email: "editorial@mendanize.com",
-      role: "EDITOR",
+      roleId: editorRole.id,
+      active: true,
+      emailVerified: new Date(),
     },
   });
 
