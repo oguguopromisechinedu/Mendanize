@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useSyncExternalStore } from "react"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
@@ -8,18 +8,25 @@ import { saveConsentAction } from "@/features/privacy/actions"
 
 const STORAGE_KEY = "mendanize_cookie_consent_v1"
 
+function subscribe(onStoreChange: () => void) {
+  window.addEventListener("storage", onStoreChange)
+  return () => window.removeEventListener("storage", onStoreChange)
+}
+
+function getConsentStored() {
+  try {
+    return Boolean(localStorage.getItem(STORAGE_KEY))
+  } catch {
+    return false
+  }
+}
+
 export function ConsentBanner() {
-  const [visible, setVisible] = useState(false)
+  // SSR: assume stored so the banner does not flash; client re-reads localStorage.
+  const stored = useSyncExternalStore(subscribe, getConsentStored, () => true)
+  const [dismissed, setDismissed] = useState(false)
 
-  useEffect(() => {
-    try {
-      if (!localStorage.getItem(STORAGE_KEY)) setVisible(true)
-    } catch {
-      setVisible(true)
-    }
-  }, [])
-
-  if (!visible) return null
+  if (stored || dismissed) return null
 
   async function accept(analytics: boolean, marketing: boolean) {
     try {
@@ -30,8 +37,8 @@ export function ConsentBanner() {
     } catch {
       /* ignore */
     }
+    setDismissed(true)
     await saveConsentAction({ analytics, marketing })
-    setVisible(false)
   }
 
   return (
