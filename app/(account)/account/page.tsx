@@ -22,7 +22,12 @@ export default async function Page() {
     loadLearningDashboard(userId, session!.user.name),
     loadBillingDashboard(userId).catch(() => null),
     loadCenter(userId, { pageSize: 5 }).catch(() => null),
-    loadLearnerShellConfig(userId),
+    loadLearnerShellConfig(userId).catch(() => ({
+      flags: {} as Record<string, boolean>,
+      navGroups: [],
+      quickActions: [],
+      spaces: [{ label: "Browse project templates", href: "/account/projects" }],
+    })),
   ]);
 
   return (
