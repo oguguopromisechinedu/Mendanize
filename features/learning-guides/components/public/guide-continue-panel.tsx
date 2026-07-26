@@ -3,6 +3,12 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { AskContextualWidget } from "@/features/ask-mendanize";
 import { RecommendationsRail } from "@/features/recommendations";
+import {
+  contentHref,
+  contentLessonHref,
+  contentListHref,
+  type ContentScope,
+} from "@/lib/content-paths";
 import type { RecommendationItem } from "@/services/recommendations";
 
 export function GuideContinuePanel({
@@ -12,6 +18,7 @@ export function GuideContinuePanel({
   lessonTitle,
   lessonExcerpt,
   related,
+  scope = "public",
 }: {
   guideSlug: string;
   nextLesson: { slug: string; title: string } | null;
@@ -19,6 +26,7 @@ export function GuideContinuePanel({
   lessonTitle: string;
   lessonExcerpt?: string | null;
   related: RecommendationItem[];
+  scope?: ContentScope;
 }) {
   return (
     <div className="mt-12 space-y-10 border-t border-border pt-10">
@@ -31,7 +39,9 @@ export function GuideContinuePanel({
             {nextLesson.title}
           </p>
           <Button asChild className="mt-4">
-            <Link href={`/guides/${guideSlug}/lessons/${nextLesson.slug}`}>
+            <Link
+              href={contentLessonHref(guideSlug, nextLesson.slug, { scope })}
+            >
               Next lesson
             </Link>
           </Button>
@@ -41,13 +51,19 @@ export function GuideContinuePanel({
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Continue learning
           </p>
-          <p className="mt-2 text-foreground">You&apos;ve reached the last lesson.</p>
+          <p className="mt-2 text-foreground">
+            You&apos;ve reached the last lesson.
+          </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <Button asChild>
-              <Link href={`/guides/${guideSlug}`}>Back to guide overview</Link>
+              <Link href={contentHref("guide", guideSlug, { scope })}>
+                Back to guide overview
+              </Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href="/guides">Browse more guides</Link>
+              <Link href={contentListHref("guide", { scope })}>
+                Browse more guides
+              </Link>
             </Button>
           </div>
         </div>

@@ -3,6 +3,10 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { AskContextualWidget } from "@/features/ask-mendanize";
 import { RecommendationsRail } from "@/features/recommendations";
+import {
+  contentListHref,
+  type ContentScope,
+} from "@/lib/content-paths";
 import type { ToolRecord } from "@/services/content";
 import type { RecommendationItem } from "@/services/recommendations";
 import {
@@ -19,11 +23,13 @@ export function ToolDetailView({
   related,
   structuredData,
   breadcrumbJsonLd,
+  scope = "public",
 }: {
   tool: ToolRecord;
   related: RecommendationItem[];
   structuredData?: Record<string, unknown> | null;
   breadcrumbJsonLd?: Record<string, unknown> | null;
+  scope?: ContentScope;
 }) {
   const byKind = (kind: ToolRecord["features"][number]["kind"]) =>
     tool.features.filter((f) => f.kind === kind);
@@ -246,7 +252,10 @@ export function ToolDetailView({
         <ToolComparisonPlaceholder />
 
         <p className="text-sm">
-          <Link href="/ai-tools" className="text-primary hover:underline">
+          <Link
+            href={contentListHref("ai_tool", { scope })}
+            className="text-primary hover:underline"
+          >
             ← All AI tools
           </Link>
         </p>

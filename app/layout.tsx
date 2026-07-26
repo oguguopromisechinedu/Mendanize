@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Bricolage_Grotesque, Instrument_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { AnalyticsBeacon } from "@/components/analytics/analytics-beacon";
 import { DesignTokensStyle } from "@/components/layout/DesignTokensStyle";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
@@ -45,6 +47,9 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
         {children}
         <Toaster />
+        <Suspense fallback={null}>
+          <AnalyticsBeacon />
+        </Suspense>
         <Analytics />
       </body>
     </html>

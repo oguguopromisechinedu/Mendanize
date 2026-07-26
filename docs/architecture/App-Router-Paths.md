@@ -40,9 +40,9 @@ Per MES-030: **`/dashboard/*` is Admin-only.** Learner billing, learning, and pr
 
 | Surface | URL pattern | Folder |
 |---------|-------------|--------|
-| Teaching Frontend | `/`, `/articles`, `/guides`, `/ai-tools`, `/categories`, `/topics`, `/search`, `/pricing`, privacy policy | `app/(public)/…` |
-| Learner Account (`PublicUser`) | `/account`, `/account/billing`, `/account/learning`, `/account/profile`, export/delete | `app/(public)/account/…` or dedicated account group — **not** under Admin dashboard |
-| Admin content (name collision) | `/dashboard/articles`, `/dashboard/guides`, `/dashboard/ai-tools`, `/dashboard/categories` | `app/(dashboard)/dashboard/…` |
+| Teaching Frontend | `/`, `/articles`, `/guides`, `/ai-tools`, `/categories`, `/topics`, `/search`, `/pricing`, `/community`, privacy policy | `app/(public)/…` |
+| Learner Account (`PublicUser`) | `/account`, `/account/billing`, `/account/learning`, `/account/profile`, `/account/community` → profile, export/delete | `app/(account)/account/…` — **not** under Admin dashboard |
+| Admin content (name collision) | `/dashboard/articles`, `/dashboard/guides`, `/dashboard/ai-tools`, `/dashboard/categories`, `/dashboard/community` | `app/(dashboard)/dashboard/…` |
 | Dashboard unique modules | `/dashboard`, `/ai-studio`, `/ask`, `/homepage`, `/media`, `/navigation`, `/seo`, `/search-settings`, `/settings`, `/analytics`, `/notifications` | `app/(dashboard)/…` |
 | Auth | `/sign-in`, `/sign-up`, `/forgot-password`, `/reset-password` | `app/(auth)/…` |
 | HTTP API | `/api/public/*`, `/api/dashboard/*` | `app/api/public`, `app/api/dashboard` |

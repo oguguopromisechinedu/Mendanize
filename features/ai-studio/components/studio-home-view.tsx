@@ -52,7 +52,7 @@ export function StudioHomeView({
       <div className="grid gap-6 lg:grid-cols-2">
         <AdminPanel
           title="AI & API status"
-          description="v1.0: only OpenAI (text + DALL·E) is live when OPENAI_API_KEY is set. Other providers are stubs."
+          description="Anthropic owns articles; OpenAI owns images. Status reflects ANTHROPIC_API_KEY and OPENAI_API_KEY."
         >
           <ul className="space-y-2">
             {providers.map((p) => (

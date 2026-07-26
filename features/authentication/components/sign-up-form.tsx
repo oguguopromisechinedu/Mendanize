@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import { signIn } from "next-auth/react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 
@@ -40,18 +39,6 @@ export function SignUpForm() {
       setLoading(false)
       setError(result.message)
       setFieldErrors(result.fieldErrors ?? {})
-      return
-    }
-
-    const signInRes = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    })
-    setLoading(false)
-
-    if (signInRes?.error) {
-      router.push(routes.signIn)
       return
     }
 

@@ -4,6 +4,7 @@ export {
   deleteTagsAction,
   mergeTagsAction,
   updateUserRoleAction,
+  setAdminPasswordAction,
   createSubscriberAction,
   updateSubscriberAction,
   deleteSubscribersAction,

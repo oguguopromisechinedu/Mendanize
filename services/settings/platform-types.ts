@@ -45,6 +45,7 @@ export type AuthenticationSettingRecord = {
   passwordPolicyNote: string | null;
   sessionTimeoutMinutes: number;
   rememberMeEnabled: boolean;
+  twoFactorRequired: boolean;
   twoFactorPlaceholder: boolean;
   updatedAt: string;
 };
@@ -75,6 +76,11 @@ export type EmailSettingRecord = {
   id: string;
   senderName: string;
   senderEmail: string;
+  smtpHost: string | null;
+  smtpPort: number;
+  smtpUser: string | null;
+  smtpPassword: string | null;
+  smtpSecure: boolean;
   smtpPlaceholder: string | null;
   templatesNote: string | null;
   updatedAt: string;

@@ -25,6 +25,8 @@ export type GetRecommendationsParams = {
   contextType: RecommendationContextType;
   contextId: string;
   limit?: number;
+  /** Account scope keeps learners inside /account/* while reading. */
+  hrefScope?: "public" | "account";
 };
 
 export type RecommendationItem = {

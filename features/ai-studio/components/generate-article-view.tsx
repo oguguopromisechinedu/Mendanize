@@ -122,7 +122,7 @@ export function GenerateArticleView({
     <div className="mx-auto max-w-5xl space-y-6">
       <AdminPageHeader
         title="Generate article"
-        description="Claude writes the draft; OpenAI generates a featured image in parallel. Refine, then send into the Article Editor."
+        description="Anthropic writes the draft; OpenAI generates the cover and every in-article image. Refine, then send into the Article Editor."
       />
 
       <AdminPanel title="Inputs">
@@ -199,7 +199,7 @@ export function GenerateArticleView({
             disabled={pending || !topic.trim()}
             onClick={runGenerate}
           >
-            {pending ? "Claude + OpenAI generating…" : "Generate draft + image"}
+            {pending ? "Anthropic + OpenAI generating…" : "Generate draft + images"}
           </Button>
         </div>
       </AdminPanel>
@@ -226,7 +226,7 @@ export function GenerateArticleView({
           {generation?.outputUrls?.length ? (
             <div className="mb-4 space-y-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Featured image · OpenAI DALL·E
+                Cover + body images · OpenAI
               </p>
               <div className="grid gap-3 sm:grid-cols-2">
                 {generation.outputUrls.map((url) => (
@@ -254,7 +254,7 @@ export function GenerateArticleView({
               Article provider: {generation.provider} · model:{" "}
               {generation.model ?? "—"}
               {generation.outputUrls?.length
-                ? " · Image: OpenAI DALL·E"
+                ? " · Image: OpenAI"
                 : " · Image: not generated"}
             </p>
           ) : null}

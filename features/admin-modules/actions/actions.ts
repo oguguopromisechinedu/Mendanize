@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache"
 import type { AdminRoleKey } from "@prisma/client"
 
-import { requireAdmin, requireEditor } from "@/features/authentication/server"
+import { requireEditor, requirePermission, PERMISSIONS } from "@/features/authentication/server"
 import {
   advanceWorkflowItem,
   bulkUpdateCommentStatus,
@@ -24,6 +24,7 @@ import {
   runAutomationJob,
   runBrokenLinkScan,
   sendNewsletterCampaign,
+  setAdminPassword,
   setAutomationJobEnabled,
   updateBrokenLinkStatus,
   updateKnowledgeArticle,
@@ -47,6 +48,7 @@ import {
   tagMergeSchema,
   tagWriteSchema,
   userRoleSchema,
+  adminPasswordSchema,
   workflowAdvanceSchema,
 } from "../validators/schema"
 
@@ -147,7 +149,7 @@ export async function mergeTagsAction(input: unknown): Promise<ActionResult> {
 export async function updateUserRoleAction(
   input: unknown
 ): Promise<ActionResult> {
-  const session = await requireAdmin()
+  const session = await requirePermission(PERMISSIONS.USERS_MANAGE)
   if (!session) return { ok: false, message: "Unauthorized" }
   const parsed = userRoleSchema.safeParse(input)
   if (!parsed.success) return { ok: false, message: "Invalid role" }
@@ -166,6 +168,42 @@ export async function updateUserRoleAction(
     )
     revalidate("/dashboard/users")
     return { ok: true, message: `Role updated to ${user.role}` }
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "Failed" }
+  }
+}
+
+export async function setAdminPasswordAction(
+  input: unknown
+): Promise<ActionResult> {
+  const session = await requirePermission(PERMISSIONS.USERS_MANAGE)
+  if (!session) return { ok: false, message: "Unauthorized" }
+  const parsed = adminPasswordSchema.safeParse(input)
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: "Password must be at least 8 characters",
+      fieldErrors: parsed.error.flatten().fieldErrors as Record<
+        string,
+        string[]
+      >,
+    }
+  }
+  try {
+    const user = await setAdminPassword(
+      parsed.data.id,
+      parsed.data.password,
+      session.admin?.id
+    )
+    await audit(
+      session,
+      "set_password",
+      "user",
+      `Password set for ${user.email}`,
+      user.id
+    )
+    revalidate("/dashboard/users")
+    return { ok: true, message: `Password updated for ${user.email}` }
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "Failed" }
   }
@@ -380,10 +418,20 @@ export async function scanBrokenLinksAction(): Promise<ActionResult> {
   const session = await requireEditor()
   if (!session) return { ok: false, message: "Unauthorized" }
   try {
-    const n = await runBrokenLinkScan()
-    await audit(session, "scan", "broken_link", `Scan recorded ${n} check(s)`)
+    const result = await runBrokenLinkScan()
+    await audit(
+      session,
+      "scan",
+      "broken_link",
+      `Checked ${result.checked}; ${result.broken} broken; ${result.recovered} recovered`
+    )
     revalidate("/dashboard/broken-links", "/dashboard/activity-log")
-    return { ok: true, message: `Scan complete (${n} checks)` }
+    return {
+      ok: true,
+      message: `Scan complete: checked ${result.checked}, ${result.broken} broken, ${result.recovered} recovered${
+        result.skipped ? `, ${result.skipped} skipped` : ""
+      }`,
+    }
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "Failed" }
   }
@@ -427,7 +475,7 @@ export async function redirectBrokenLinkAction(
 export async function toggleAutomationAction(
   input: unknown
 ): Promise<ActionResult> {
-  const session = await requireAdmin()
+  const session = await requirePermission(PERMISSIONS.SETTINGS_MANAGE)
   if (!session) return { ok: false, message: "Unauthorized" }
   const parsed = automationToggleSchema.safeParse(input)
   if (!parsed.success) return { ok: false, message: "Invalid job" }
@@ -444,7 +492,7 @@ export async function toggleAutomationAction(
 }
 
 export async function runAutomationAction(key: string): Promise<ActionResult> {
-  const session = await requireAdmin()
+  const session = await requirePermission(PERMISSIONS.SETTINGS_MANAGE)
   if (!session) return { ok: false, message: "Unauthorized" }
   try {
     const job = await runAutomationJob(key)

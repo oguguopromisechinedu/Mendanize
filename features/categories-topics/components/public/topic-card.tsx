@@ -8,14 +8,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { contentHref, type ContentScope } from "@/lib/content-paths";
 import type { TopicRecord } from "@/services/content/types";
 
 export function TopicCard({
   topic,
   categoryName,
+  scope = "public",
 }: {
   topic: TopicRecord;
   categoryName?: string | null;
+  scope?: ContentScope;
 }) {
   const meta = [
     categoryName,
@@ -26,7 +29,10 @@ export function TopicCard({
     .join(" · ");
 
   return (
-    <Link href={`/topics/${topic.slug}`} className="block h-full">
+    <Link
+      href={contentHref("topic", topic.slug, { scope })}
+      className="block h-full"
+    >
       <Card className="motion-fade h-full hover:border-primary/30 hover:bg-hover/40">
         <CardHeader>
           <div className="mb-2 flex flex-wrap gap-2">

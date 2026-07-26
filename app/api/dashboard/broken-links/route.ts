@@ -49,8 +49,8 @@ export async function POST() {
   try {
     const session = await requireEditor()
     if (!session) return unauthorized("Staff required")
-    const count = await runBrokenLinkScan()
-    return ok({ scanned: count }, { action: "scan" })
+    const result = await runBrokenLinkScan()
+    return ok(result, { action: "scan" })
   } catch (error) {
     return handleApiError(error)
   }

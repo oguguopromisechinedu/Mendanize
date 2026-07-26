@@ -21,7 +21,7 @@ export function ContinueLearningView({
         <AdminPanel title="No progress yet">
           <p className="text-sm text-muted-foreground">
             Browse{" "}
-            <Link className="text-primary underline" href="/guides">
+            <Link className="text-primary underline" href="/account/guides">
               Learning Guides
             </Link>{" "}
             to get started.

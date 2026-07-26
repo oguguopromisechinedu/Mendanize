@@ -243,3 +243,53 @@ export async function updateUserRole(
 
   return mapRow(row)
 }
+
+/**
+ * Super Admin / users.manage: set or rotate an admin password.
+ * Self-service admin reset is intentionally not offered.
+ */
+export async function setAdminPassword(
+  id: string,
+  password: string,
+  actorId?: string
+): Promise<UserAdminRecord> {
+  assertDatabaseForProductionWrites("services/admin/users")
+  if (password.length < 8) {
+    throw new Error("Password must be at least 8 characters")
+  }
+  if (!isDatabaseConfigured()) {
+    throw new Error("Database is required to set admin passwords")
+  }
+
+  const { hashPassword } = await import("@/lib/auth/password")
+  const prisma = getPrisma()
+  const existing = await prisma.admin.findUnique({
+    where: { id },
+    include: { role: { select: { key: true } } },
+  })
+  if (!existing) throw new Error("User not found")
+
+  const passwordHash = await hashPassword(password)
+  const row = await prisma.admin.update({
+    where: { id },
+    data: { passwordHash },
+    include: { role: { select: { key: true } } },
+  })
+
+  try {
+    const { logAuthorization } = await import(
+      "@/features/authentication/services/audit"
+    )
+    await logAuthorization({
+      adminId: actorId,
+      action: "admin.password_set",
+      entityType: "Admin",
+      entityId: id,
+      summary: `Password set for ${existing.email}`,
+    })
+  } catch {
+    /* audit must not block */
+  }
+
+  return mapRow(row)
+}

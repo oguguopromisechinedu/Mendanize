@@ -11,8 +11,6 @@ import { getPrisma, isDatabaseConfigured } from "@/lib/db/prisma";
 import { getRecommendations } from "@/services/recommendations";
 import {
   adminActionsForQuery,
-  buildAdminActionMarkdown,
-  resolveAdminIntent,
 } from "@/features/admin-dashboard/utils/admin-intent";
 import type {
   AskConversationRecord,
@@ -59,7 +57,7 @@ const ADMIN_CMS_LINKS = [
   {
     title: "AI Studio · Generate article",
     href: "/dashboard/ai-studio/article",
-    reason: "Claude draft + OpenAI image",
+      reason: "Anthropic draft + OpenAI image",
     entityType: "article" as const,
     entityId: "studio-article",
     slug: "studio-article",
@@ -263,10 +261,12 @@ function buildSystemPrompt(input: {
   }
 
   return [
-    "You are Ask Mendanize, an educational article writer for learners.",
-    "Write a short, clear mini-article in markdown (not a chatty reply).",
-    "Structure: title heading, 2–4 short sections, one practical example, and a quick next-steps list.",
-    "Be accurate and encouraging. Prefer teaching over hype.",
+    "You are Mendanize AI Tutor — the learner-facing assistant for PublicUser accounts.",
+    "Help the learner understand topics, practice skills, and choose what to learn next.",
+    "Be accurate, encouraging, and clear. Prefer short structured markdown when helpful.",
+    "Never mention admin dashboards, CMS workflows, API keys, or staff-only routes.",
+    "Never invent access to billing or admin controls — learners manage billing only at /account/billing.",
+    "If the learner needs platform configuration, tell them an administrator controls AI providers and content publishing.",
     `Context type: ${input.contextType}.`,
     `Current page / topic: ${title}.`,
     excerpt ? `Context excerpt:\n${excerpt.slice(0, 2000)}` : null,
@@ -333,7 +333,7 @@ type LiveAskReply = {
   content: string;
   model: string;
   placeholder: boolean;
-  provider: "anthropic" | "openai" | "local_mock";
+  provider: "anthropic" | "local_mock";
 };
 
 type AskImageResult = {
@@ -342,47 +342,6 @@ type AskImageResult = {
   model: string;
   placeholder: boolean;
 };
-
-async function openaiAskReply(input: {
-  prompt: string;
-  system: string;
-}): Promise<LiveAskReply | null> {
-  const key = process.env.OPENAI_API_KEY?.trim();
-  if (!key) return null;
-
-  try {
-    const { default: OpenAI } = await import("openai");
-    const client = new OpenAI({
-      apiKey: key,
-      timeout: 25_000,
-      maxRetries: 1,
-    });
-    const completion = await client.chat.completions.create({
-      model:
-        process.env.OPENAI_ASK_MODEL ||
-        process.env.OPENAI_STUDIO_MODEL ||
-        "gpt-4o-mini",
-      messages: [
-        { role: "system", content: input.system },
-        { role: "user", content: input.prompt },
-      ],
-    });
-    const content = completion.choices[0]?.message?.content?.trim();
-    if (!content) return null;
-    return {
-      content,
-      model: completion.model,
-      placeholder: false,
-      provider: "openai",
-    };
-  } catch (error) {
-    console.error(
-      "[ask] OpenAI article reply failed:",
-      error instanceof Error ? error.message : error,
-    );
-    return null;
-  }
-}
 
 async function anthropicAskReply(input: {
   prompt: string;
@@ -446,7 +405,7 @@ async function anthropicAskReply(input: {
   }
 }
 
-/** OpenAI DALL·E image for the Ask question — runs alongside Anthropic article generation. */
+/** OpenAI image for the Ask question — runs alongside Anthropic article generation. */
 async function openaiAskImage(input: {
   question: string;
   contextTitle?: string | null;
@@ -497,23 +456,17 @@ async function generateAskArticle(input: {
   question: string;
   contextTitle?: string | null;
 }): Promise<LiveAskReply> {
-  // Anthropic owns article text; OpenAI text is fallback only.
+  // Ownership: Anthropic owns all article / reply text. OpenAI owns images only.
   const anthropic = await anthropicAskReply(input);
   if (anthropic) return anthropic;
 
-  const openai = await openaiAskReply(input);
-  if (openai) return openai;
-
   return {
-    ...placeholderAskReply({
+    content: placeholderAskReply({
       question: input.question,
       contextTitle: input.contextTitle,
-      providerNote: Boolean(
-        process.env.ANTHROPIC_API_KEY?.trim() || process.env.OPENAI_API_KEY?.trim(),
-      )
-        ? "Live AI providers are configured but did not return an article (check Anthropic credits / OpenAI key)."
-        : null,
-    }),
+    }).content,
+    model: "local-mock",
+    placeholder: true,
     provider: "local_mock",
   };
 }
@@ -529,7 +482,7 @@ export async function generateAskReply(input: {
   content: string;
   model: string;
   placeholder: boolean;
-  provider: "anthropic" | "openai" | "local_mock";
+  provider: "anthropic" | "local_mock";
   images: AskImageResult[];
   imageProvider: "openai" | "local_mock" | "none";
 }> {
@@ -1010,25 +963,19 @@ export async function sendConversationMessage(input: {
     contextType: conversation.contextType,
     contextTitle: conversation.contextTitle,
     history,
-    surface: "admin",
+    surface: "public",
   });
 
   const imageMarkdown = reply.images
     .map((image) => `\n\n![${image.alt}](${image.url})`)
     .join("");
 
-  const intent = resolveAdminIntent(question);
-  const cmsActions = buildAdminActionMarkdown(adminActionsForQuery(question));
-  const intentNote =
-    intent.kind !== "ask_general"
-      ? `\n\n_Routed as **${intent.label}** — open [${intent.label}](${intent.href.split("?")[0]})._\n`
-      : "";
-
+  // PublicUser Ask never injects admin CMS routes or admin intent routing.
   await db().message.create({
     data: {
       conversationId: conversation.id,
       role: "ASSISTANT",
-      content: `${reply.content}${imageMarkdown}${intentNote}${cmsActions}`,
+      content: `${reply.content}${imageMarkdown}`,
       model: reply.model,
     },
   });
@@ -1068,6 +1015,18 @@ export async function getAskDashboard(input: {
   conversationId?: string | null;
   handoffId?: string | null;
 }): Promise<AskDashboardPayload> {
+  const { isFeatureEnabled } = await import("@/services/settings/platform");
+  if (!(await isFeatureEnabled("ask_mendanize"))) {
+    return {
+      conversations: [],
+      active: null,
+      templates: [],
+      suggestions: [],
+      aiSettingsHref: "/account/preferences",
+      surface: "public",
+    };
+  }
+
   await ensureTemplates();
 
   let active: AskConversationRecord | null = null;
@@ -1094,9 +1053,10 @@ export async function getAskDashboard(input: {
     conversations,
     active,
     templates,
-    suggestions: ADMIN_SUGGESTIONS,
-    aiSettingsHref: AI_SETTINGS_HREF,
-    surface: "admin",
+    suggestions: DEFAULT_SUGGESTIONS,
+    /** AI provider keys live in Admin Platform Settings — never exposed to PublicUser. */
+    aiSettingsHref: "/account/preferences",
+    surface: "public",
   };
 }
 

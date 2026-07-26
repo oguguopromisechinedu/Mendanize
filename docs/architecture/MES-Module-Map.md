@@ -40,6 +40,7 @@ Quick lookup: which folder owns which MES. Full detail: [Module-Map.md](./Module
 | MES-033 Caching | Next.js / Content Service cache + publish invalidation |
 | MES-034 Backup & Recovery | Ops docs + Supabase backup/restore runbook |
 | MES-035 Privacy Basics | Consent, export/delete under `/account`, privacy policy page |
+| MES-036 Community Platform | `features/community`, `services/community`, `/community/*`, `/dashboard/community` |
 
 ## Next.js path note
 

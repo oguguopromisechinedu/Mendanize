@@ -1,14 +1,20 @@
 import Link from "next/link";
 
-import { TopicCard } from "./topic-card";
+import {
+  contentListHref,
+  type ContentScope,
+} from "@/lib/content-paths";
 import type { CategoryRecord, TopicRecord } from "@/services/content/types";
+import { TopicCard } from "./topic-card";
 
 export function PublicTopicListView({
   topics,
   categories,
+  scope = "public",
 }: {
   topics: TopicRecord[];
   categories: CategoryRecord[];
+  scope?: ContentScope;
 }) {
   const categoryById = new Map(categories.map((c) => [c.id, c]));
 
@@ -38,6 +44,7 @@ export function PublicTopicListView({
                     ? categoryById.get(topic.categoryId)?.name
                     : null
                 }
+                scope={scope}
               />
             </li>
           ))}
@@ -45,7 +52,10 @@ export function PublicTopicListView({
       )}
 
       <p className="mt-10 text-sm text-muted-foreground">
-        <Link href="/categories" className="text-primary hover:opacity-90">
+        <Link
+          href={contentListHref("category", { scope })}
+          className="text-primary hover:opacity-90"
+        >
           View categories
         </Link>{" "}
         for a higher-level overview.

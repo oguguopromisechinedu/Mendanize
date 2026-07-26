@@ -16,7 +16,7 @@ export const routes = {
   search: "/search",
   pricing: "/pricing",
   dashboard: "/dashboard",
-  workspace: "/workspace",
+  workspace: "/account/workspace",
   tools: "/ai-tools",
   blog: "/articles",
   seoOptimizer: "/seo-optimizer",
@@ -32,6 +32,10 @@ export const routes = {
   billing: "/account/billing",
   account: "/account",
   saved: "/account/saved",
+  ask: "/ask",
+  projects: "/account/projects",
+  prompts: "/account/prompts",
+  certificates: "/account/certificates",
 };
 
 /** Layout / typography class presets backed by MES-003 tokens. */

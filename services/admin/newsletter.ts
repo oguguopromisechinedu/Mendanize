@@ -3,7 +3,7 @@ import {
   getPrisma,
   isDatabaseConfigured,
 } from "@/lib/db/prisma"
-import { countActiveSubscribers } from "./subscribers"
+import { listSubscribersAdmin } from "./subscribers"
 import type { ListResult, NewsletterCampaignRecord } from "./types"
 
 const nowIso = () => new Date().toISOString()
@@ -182,11 +182,65 @@ export async function updateNewsletterCampaign(
   return mapRow(row)
 }
 
-/** Marks campaign as sent and logs recipient count (SMTP delivery is stubbed). */
+/** Sends campaign to active subscribers via Resend/SMTP; fails if mailer unconfigured. */
 export async function sendNewsletterCampaign(
   id: string
 ): Promise<NewsletterCampaignRecord> {
-  const recipients = await countActiveSubscribers()
+  const { isEmailConfigured, sendEmail } = await import("@/lib/email/send")
+  if (!(await isEmailConfigured())) {
+    throw new Error(
+      "Email is not configured. Set RESEND_API_KEY or SMTP in Email settings."
+    )
+  }
+
+  let campaign: NewsletterCampaignRecord | null = null
+  if (!isDatabaseConfigured()) {
+    seed()
+    campaign = memory.items.find((c) => c.id === id) ?? null
+  } else {
+    const row = await getPrisma().newsletterCampaign.findUnique({ where: { id } })
+    campaign = row ? mapRow(row) : null
+  }
+  if (!campaign) throw new Error("Campaign not found")
+
+  const subscribers = await listSubscribersAdmin({
+    status: "active",
+    pageSize: 500,
+  })
+  if (!subscribers.items.length) {
+    throw new Error("No active subscribers to send to")
+  }
+
+  let sent = 0
+  let failed = 0
+  const errors: string[] = []
+
+  for (const sub of subscribers.items) {
+    const result = await sendEmail({
+      to: sub.email,
+      subject: campaign.subject,
+      html: campaign.bodyHtml,
+      text: campaign.previewText ?? campaign.subject,
+    })
+    if (result.ok) sent++
+    else {
+      failed++
+      if (errors.length < 5) {
+        errors.push(`${sub.email}: ${result.error ?? "failed"}`)
+      }
+    }
+  }
+
+  if (sent === 0) {
+    throw new Error(
+      `Newsletter send failed for all recipients. ${errors.join("; ")}`
+    )
+  }
+
+  const note =
+    failed > 0
+      ? `Sent ${sent}, failed ${failed}. ${errors.join("; ")}`
+      : `Sent ${sent} via mailer`
 
   if (!isDatabaseConfigured()) {
     seed()
@@ -194,7 +248,7 @@ export async function sendNewsletterCampaign(
     if (!row) throw new Error("Campaign not found")
     row.status = "SENT"
     row.sentAt = nowIso()
-    row.recipientCount = recipients
+    row.recipientCount = sent
     row.updatedAt = nowIso()
     return row
   }
@@ -204,7 +258,10 @@ export async function sendNewsletterCampaign(
     data: {
       status: "SENT",
       sentAt: new Date(),
-      recipientCount: recipients,
+      recipientCount: sent,
+      previewText: campaign.previewText
+        ? `${campaign.previewText} — ${note}`
+        : note,
     },
   })
   return mapRow(row)

@@ -3,6 +3,7 @@
 import {
   BookOpen,
   Cpu,
+  GraduationCap,
   Newspaper,
   Sparkles,
   Users,
@@ -16,6 +17,7 @@ import type { StatItem } from "../types/types"
 const ICONS: Record<string, LucideIcon> = {
   articles: BookOpen,
   tools: Cpu,
+  learners: GraduationCap,
   subscribers: Users,
   content: Newspaper,
   hub: Sparkles,

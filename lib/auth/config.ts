@@ -17,6 +17,7 @@ export const adminPrefixes = ["/dashboard"] as const;
 export const adminAuthRoutes = [
   "/dashboard/login",
   "/dashboard/forgot-password",
+  "/dashboard/reset-password",
 ] as const;
 
 export const publicAuthRoutes = [

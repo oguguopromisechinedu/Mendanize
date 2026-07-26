@@ -1,7 +1,8 @@
 /**
- * User Learning Shared Service types — MES-022.
+ * User Learning Shared Service types — MES-022 + ecosystem.
  */
 
+import type { FeaturedPublishedContent } from "@/services/content/featured-published";
 import type { RecommendationEntityType, RecommendationItem } from "@/services/recommendations";
 
 export type LearningEntityType = Extract<
@@ -85,8 +86,12 @@ export type LearningStats = {
   historyCount: number;
   interestCount: number;
   continueCount: number;
-  streakDaysPlaceholder: number;
-  weeklyGoalPlaceholder: string;
+  completedPathsCount: number;
+  certificatesCount: number;
+  streakDays: number;
+  dailyGoalPercent: number;
+  dailyGoalLabel: string;
+  weeklyActivity: number[];
 };
 
 export type LearningDashboard = {
@@ -96,4 +101,13 @@ export type LearningDashboard = {
   recentlyViewed: HistoryItem[];
   savedPreview: SavedContentItem[];
   recommendations: RecommendationItem[];
+  /** Homepage CMS featured rails (PUBLISHED entities only; empty when CMS draft/unavailable). */
+  featuredFromHomepage: FeaturedPublishedContent;
+};
+
+export type MarkLessonCompleteResult = {
+  percentComplete: number;
+  completed: boolean;
+  certificateIssued: boolean;
+  credentialCode?: string;
 };

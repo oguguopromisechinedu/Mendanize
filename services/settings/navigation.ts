@@ -61,6 +61,7 @@ export const SEEDED_NAVIGATION_CONFIG: NavigationConfig = {
     { label: "Guides", href: "/guides" },
     { label: "Categories", href: "/categories" },
     { label: "AI Tools", href: "/ai-tools" },
+    { label: "Community", href: "/community" },
   ],
   signInHref: "/sign-in",
   footer: [
@@ -82,6 +83,7 @@ export const SEEDED_NAVIGATION_CONFIG: NavigationConfig = {
         { label: "AI Tools", href: "/ai-tools" },
         { label: "Search", href: "/search" },
         { label: "Articles", href: "/articles" },
+        { label: "Community", href: "/community" },
         { label: "Prompt Library", href: "/prompt-library" },
         { label: "Newsletter", href: "/newsletter" },
         { label: "Free Resources", href: "/free-resources" },

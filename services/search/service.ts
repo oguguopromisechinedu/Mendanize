@@ -7,6 +7,10 @@
 import "server-only";
 
 import { getPrisma, isDatabaseConfigured } from "@/lib/db/prisma";
+import {
+  contentHref,
+  type ContentScope,
+} from "@/lib/content-paths";
 import { getRecommendations } from "@/services/recommendations";
 import type {
   SearchConfigurationRecord,
@@ -31,6 +35,10 @@ const TYPE_LABELS: Record<SearchEntityType, string> = {
   ai_tool: "AI Tools",
   category: "Categories",
   topic: "Topics",
+  discussion: "Discussions",
+  study_group: "Study Groups",
+  team: "Teams",
+  showcase_project: "Projects",
 };
 
 const TYPE_ORDER: SearchEntityType[] = [
@@ -39,6 +47,10 @@ const TYPE_ORDER: SearchEntityType[] = [
   "ai_tool",
   "category",
   "topic",
+  "discussion",
+  "study_group",
+  "team",
+  "showcase_project",
 ];
 
 const FALLBACK_SUGGESTIONS = [
@@ -153,18 +165,22 @@ function contains(q: string) {
   return { contains: q, mode: "insensitive" as const };
 }
 
-function hrefFor(type: SearchEntityType, slug: string): string {
+function hrefFor(
+  type: SearchEntityType,
+  slug: string,
+  scope: ContentScope = "public",
+): string {
   switch (type) {
-    case "article":
-      return `/articles/${slug}`;
-    case "guide":
-      return `/guides/${slug}`;
-    case "ai_tool":
-      return `/ai-tools/${slug}`;
-    case "category":
-      return `/categories/${slug}`;
-    case "topic":
-      return `/topics/${slug}`;
+    case "discussion":
+      return `/community/discussions/${slug}`
+    case "study_group":
+      return `/community/groups/${slug}`
+    case "team":
+      return `/community/teams/${slug}`
+    case "showcase_project":
+      return `/community/projects/${slug}`
+    default:
+      return contentHref(type, slug, { scope })
   }
 }
 
@@ -178,6 +194,13 @@ function enabledTypes(
   if (config.includeTools) allowed.push("ai_tool");
   if (config.includeCategories) allowed.push("category");
   if (config.includeTopics) allowed.push("topic");
+  // MES-036 — community UGC always searchable via Search Service
+  allowed.push(
+    "discussion",
+    "study_group",
+    "team",
+    "showcase_project",
+  );
   if (!requested?.length) return allowed;
   return allowed.filter((t) => requested.includes(t));
 }
@@ -483,6 +506,7 @@ export async function search(params: SearchParams): Promise<SearchResult> {
     50,
     Math.max(1, params.pageSize ?? config.resultsPerPage),
   );
+  const hrefScope: ContentScope = params.hrefScope ?? "public";
 
   const empty = (): SearchResult => ({
     query,
@@ -554,7 +578,7 @@ export async function search(params: SearchParams): Promise<SearchResult> {
         type: "article",
         id: a.id,
         slug: a.slug,
-        href: hrefFor("article", a.slug),
+        href: hrefFor("article", a.slug, hrefScope),
         title: a.title,
         excerpt: a.excerpt,
         thumbnailUrl: a.featuredImage?.url ?? a.socialImageUrl,
@@ -608,7 +632,7 @@ export async function search(params: SearchParams): Promise<SearchResult> {
         type: "guide",
         id: g.id,
         slug: g.slug,
-        href: hrefFor("guide", g.slug),
+        href: hrefFor("guide", g.slug, hrefScope),
         title: g.title,
         excerpt: g.shortDescription,
         thumbnailUrl: g.coverImageUrl,
@@ -667,7 +691,7 @@ export async function search(params: SearchParams): Promise<SearchResult> {
         type: "ai_tool",
         id: t.id,
         slug: t.slug,
-        href: hrefFor("ai_tool", t.slug),
+        href: hrefFor("ai_tool", t.slug, hrefScope),
         title: t.name,
         excerpt: t.shortDescription,
         thumbnailUrl: t.images[0]?.url ?? null,
@@ -707,7 +731,7 @@ export async function search(params: SearchParams): Promise<SearchResult> {
         type: "category",
         id: c.id,
         slug: c.slug,
-        href: hrefFor("category", c.slug),
+        href: hrefFor("category", c.slug, hrefScope),
         title: c.name,
         excerpt: c.description,
         thumbnailUrl: c.image?.url ?? null,
@@ -749,13 +773,48 @@ export async function search(params: SearchParams): Promise<SearchResult> {
         type: "topic",
         id: t.id,
         slug: t.slug,
-        href: hrefFor("topic", t.slug),
+        href: hrefFor("topic", t.slug, hrefScope),
         title: t.name,
         excerpt: t.description,
         thumbnailUrl: t.image?.url ?? null,
         categoryName: t.category?.name ?? null,
         updatedAt: t.updatedAt.toISOString(),
         featured: t.featured,
+      });
+    }
+  }
+
+  // MES-036 — Community content indexed through Search Service
+  const communityTypesWanted = (
+    [
+      "discussion",
+      "study_group",
+      "team",
+      "showcase_project",
+    ] as SearchEntityType[]
+  ).filter((t) => types.includes(t));
+  if (communityTypesWanted.length > 0) {
+    const { searchCommunity } = await import("@/services/community");
+    const communityHits = await searchCommunity(query);
+    for (const h of communityHits) {
+      const type: SearchEntityType | null =
+        h.type === "discussion"
+          ? "discussion"
+          : h.type === "group"
+            ? "study_group"
+            : h.type === "team"
+              ? "team"
+              : h.type === "project"
+                ? "showcase_project"
+                : null;
+      if (!type || !communityTypesWanted.includes(type)) continue;
+      hits.push({
+        type,
+        id: h.id,
+        slug: h.href.split("/").pop() ?? h.id,
+        href: h.href,
+        title: h.title,
+        excerpt: h.excerpt ?? null,
       });
     }
   }

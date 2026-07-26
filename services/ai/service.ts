@@ -31,16 +31,10 @@ export async function generateText(
     userId: "system",
     topic: params.prompt,
     tone: typeof params.meta?.tone === "string" ? params.meta.tone : undefined,
-    provider: params.provider,
+    provider: "claude",
   });
-  const provider: AiProviderId =
-    result.provider === "CLAUDE"
-      ? "claude"
-      : result.provider === "OPENAI"
-        ? "openai"
-        : "local_mock";
   return {
-    provider,
+    provider: result.provider === "CLAUDE" ? "claude" : "local_mock",
     content: result.outputText ?? "",
     urls: result.outputUrls,
     model: result.model ?? undefined,
@@ -53,10 +47,10 @@ export async function generateImage(
   const result = await generateStudioImage({
     userId: "system",
     prompt: params.prompt,
-    provider: params.provider === "dalle" ? "dalle" : params.provider,
+    provider: "openai",
   });
   return {
-    provider: "dalle",
+    provider: "openai",
     content: result.outputUrls[0] ?? "",
     urls: result.outputUrls,
     model: result.model ?? undefined,
@@ -64,7 +58,7 @@ export async function generateImage(
 }
 
 /**
- * Article CMS AI entry point — uses the same Studio generation path.
+ * Article CMS AI entry point — Anthropic text + OpenAI images via Studio.
  */
 export async function assistArticleAuthoring(params: {
   mode: "draft" | "rewrite" | "summarize";
@@ -85,6 +79,7 @@ export async function assistArticleAuthoring(params: {
       userId: "system",
       topic,
       targetLength: params.mode === "summarize" ? "short" : "medium",
+      provider: "claude",
     });
     if (result.status === "FAILED" || !result.outputText) {
       return {
@@ -95,12 +90,7 @@ export async function assistArticleAuthoring(params: {
     return {
       ok: true,
       content: result.outputText,
-      provider:
-        result.provider === "OPENAI"
-          ? "openai"
-          : result.provider === "CLAUDE"
-            ? "claude"
-            : "local_mock",
+      provider: result.provider === "CLAUDE" ? "claude" : "local_mock",
     };
   } catch (error) {
     return {
@@ -111,20 +101,11 @@ export async function assistArticleAuthoring(params: {
 }
 
 export async function getProviderStatuses(): Promise<AiProviderStatus[]> {
-  const [
-    openai,
-    claude,
-    dalle,
-    gemini,
-    grok,
-  ] = await Promise.all([
+  const [openai, claude] = await Promise.all([
     import("./providers/openai").then((m) => m.status()),
     import("./providers/claude").then((m) => m.status()),
-    import("./providers/dalle").then((m) => m.status()),
-    import("./providers/gemini").then((m) => m.status()),
-    import("./providers/grok").then((m) => m.status()),
   ])
-  return [openai, claude, dalle, gemini, grok]
+  return [claude, openai]
 }
 
 export async function getProviderStatus(

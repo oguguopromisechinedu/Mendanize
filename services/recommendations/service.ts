@@ -7,6 +7,10 @@
 import "server-only";
 
 import { getPrisma, isDatabaseConfigured } from "@/lib/db/prisma";
+import {
+  contentHref,
+  type ContentScope,
+} from "@/lib/content-paths";
 import type {
   GetRecommendationsParams,
   RecommendationEntityType,
@@ -28,19 +32,12 @@ function db() {
   return getPrisma();
 }
 
-function hrefFor(type: RecommendationEntityType, slug: string): string {
-  switch (type) {
-    case "article":
-      return `/articles/${slug}`;
-    case "guide":
-      return `/guides/${slug}`;
-    case "ai_tool":
-      return `/ai-tools/${slug}`;
-    case "category":
-      return `/categories/${slug}`;
-    case "topic":
-      return `/topics/${slug}`;
-  }
+function hrefFor(
+  type: RecommendationEntityType,
+  slug: string,
+  scope: ContentScope = "public",
+): string {
+  return contentHref(type, slug, { scope });
 }
 
 function key(type: RecommendationEntityType, id: string) {
@@ -594,6 +591,7 @@ export async function getRecommendations(
   params: GetRecommendationsParams,
 ): Promise<RecommendationsResult> {
   const limit = Math.min(24, Math.max(1, params.limit ?? 8));
+  const hrefScope: ContentScope = params.hrefScope ?? "public";
 
   if (!isDatabaseConfigured()) {
     return { items: [] };
@@ -601,22 +599,29 @@ export async function getRecommendations(
 
   const { contextType, contextId } = params;
 
+  let items: RecommendationItem[] = [];
+
   if (contextType === "trending") {
-    return { items: await trendingRecommendations(limit) };
-  }
-
-  if (contextType === "user") {
+    items = await trendingRecommendations(limit);
+  } else if (contextType === "user") {
     if (!contextId) return { items: [] };
-    return { items: await userRecommendations(contextId, limit) };
+    items = await userRecommendations(contextId, limit);
+  } else if (
+    contextType === "article" ||
+    contextType === "guide" ||
+    contextType === "tool"
+  ) {
+    items = await relatedForContent(contextType, contextId, limit);
   }
 
-  if (contextType === "article" || contextType === "guide" || contextType === "tool") {
-    return {
-      items: await relatedForContent(contextType, contextId, limit),
-    };
+  if (hrefScope === "account") {
+    items = items.map((item) => ({
+      ...item,
+      href: contentHref(item.entityType, item.slug, { scope: "account" }),
+    }));
   }
 
-  return { items: [] };
+  return { items };
 }
 
 /** @deprecated Prefer getRecommendations — kept for MES-002 seam callers. */

@@ -30,7 +30,6 @@ function providerEnum(id: AiProviderId): AIGenerationProviderValue {
     openai: "OPENAI",
     gemini: "GEMINI",
     grok: "GROK",
-    dalle: "DALLE",
     video_tbd: "VIDEO_TBD",
     local_mock: "LOCAL_MOCK",
   };
@@ -93,6 +92,23 @@ function hasAnthropic() {
   return Boolean(process.env.ANTHROPIC_API_KEY?.trim());
 }
 
+function inlineImageCount(length?: StudioArticleParams["targetLength"]): number {
+  if (length === "short") return 1;
+  if (length === "long") return 3;
+  return 2;
+}
+
+function articleSystemPrompt(inlineCount: number): string {
+  return [
+    "You write educational HTML article drafts for Mendanize.",
+    "Use h2/h3/p/ul/li/figure/figcaption only. No markdown fences.",
+    "Anthropic owns article prose only — never invent image URLs.",
+    `Insert exactly ${inlineCount} in-article image placeholders on their own lines using this exact format:`,
+    "<!--MNZ_IMAGE: concise visual description for an educational illustration -->",
+    "Placeholders describe cover-quality figures, diagrams, or scene illustrations for OpenAI to generate.",
+  ].join(" ");
+}
+
 function mockArticleHtml(params: StudioArticleParams): string {
   const length =
     params.targetLength === "short"
@@ -101,16 +117,123 @@ function mockArticleHtml(params: StudioArticleParams): string {
         ? "a deep-dive walkthrough"
         : "a practical guide";
   const tone = params.tone || "clear and educational";
+  const slots = Array.from({ length: inlineImageCount(params.targetLength) }, (_, i) =>
+    `<!--MNZ_IMAGE: Educational illustration ${i + 1} about ${params.topic}-->`,
+  );
   return [
     `<h2>${params.topic}</h2>`,
     `<p>This draft was produced in Admin AI Studio as ${length}, written in a ${tone} tone.</p>`,
+    slots[0] ?? "",
     `<h3>Why it matters</h3>`,
     `<p>${params.topic} sits at the intersection of understanding and practice. Learners need concrete mental models before tooling.</p>`,
+    slots[1] ?? "",
     `<h3>Core ideas</h3>`,
     `<ul><li>Start with the problem, not the acronym.</li><li>Show one worked example early.</li><li>Close with a checkpoint question.</li></ul>`,
+    slots[2] ?? "",
     `<h3>Next steps</h3>`,
     `<p>Review this draft in the Article editor, attach taxonomy from MES-009, then schedule for publish.</p>`,
-  ].join("");
+  ]
+    .filter(Boolean)
+    .join("");
+}
+
+function figureHtml(url: string, alt: string): string {
+  const safeAlt = alt.replace(/"/g, "'").slice(0, 160);
+  return `<figure><img src="${url}" alt="${safeAlt}" /><figcaption>${safeAlt}</figcaption></figure>`;
+}
+
+async function fillArticleImages(input: {
+  html: string;
+  topic: string;
+  userId: string;
+  categoryId?: string | null;
+  topicId?: string | null;
+}): Promise<{ html: string; urls: string[] }> {
+  const coverPrompt = [
+    `Educational featured cover illustration for an article titled: ${input.topic}.`,
+    "Clean modern digital art, clear focal subject, no text overlays, no logos, no watermarks.",
+  ].join(" ");
+
+  const slots = [...input.html.matchAll(/<!--MNZ_IMAGE:\s*(.+?)-->/g)].map((m) =>
+    (m[1] ?? input.topic).trim(),
+  );
+
+  async function oneImage(
+    prompt: string,
+    kind: "cover" | "inline",
+  ): Promise<{ url: string; model: string | null }> {
+    if (!hasOpenAi()) {
+      return {
+        url: mockImageUrls(prompt, "16:9")[0]!,
+        model: "local-mock-image",
+      };
+    }
+    try {
+      const result = await openaiImage(prompt, "1792x1024");
+      const url = result.urls?.[0] ?? "";
+      if (url) {
+        void persistGeneration({
+          id: `aigen_img_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          userId: input.userId,
+          type: "IMAGE",
+          provider: providerEnum("openai"),
+          status: "COMPLETED",
+          prompt,
+          systemPrompt:
+            kind === "cover"
+              ? "Featured cover image for Studio article draft"
+              : "In-article / body image for Studio article draft",
+          outputText: url,
+          outputUrls: [url],
+          model: result.model ?? "dall-e-3",
+          tone: null,
+          targetLength: null,
+          aspectRatio: "16:9",
+          durationSec: null,
+          categoryId: input.categoryId ?? null,
+          topicId: input.topicId ?? null,
+          articleId: null,
+          mediaAssetId: null,
+          errorMessage: null,
+        }).catch(() => {});
+      }
+      return { url, model: result.model ?? "dall-e-3" };
+    } catch (error) {
+      console.error(
+        `[studio] OpenAI ${kind} image failed:`,
+        error instanceof Error ? error.message : error,
+      );
+      return { url: "", model: null };
+    }
+  }
+
+  const cover = await oneImage(coverPrompt, "cover");
+  const inlines = await Promise.all(
+    slots.map((desc) =>
+      oneImage(
+        [
+          `In-article educational illustration: ${desc}.`,
+          `Article topic: ${input.topic}.`,
+          "Clean modern digital art, clear focal subject, no text overlays, no logos, no watermarks.",
+        ].join(" "),
+        "inline",
+      ).then((img) => ({ desc, ...img })),
+    ),
+  );
+
+  let html = input.html;
+  for (const item of inlines) {
+    html = html.replace(/<!--MNZ_IMAGE:\s*(.+?)-->/, () =>
+      item.url ? figureHtml(item.url, item.desc) : "",
+    );
+  }
+  html = html.replace(/<!--MNZ_IMAGE:\s*(.+?)-->/g, "");
+
+  const urls = [
+    ...(cover.url ? [cover.url] : []),
+    ...inlines.map((r) => r.url).filter(Boolean),
+  ];
+  return { html, urls };
 }
 
 function mockImageUrls(prompt: string, aspectRatio: string): string[] {
@@ -184,31 +307,6 @@ async function anthropicText(
   }
 }
 
-async function openaiText(prompt: string, system?: string): Promise<AiGenerateResult> {
-  const key = process.env.OPENAI_API_KEY!.trim();
-  const { default: OpenAI } = await import("openai");
-  const client = new OpenAI({ apiKey: key });
-  const completion = await client.chat.completions.create({
-    model: process.env.OPENAI_STUDIO_MODEL || "gpt-4o-mini",
-    messages: [
-      {
-        role: "system",
-        content:
-          system ||
-          "You write educational HTML article drafts for Mendanize. Use h2/h3/p/ul/li only.",
-      },
-      { role: "user", content: prompt },
-    ],
-  });
-  const content = completion.choices[0]?.message?.content ?? "";
-  return {
-    provider: "openai",
-    content,
-    model: completion.model,
-    usage: completion.usage as unknown as Record<string, unknown>,
-  };
-}
-
 async function openaiImage(
   prompt: string,
   size: "1024x1024" | "1792x1024" | "1024x1792" = "1024x1024"
@@ -224,7 +322,7 @@ async function openaiImage(
   });
   const url = result.data?.[0]?.url ?? "";
   return {
-    provider: "dalle",
+    provider: "openai",
     content: url,
     urls: url ? [url] : [],
     model: "dall-e-3",
@@ -373,26 +471,21 @@ export async function generateStudioArticle(
   params: StudioArticleParams
 ): Promise<AIGenerationRecord> {
   const id = `aigen_${Date.now()}`;
-  const prompt = `Write an educational article draft about: ${params.topic}. Tone: ${params.tone || "clear"}. Length: ${params.targetLength || "medium"}.`;
-  const preferredTextProvider: AiProviderId =
-    params.provider === "openai"
-      ? "openai"
-      : params.provider === "claude"
-        ? "claude"
-        : hasAnthropic()
-          ? "claude"
-          : hasOpenAi()
-            ? "openai"
-            : "local_mock";
+  const inlineCount = inlineImageCount(params.targetLength);
+  const prompt = `Write an educational article draft about: ${params.topic}. Tone: ${params.tone || "clear"}. Length: ${params.targetLength || "medium"}. Include exactly ${inlineCount} <!--MNZ_IMAGE: ...--> placeholders for in-article illustrations.`;
+
+  // Ownership: Anthropic = article prose only. OpenAI = every image.
+  const textProvider: AiProviderId = hasAnthropic() ? "claude" : "local_mock";
 
   const pending = await persistGeneration({
     id,
     userId: params.userId,
     type: "ARTICLE",
-    provider: providerEnum(preferredTextProvider),
+    provider: providerEnum(textProvider),
     status: "RUNNING",
     prompt,
-    systemPrompt: "Mendanize educational article draft (Claude) + featured image (OpenAI)",
+    systemPrompt:
+      "Anthropic owns article text; OpenAI owns cover + inline images",
     outputText: null,
     outputUrls: [],
     model: null,
@@ -408,80 +501,29 @@ export async function generateStudioArticle(
   });
 
   try {
-    const imagePrompt = [
-      `Educational featured illustration for an article titled: ${params.topic}.`,
-      "Clean modern digital art, clear focal subject, no text overlays, no logos, no watermarks.",
-    ].join(" ");
-
-    // Anthropic writes the article; OpenAI generates the image — in parallel.
-    const [textResult, imageResult] = await Promise.all([
-      (async (): Promise<AiGenerateResult> => {
-        if (preferredTextProvider === "claude" && hasAnthropic()) {
-          try {
-            return await anthropicText(prompt);
-          } catch (error) {
-            console.error(
-              "[studio] Anthropic article failed, trying OpenAI fallback:",
-              error instanceof Error ? error.message : error,
-            );
-            if (hasOpenAi()) return openaiText(prompt);
-            throw error;
-          }
-        }
-        if (hasOpenAi()) return openaiText(prompt);
-        return {
-          provider: "local_mock",
-          content: mockArticleHtml(params),
-          model: "local-mock-v1",
-        };
-      })(),
-      (async (): Promise<AiGenerateResult | null> => {
-        if (!hasOpenAi()) return null;
-        try {
-          return await openaiImage(imagePrompt, "1792x1024");
-        } catch (error) {
-          console.error(
-            "[studio] OpenAI article image failed:",
-            error instanceof Error ? error.message : error,
-          );
-          return null;
-        }
-      })(),
-    ]);
-
-    const imageUrls = imageResult?.urls?.filter(Boolean) ?? [];
-
-    // Keep a separate IMAGE history row when DALL·E succeeds.
-    if (imageResult && imageUrls.length > 0) {
-      void persistGeneration({
-        id: `aigen_img_${Date.now()}`,
-        userId: params.userId,
-        type: "IMAGE",
-        provider: providerEnum("dalle"),
-        status: "COMPLETED",
-        prompt: imagePrompt,
-        systemPrompt: "Featured image for Studio article draft",
-        outputText: imageUrls[0] ?? null,
-        outputUrls: imageUrls,
-        model: imageResult.model ?? "dall-e-3",
-        tone: null,
-        targetLength: null,
-        aspectRatio: "16:9",
-        durationSec: null,
-        categoryId: params.categoryId ?? null,
-        topicId: params.topicId ?? null,
-        articleId: null,
-        mediaAssetId: null,
-        errorMessage: null,
-      }).catch(() => {
-        /* history image row is best-effort */
-      });
+    let textResult: AiGenerateResult;
+    if (hasAnthropic()) {
+      textResult = await anthropicText(prompt, articleSystemPrompt(inlineCount));
+    } else {
+      textResult = {
+        provider: "local_mock",
+        content: mockArticleHtml(params),
+        model: "local-mock-v1",
+      };
     }
+
+    const filled = await fillArticleImages({
+      html: textResult.content,
+      topic: params.topic,
+      userId: params.userId,
+      categoryId: params.categoryId,
+      topicId: params.topicId,
+    });
 
     const updated = await patchGeneration(pending.id, {
       status: "COMPLETED",
-      outputText: textResult.content,
-      outputUrls: imageUrls,
+      outputText: filled.html,
+      outputUrls: filled.urls,
       model: textResult.model ?? null,
       provider: providerEnum(textResult.provider),
     });
@@ -509,10 +551,10 @@ export async function generateStudioImage(
     id,
     userId: params.userId,
     type: "IMAGE",
-    provider: providerEnum(params.provider || (hasOpenAi() ? "dalle" : "local_mock")),
+    provider: providerEnum(hasOpenAi() ? "openai" : "local_mock"),
     status: "RUNNING",
     prompt: fullPrompt,
-    systemPrompt: null,
+    systemPrompt: "OpenAI owns all image generation",
     outputText: null,
     outputUrls: [],
     model: null,
@@ -532,7 +574,7 @@ export async function generateStudioImage(
     let model: string | null = null;
     let provider: AiProviderId = "local_mock";
 
-    if (hasOpenAi() && (!params.provider || params.provider === "dalle" || params.provider === "openai")) {
+    if (hasOpenAi()) {
       const size =
         aspect === "16:9"
           ? "1792x1024"
@@ -542,7 +584,7 @@ export async function generateStudioImage(
       const result = await openaiImage(fullPrompt, size);
       urls = result.urls?.length ? result.urls : mockImageUrls(fullPrompt, aspect);
       model = result.model ?? "dall-e-3";
-      provider = "dalle";
+      provider = "openai";
     } else {
       urls = mockImageUrls(fullPrompt, aspect);
       model = "local-mock-image";

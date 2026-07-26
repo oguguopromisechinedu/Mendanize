@@ -1,12 +1,20 @@
 import Link from "next/link";
 
 import { CategoryCard } from "@/components/shared/content-cards";
+import {
+  contentHref,
+  contentListHref,
+  contentSearchHref,
+  type ContentScope,
+} from "@/lib/content-paths";
 import type { CategoryRecord } from "@/services/content/types";
 
 export function PublicCategoryListView({
   categories,
+  scope = "public",
 }: {
   categories: CategoryRecord[];
+  scope?: ContentScope;
 }) {
   return (
     <div className="mx-auto max-w-5xl">
@@ -30,7 +38,7 @@ export function PublicCategoryListView({
           {categories.map((category) => (
             <li key={category.id}>
               <CategoryCard
-                href={`/categories/${category.slug}`}
+                href={contentHref("category", category.slug, { scope })}
                 title={category.name}
                 description={category.description ?? undefined}
                 badge={category.featured ? "Featured" : undefined}
@@ -55,11 +63,17 @@ export function PublicCategoryListView({
 
       <p className="mt-10 text-sm text-muted-foreground">
         Looking for a specific subject?{" "}
-        <Link href="/topics" className="text-primary hover:opacity-90">
+        <Link
+          href={contentListHref("topic", { scope })}
+          className="text-primary hover:opacity-90"
+        >
           Browse all topics
         </Link>{" "}
         or{" "}
-        <Link href="/search" className="text-primary hover:opacity-90">
+        <Link
+          href={contentSearchHref({ scope })}
+          className="text-primary hover:opacity-90"
+        >
           search the library
         </Link>
         .

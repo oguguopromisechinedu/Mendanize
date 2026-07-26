@@ -262,6 +262,62 @@ function extractUploadUrl(body: unknown, filename: string): string {
   return `https://picsum.photos/seed/${encodeURIComponent(filename)}/1024`;
 }
 
+function extractUploadBytes(body: unknown): Buffer | null {
+  if (!body || typeof body !== "object") return null;
+  const record = body as {
+    bytes?: unknown;
+    base64?: unknown;
+    data?: unknown;
+  };
+  if (typeof record.base64 === "string" && record.base64.trim()) {
+    return Buffer.from(record.base64.replace(/^data:[^;]+;base64,/, ""), "base64");
+  }
+  if (Buffer.isBuffer(record.bytes)) return record.bytes;
+  if (record.bytes instanceof Uint8Array) return Buffer.from(record.bytes);
+  if (typeof record.data === "string" && record.data.startsWith("data:")) {
+    const raw = record.data.split(",")[1];
+    if (raw) return Buffer.from(raw, "base64");
+  }
+  return null;
+}
+
+/**
+ * Uploads bytes to Supabase Storage bucket `media` when service role env is set.
+ * Create a public bucket named `media` in the Supabase dashboard first.
+ */
+async function uploadToSupabaseStorage(input: {
+  filename: string;
+  mimeType: string;
+  bytes: Buffer;
+}): Promise<{ url: string; storageKey: string } | null> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!url || !key) return null;
+
+  try {
+    const { supabaseAdmin } = await import("@/lib/supabase/server");
+    const storageKey = `uploads/${Date.now()}-${slugify(input.filename)}`;
+    const { error } = await supabaseAdmin.storage
+      .from("media")
+      .upload(storageKey, input.bytes, {
+        contentType: input.mimeType,
+        upsert: false,
+      });
+    if (error) {
+      console.error("[media] supabase upload failed:", error.message);
+      return null;
+    }
+    const { data } = supabaseAdmin.storage.from("media").getPublicUrl(storageKey);
+    return { url: data.publicUrl, storageKey };
+  } catch (error) {
+    console.error(
+      "[media] supabase upload error:",
+      error instanceof Error ? error.message : error,
+    );
+    return null;
+  }
+}
+
 function filterSortAssets(
   items: MediaAssetRecord[],
   params: MediaListParams
@@ -565,9 +621,22 @@ export async function uploadAsset(
   params: UploadMediaParams
 ): Promise<MediaAsset> {
   assertMime(params.mimeType);
-  const url = extractUploadUrl(params.body, params.filename);
   const t = nowIso();
-  const storageKey = `placeholder/${Date.now()}-${slugify(params.filename)}`;
+  const bytes = extractUploadBytes(params.body);
+  const supabase = bytes
+    ? await uploadToSupabaseStorage({
+        filename: params.filename,
+        mimeType: params.mimeType,
+        bytes,
+      })
+    : null;
+
+  const url =
+    supabase?.url ?? extractUploadUrl(params.body, params.filename);
+  const storageKey =
+    supabase?.storageKey ??
+    `placeholder/${Date.now()}-${slugify(params.filename)}`;
+  const storageProvider = supabase ? "supabase" : bytes ? "local" : "url";
 
   if (!isDatabaseConfigured()) {
     ensureMemory();
@@ -578,10 +647,10 @@ export async function uploadAsset(
       mimeType: params.mimeType,
       url,
       storageKey,
-      storageProvider: "placeholder",
+      storageProvider,
       width: params.width ?? null,
       height: params.height ?? null,
-      sizeBytes: params.sizeBytes ?? null,
+      sizeBytes: params.sizeBytes ?? bytes?.byteLength ?? null,
       altText: params.altText ?? null,
       caption: null,
       description: null,
@@ -619,10 +688,10 @@ export async function uploadAsset(
       mimeType: params.mimeType,
       url,
       storageKey,
-      storageProvider: "placeholder",
+      storageProvider,
       width: params.width ?? null,
       height: params.height ?? null,
-      sizeBytes: params.sizeBytes ?? null,
+      sizeBytes: params.sizeBytes ?? bytes?.byteLength ?? null,
       altText: params.altText ?? null,
       categoryId: params.categoryId ?? null,
       uploadedById: params.uploadedById ?? null,

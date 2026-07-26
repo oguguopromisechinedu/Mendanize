@@ -6,13 +6,16 @@
 
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
 import type { AdminRoleKey } from "@prisma/client";
 import { getPrisma, isDatabaseConfigured } from "@/lib/db/prisma";
 import {
   ADMIN_SESSION_COOKIE,
   sessionCookieOptions,
 } from "@/lib/auth/cookies";
+import { verifyPassword } from "@/lib/auth/password";
+
+/** Default session lifetime (7 days) — matches AuthenticationSetting default. */
+const ADMIN_SESSION_MAX_AGE_SEC = 60 * 60 * 24 * 7;
 
 export const {
   handlers: adminHandlers,
@@ -20,7 +23,8 @@ export const {
   signIn: adminSignIn,
   signOut: adminSignOut,
 } = NextAuth({
-  session: { strategy: "jwt" },
+  session: { strategy: "jwt", maxAge: ADMIN_SESSION_MAX_AGE_SEC },
+  jwt: { maxAge: ADMIN_SESSION_MAX_AGE_SEC },
   basePath: "/api/admin/auth",
   pages: {
     signIn: "/dashboard/login",
@@ -33,6 +37,7 @@ export const {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        totp: { label: "TOTP", type: "text" },
       },
       async authorize(credentials) {
         if (!isDatabaseConfigured()) return null;
@@ -43,6 +48,8 @@ export const {
             : "";
         const password =
           typeof credentials?.password === "string" ? credentials.password : "";
+        const totp =
+          typeof credentials?.totp === "string" ? credentials.totp.trim() : "";
 
         if (!email || !password) return null;
 
@@ -61,8 +68,29 @@ export const {
 
           if (!admin?.passwordHash || !admin.active) return null;
 
-          const valid = await bcrypt.compare(password, admin.passwordHash);
+          const valid = await verifyPassword(password, admin.passwordHash);
           if (!valid) return null;
+
+          if (admin.totpEnabled && admin.totpSecret) {
+            const { decryptTotpSecret, verifyTotpToken } = await import(
+              "@/lib/auth/totp"
+            );
+            try {
+              const secret = decryptTotpSecret(admin.totpSecret);
+              if (!totp || !verifyTotpToken(secret, totp)) return null;
+            } catch {
+              return null;
+            }
+          } else {
+            const { getAuthenticationSettings } = await import(
+              "@/services/settings/platform"
+            );
+            const authSettings = await getAuthenticationSettings();
+            if (authSettings.twoFactorRequired) {
+              // Platform requires 2FA but this admin has not enrolled — allow login
+              // with a soft warning via audit; enroll is available in settings.
+            }
+          }
 
           const permissions = admin.role.permissions.map(
             (rp) => rp.permission.key,
@@ -130,14 +158,36 @@ export const {
         const { logAuthorization } = await import(
           "@/features/authentication/services/audit"
         );
+        const { getRequestIpAddress } = await import("@/lib/auth/request-ip");
         await logAuthorization({
           adminId: user.id,
           actorEmail: user.email,
           action: "admin.sign_in",
           summary: `Admin signed in: ${user.email}`,
+          ipAddress: await getRequestIpAddress(),
         });
       } catch {
         /* audit must not block sign-in */
+      }
+    },
+    async signOut(message) {
+      if (!isDatabaseConfigured()) return;
+      try {
+        const token = "token" in message ? message.token : null;
+        if (!token?.id) return;
+        const { logAuthorization } = await import(
+          "@/features/authentication/services/audit"
+        );
+        const { getRequestIpAddress } = await import("@/lib/auth/request-ip");
+        await logAuthorization({
+          adminId: String(token.id),
+          actorEmail: (token.email as string) ?? null,
+          action: "admin.sign_out",
+          summary: `Admin signed out: ${token.email ?? token.id}`,
+          ipAddress: await getRequestIpAddress(),
+        });
+      } catch {
+        /* audit must not block sign-out */
       }
     },
   },

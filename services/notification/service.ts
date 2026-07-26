@@ -455,14 +455,50 @@ export async function dispatch(
           templateKey: params.template,
           subject,
           status: "queued",
-          detail: `SMTP placeholder — would send to ${params.email ?? "unknown"}. ${detail.slice(0, 500)}`,
+          detail: `Sending to ${params.email ?? "unknown"}`,
         },
       });
+
+      if (!params.email) {
+        await db().communicationLog.update({
+          where: { id: log.id },
+          data: {
+            status: "failed",
+            detail: "Missing recipient email",
+          },
+        });
+        throw new ValidationError("email is required for email delivery.");
+      }
+
+      const { sendEmail } = await import("@/lib/email/send");
+      const result = await sendEmail({
+        to: params.email,
+        subject,
+        text: detail,
+        html: emailTpl?.bodyHtml
+          ? interpolate(emailTpl.bodyHtml, params.payload)
+          : undefined,
+      });
+
+      await db().communicationLog.update({
+        where: { id: log.id },
+        data: {
+          status: result.ok ? "sent" : "failed",
+          detail: result.ok
+            ? `Sent via ${result.provider}${result.id ? ` (${result.id})` : ""}`
+            : `Failed via ${result.provider}: ${result.error ?? "unknown"}`,
+        },
+      });
+
+      if (!result.ok) {
+        throw new ValidationError(result.error ?? "Email send failed");
+      }
+
       return {
         id: log.id,
         channel: "email",
         template: params.template,
-        status: "queued",
+        status: "sent",
         createdAt: now,
       };
     }

@@ -58,7 +58,7 @@ export async function generateArticleAction(
       data: generation,
     }
   }
-  return { ok: true, message: "Draft + image generated (Claude + OpenAI)", data: generation }
+  return { ok: true, message: "Draft + images generated (Anthropic text · OpenAI images)", data: generation }
 }
 
 export async function generateImageAction(

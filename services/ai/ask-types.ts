@@ -63,7 +63,7 @@ export type AskTier1Result = {
     placeholder: boolean;
   }>;
   providers: {
-    text: "anthropic" | "openai" | "local_mock";
+    text: "anthropic" | "local_mock";
     image: "openai" | "local_mock" | "none";
   };
   related: Array<{

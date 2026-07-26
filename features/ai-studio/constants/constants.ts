@@ -2,13 +2,13 @@ export const STUDIO_CARDS = [
   {
     id: "article",
     title: "Generate article",
-    description: "Claude writes the draft; OpenAI adds a featured image.",
+    description: "Anthropic writes the draft; OpenAI fills cover + inline images.",
     href: "/dashboard/ai-studio/article",
   },
   {
     id: "image",
     title: "Generate image",
-    description: "OpenAI DALL·E visuals for covers and inline media.",
+    description: "OpenAI owns every image — covers, figures, illustrations.",
     href: "/dashboard/ai-studio/image",
   },
   {

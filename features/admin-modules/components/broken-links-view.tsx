@@ -33,7 +33,7 @@ export function BrokenLinksView({
     <div className="mx-auto max-w-7xl">
       <AdminPageHeader
         title="Broken Links"
-        description="Scan content for outbound links and repair with redirects."
+        description="HTTP-checks outbound links in published articles, guides, tools, and pages. Only unreachable URLs stay open."
       />
       <AdminActionToolbar>
         <Button
@@ -99,7 +99,7 @@ export function BrokenLinksView({
       {!initial.items.length ? (
         <AdminEmptyState
           title="No broken links"
-          description="Run a scan to check published content for outbound URLs."
+          description="Run a scan to HTTP-check outbound URLs in published content. Healthy links are not listed."
         />
       ) : (
         <AdminDataTable

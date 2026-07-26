@@ -99,18 +99,14 @@ export async function ensurePlatformSettingsSeeded(): Promise<void> {
       await tx.aiPlatformSetting.create({
         data: {
           key: KEY,
-          enabledProvidersJson: JSON.stringify([
-            "claude",
-            "openai",
-            "gemini",
-            "grok",
-            "dalle",
-          ]),
+          enabledProvidersJson: JSON.stringify(["claude", "openai"]),
           modelsJson: JSON.stringify({
             writing: "claude-sonnet",
-            image: "dall-e-3",
+            image: "gpt-image",
             ask: "claude-sonnet",
           }),
+          defaultTextProvider: "claude",
+          defaultImageProvider: "openai",
           rateLimitPlaceholder:
             "Rate limits enforced when Billing (MES-021) gates usage.",
         },
@@ -123,8 +119,7 @@ export async function ensurePlatformSettingsSeeded(): Promise<void> {
       await tx.emailSetting.create({
         data: {
           key: KEY,
-          smtpPlaceholder: "SMTP host/port/user — not configured in this phase.",
-          templatesNote: "Template management placeholder.",
+          templatesNote: "Transactional templates via notification service.",
         },
       });
     }
@@ -202,22 +197,22 @@ function mapAi(row: {
   modelsJson: string | null;
   updatedAt: Date;
 }): AIPlatformSettingRecord {
+  const enabled = parseJsonArray(row.enabledProvidersJson, ["claude", "openai"])
+    .map((p) => p.toLowerCase())
+    .filter((p) => p !== "dalle" && p !== "gemini" && p !== "grok")
+    .map((p) => (p === "anthropic" ? "claude" : p));
   return {
     id: row.id,
-    defaultTextProvider: row.defaultTextProvider,
-    defaultImageProvider: row.defaultImageProvider,
+    defaultTextProvider: "claude",
+    defaultImageProvider: "openai",
     defaultVideoProvider: row.defaultVideoProvider,
     maxResponseLength: row.maxResponseLength,
     conversationHistoryOn: row.conversationHistoryOn,
     rateLimitPlaceholder: row.rateLimitPlaceholder,
-    enabledProviders: parseJsonArray(row.enabledProvidersJson, [
-      "claude",
-      "openai",
-      "dalle",
-    ]),
+    enabledProviders: [...new Set(["claude", "openai", ...enabled])],
     models: parseJsonObject(row.modelsJson, {
       writing: "claude-sonnet",
-      image: "dall-e-3",
+      image: "gpt-image",
     }),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -428,6 +423,7 @@ export async function getAuthenticationSettings(): Promise<AuthenticationSetting
       passwordPolicyNote: null,
       sessionTimeoutMinutes: 10080,
       rememberMeEnabled: true,
+      twoFactorRequired: false,
       twoFactorPlaceholder: false,
       updatedAt: new Date().toISOString(),
     };
@@ -442,6 +438,7 @@ export async function getAuthenticationSettings(): Promise<AuthenticationSetting
     passwordPolicyNote: row.passwordPolicyNote,
     sessionTimeoutMinutes: row.sessionTimeoutMinutes,
     rememberMeEnabled: row.rememberMeEnabled,
+    twoFactorRequired: row.twoFactorRequired,
     twoFactorPlaceholder: row.twoFactorPlaceholder,
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -469,6 +466,9 @@ export async function updateAuthenticationSettings(
       ...(input.rememberMeEnabled !== undefined
         ? { rememberMeEnabled: input.rememberMeEnabled }
         : {}),
+      ...(input.twoFactorRequired !== undefined
+        ? { twoFactorRequired: input.twoFactorRequired }
+        : {}),
       ...(input.twoFactorPlaceholder !== undefined
         ? { twoFactorPlaceholder: input.twoFactorPlaceholder }
         : {}),
@@ -481,6 +481,7 @@ export async function updateAuthenticationSettings(
     passwordPolicyNote: row.passwordPolicyNote,
     sessionTimeoutMinutes: row.sessionTimeoutMinutes,
     rememberMeEnabled: row.rememberMeEnabled,
+    twoFactorRequired: row.twoFactorRequired,
     twoFactorPlaceholder: row.twoFactorPlaceholder,
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -492,13 +493,13 @@ export async function getAiPlatformSettings(): Promise<AIPlatformSettingRecord> 
     return {
       id: "local",
       defaultTextProvider: "claude",
-      defaultImageProvider: "dalle",
+      defaultImageProvider: "openai",
       defaultVideoProvider: "video_tbd",
       maxResponseLength: 4000,
       conversationHistoryOn: true,
       rateLimitPlaceholder: null,
-      enabledProviders: ["claude", "openai", "dalle"],
-      models: { writing: "claude-sonnet", image: "dall-e-3" },
+      enabledProviders: ["claude", "openai"],
+      models: { writing: "claude-sonnet", image: "gpt-image" },
       updatedAt: new Date().toISOString(),
     };
   }
@@ -518,14 +519,31 @@ export async function updateAiPlatformSettings(input: {
   models?: Record<string, string>;
 }): Promise<AIPlatformSettingRecord> {
   await ensurePlatformSettingsSeeded();
+  // Ownership lock: Anthropic = articles; OpenAI = images.
+  const textProvider =
+    input.defaultTextProvider !== undefined ? "claude" : undefined;
+  const imageProvider =
+    input.defaultImageProvider !== undefined ? "openai" : undefined;
+  const enabledProviders =
+    input.enabledProviders !== undefined
+      ? [
+          ...new Set([
+            "claude",
+            "openai",
+            ...input.enabledProviders
+              .map((p) => p.trim().toLowerCase())
+              .filter((p) => ["claude", "openai"].includes(p)),
+          ]),
+        ]
+      : undefined;
   const row = await db().aiPlatformSetting.update({
     where: { key: KEY },
     data: {
-      ...(input.defaultTextProvider !== undefined
-        ? { defaultTextProvider: input.defaultTextProvider.trim() }
+      ...(textProvider !== undefined
+        ? { defaultTextProvider: textProvider }
         : {}),
-      ...(input.defaultImageProvider !== undefined
-        ? { defaultImageProvider: input.defaultImageProvider.trim() }
+      ...(imageProvider !== undefined
+        ? { defaultImageProvider: imageProvider }
         : {}),
       ...(input.defaultVideoProvider !== undefined
         ? { defaultVideoProvider: input.defaultVideoProvider.trim() }
@@ -539,8 +557,8 @@ export async function updateAiPlatformSettings(input: {
       ...(input.rateLimitPlaceholder !== undefined
         ? { rateLimitPlaceholder: input.rateLimitPlaceholder?.trim() || null }
         : {}),
-      ...(input.enabledProviders !== undefined
-        ? { enabledProvidersJson: JSON.stringify(input.enabledProviders) }
+      ...(enabledProviders !== undefined
+        ? { enabledProvidersJson: JSON.stringify(enabledProviders) }
         : {}),
       ...(input.models !== undefined
         ? { modelsJson: JSON.stringify(input.models) }
@@ -621,6 +639,11 @@ export async function getEmailSettings(): Promise<EmailSettingRecord> {
       id: "local",
       senderName: "Mendanize",
       senderEmail: "noreply@mendanize.com",
+      smtpHost: null,
+      smtpPort: 587,
+      smtpUser: null,
+      smtpPassword: null,
+      smtpSecure: false,
       smtpPlaceholder: null,
       templatesNote: null,
       updatedAt: new Date().toISOString(),
@@ -631,6 +654,11 @@ export async function getEmailSettings(): Promise<EmailSettingRecord> {
     id: row.id,
     senderName: row.senderName,
     senderEmail: row.senderEmail,
+    smtpHost: row.smtpHost,
+    smtpPort: row.smtpPort,
+    smtpUser: row.smtpUser,
+    smtpPassword: row.smtpPassword,
+    smtpSecure: row.smtpSecure,
     smtpPlaceholder: row.smtpPlaceholder,
     templatesNote: row.templatesNote,
     updatedAt: row.updatedAt.toISOString(),
@@ -650,6 +678,17 @@ export async function updateEmailSettings(
       ...(input.senderEmail !== undefined
         ? { senderEmail: input.senderEmail.trim() }
         : {}),
+      ...(input.smtpHost !== undefined
+        ? { smtpHost: input.smtpHost?.trim() || null }
+        : {}),
+      ...(input.smtpPort !== undefined ? { smtpPort: input.smtpPort } : {}),
+      ...(input.smtpUser !== undefined
+        ? { smtpUser: input.smtpUser?.trim() || null }
+        : {}),
+      ...(input.smtpPassword !== undefined
+        ? { smtpPassword: input.smtpPassword || null }
+        : {}),
+      ...(input.smtpSecure !== undefined ? { smtpSecure: input.smtpSecure } : {}),
       ...(input.smtpPlaceholder !== undefined
         ? { smtpPlaceholder: input.smtpPlaceholder?.trim() || null }
         : {}),
@@ -662,6 +701,11 @@ export async function updateEmailSettings(
     id: row.id,
     senderName: row.senderName,
     senderEmail: row.senderEmail,
+    smtpHost: row.smtpHost,
+    smtpPort: row.smtpPort,
+    smtpUser: row.smtpUser,
+    smtpPassword: row.smtpPassword,
+    smtpSecure: row.smtpSecure,
     smtpPlaceholder: row.smtpPlaceholder,
     templatesNote: row.templatesNote,
     updatedAt: row.updatedAt.toISOString(),
@@ -730,6 +774,18 @@ export async function listFeatureFlags(): Promise<FeatureFlagRecord[]> {
     enabled: r.enabled,
     sortOrder: r.sortOrder,
   }));
+}
+
+/** Admin FeatureFlag gate — PublicUser surfaces must call this, never hardcode availability. */
+export async function isFeatureEnabled(key: string): Promise<boolean> {
+  const flags = await listFeatureFlags();
+  const match = flags.find((f) => f.key === key);
+  return match?.enabled ?? false;
+}
+
+export async function getFeatureFlagMap(): Promise<Record<string, boolean>> {
+  const flags = await listFeatureFlags();
+  return Object.fromEntries(flags.map((f) => [f.key, f.enabled]));
 }
 
 export async function setFeatureFlagEnabled(

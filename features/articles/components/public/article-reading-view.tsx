@@ -4,6 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AskContextualWidget } from "@/features/ask-mendanize";
 import { RecommendationsRail } from "@/features/recommendations";
+import {
+  contentHref,
+  contentListHref,
+  type ContentScope,
+} from "@/lib/content-paths";
 import type { RecommendationItem } from "@/services/recommendations";
 import type { PublicArticleDetail } from "@/services/content";
 import { prepareArticleHtml } from "../../utils/toc";
@@ -26,16 +31,19 @@ export function ArticleReadingView({
   shareUrl,
   structuredData,
   breadcrumbJsonLd,
+  scope = "public",
 }: {
   article: PublicArticleDetail;
   related: RecommendationItem[];
   shareUrl: string;
   structuredData?: Record<string, unknown> | null;
   breadcrumbJsonLd?: Record<string, unknown> | null;
+  scope?: ContentScope;
 }) {
   const { html, toc } = prepareArticleHtml(article.content || "");
   const published = formatDate(article.publishedAt);
   const updated = formatDate(article.updatedAt);
+  const continueHref = scope === "account" ? "/account/continue" : "/learning";
 
   return (
     <>
@@ -64,14 +72,16 @@ export function ArticleReadingView({
               {article.categoryName ? (
                 article.categorySlug ? (
                   <Link
-                    href={`/categories/${article.categorySlug}`}
+                    href={contentHref("category", article.categorySlug, {
+                      scope,
+                    })}
                     className="font-medium text-primary hover:underline"
                   >
                     {article.categoryName}
                   </Link>
                 ) : (
                   <Link
-                    href="/categories"
+                    href={contentListHref("category", { scope })}
                     className="font-medium text-primary hover:underline"
                   >
                     {article.categoryName}
@@ -81,7 +91,7 @@ export function ArticleReadingView({
               {article.topicName ? (
                 article.topicSlug ? (
                   <Link
-                    href={`/topics/${article.topicSlug}`}
+                    href={contentHref("topic", article.topicSlug, { scope })}
                     className="text-muted-foreground hover:text-foreground hover:underline"
                   >
                     · {article.topicName}
@@ -198,7 +208,7 @@ export function ArticleReadingView({
                   {article.tags.map((tag) => (
                     <Link
                       key={tag.id}
-                      href={`/topics/${tag.slug}`}
+                      href={contentHref("topic", tag.slug, { scope })}
                       className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground hover:border-primary/40 hover:text-foreground"
                     >
                       {tag.name}
@@ -211,7 +221,7 @@ export function ArticleReadingView({
             <div className="grid gap-4 sm:grid-cols-2">
               {article.prev ? (
                 <Link
-                  href={`/articles/${article.prev.slug}`}
+                  href={contentHref("article", article.prev.slug, { scope })}
                   className="rounded-lg border border-border p-4 transition-colors hover:border-primary/40"
                 >
                   <p className="text-xs text-muted-foreground">Previous</p>
@@ -224,7 +234,7 @@ export function ArticleReadingView({
               )}
               {article.next ? (
                 <Link
-                  href={`/articles/${article.next.slug}`}
+                  href={contentHref("article", article.next.slug, { scope })}
                   className="rounded-lg border border-border p-4 text-right transition-colors hover:border-primary/40 sm:justify-self-end"
                 >
                   <p className="text-xs text-muted-foreground">Next</p>
@@ -237,13 +247,17 @@ export function ArticleReadingView({
 
             <div className="flex flex-wrap gap-3">
               <Button asChild>
-                <Link href="/learning">Continue learning</Link>
+                <Link href={continueHref}>Continue learning</Link>
               </Button>
-              <Button asChild variant="outline">
-                <Link href="/#newsletter">Newsletter</Link>
-              </Button>
+              {scope === "public" ? (
+                <Button asChild variant="outline">
+                  <Link href="/#newsletter">Newsletter</Link>
+                </Button>
+              ) : null}
               <Button asChild variant="ghost">
-                <Link href="/articles">All articles</Link>
+                <Link href={contentListHref("article", { scope })}>
+                  All articles
+                </Link>
               </Button>
             </div>
           </footer>

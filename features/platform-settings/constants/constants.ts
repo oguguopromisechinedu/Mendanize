@@ -14,11 +14,10 @@ export const SETTINGS_NAV = [
   { label: "Billing", href: "/dashboard/settings/billing" },
 ] as const;
 
-export const AI_PROVIDERS = [
-  "claude",
-  "openai",
-  "gemini",
-  "grok",
-  "dalle",
-  "local_mock",
-] as const;
+export const AI_PROVIDERS = ["claude", "openai", "local_mock"] as const;
+
+/** Anthropic owns all article / writing generation. */
+export const AI_TEXT_PROVIDERS = ["claude"] as const;
+
+/** OpenAI owns all image generation. */
+export const AI_IMAGE_PROVIDERS = ["openai"] as const;

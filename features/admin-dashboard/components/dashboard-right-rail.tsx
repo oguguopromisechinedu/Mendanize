@@ -48,7 +48,15 @@ export function DashboardRightRail({ data }: { data: DashboardHomeData }) {
     <aside className="hidden w-[19rem] shrink-0 space-y-4 xl:block">
       <AdminPanel
         title="Publishing Workflow"
-        description="Topic → Publish pipeline"
+        description="Live queue from drafts → publish"
+        action={
+          <Link
+            href="/dashboard/workflow"
+            className="text-xs font-medium text-primary hover:underline"
+          >
+            Open queue
+          </Link>
+        }
       >
         <WorkflowStepper steps={data.workflow} />
       </AdminPanel>

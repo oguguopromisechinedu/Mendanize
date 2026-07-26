@@ -77,10 +77,10 @@ export function HeroAskBar({ content }: { content: AskContent }) {
     : ASK_SIGN_IN_HREF
 
   return (
-    <div className="mt-8 space-y-3">
-      <div className="flex items-center gap-2 rounded-2xl border border-border bg-card/80 p-2 shadow-glow backdrop-blur-sm">
-        <div className="ml-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <Bot className="size-4" aria-hidden />
+    <div className="mt-5 space-y-2.5 sm:mt-8 sm:space-y-3">
+      <div className="flex items-center gap-1.5 rounded-xl border border-border bg-card/80 p-1.5 shadow-glow backdrop-blur-sm sm:gap-2 sm:rounded-2xl sm:p-2">
+        <div className="ml-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground sm:size-8">
+          <Bot className="size-3.5 sm:size-4" aria-hidden />
         </div>
         <Input
           value={question}
@@ -90,12 +90,12 @@ export function HeroAskBar({ content }: { content: AskContent }) {
           }}
           placeholder={content.placeholder}
           aria-label="Ask Mendanize AI"
-          className="border-0 bg-transparent text-base shadow-none focus-visible:ring-0"
+          className="h-9 border-0 bg-transparent text-sm shadow-none focus-visible:ring-0 sm:h-10 sm:text-base"
         />
         <Button
           type="button"
           size="icon"
-          className="shrink-0 rounded-xl"
+          className="size-9 shrink-0 rounded-lg sm:size-10 sm:rounded-xl"
           disabled={pending || !question.trim()}
           onClick={() => ask()}
           aria-label="Submit question"
@@ -104,13 +104,13 @@ export function HeroAskBar({ content }: { content: AskContent }) {
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs text-muted-foreground">Try:</span>
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        <span className="text-[11px] text-muted-foreground sm:text-xs">Try:</span>
         {content.suggestions.map((s) => (
           <button
             key={s}
             type="button"
-            className="rounded-full border border-border bg-surface/60 px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+            className="rounded-full border border-border bg-surface/60 px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground sm:px-3 sm:py-1 sm:text-xs"
             onClick={() => ask(s)}
             disabled={pending}
           >
@@ -150,20 +150,20 @@ export function HeroAskBar({ content }: { content: AskContent }) {
           />
           {result.related.length > 0 ? (
             <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground sm:mb-2 sm:text-xs">
                 Related learning
               </p>
-              <ul className="space-y-1.5">
+              <ul className="flex flex-col gap-1 sm:gap-1.5">
                 {result.related.map((r) => (
-                  <li key={r.href}>
+                  <li key={r.href} className="min-w-0">
                     <Link
                       href={r.href}
-                      className="text-sm text-primary hover:underline"
+                      className="block truncate text-sm text-primary hover:underline"
                     >
                       {r.title}
                     </Link>
                     {r.reason ? (
-                      <span className="ml-2 text-xs text-muted-foreground">
+                      <span className="mt-0.5 block truncate text-[11px] text-muted-foreground sm:ml-0 sm:text-xs">
                         {r.reason}
                       </span>
                     ) : null}

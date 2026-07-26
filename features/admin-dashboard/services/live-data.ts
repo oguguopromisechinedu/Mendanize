@@ -22,9 +22,6 @@ import { listCategoriesAdmin } from "@/services/content/taxonomy";
 import { getPrisma, isDatabaseConfigured } from "@/lib/db/prisma";
 
 const STORAGE_QUOTA_BYTES = 500 * 1024 ** 3;
-const BANDWIDTH_QUOTA_BYTES = 1024 ** 4;
-const AI_CREDITS_TOTAL = 100_000;
-const PERIOD = "rolling-30d";
 
 function weekRanges() {
   const weekAgo = new Date(Date.now() - 7 * 86400000);
@@ -67,7 +64,7 @@ export async function loadTopCategories(): Promise<RankedCategory[]> {
       count: cat.articleCount,
     }));
 
-  // Keep the seeded demo ranking until categories actually have articles.
+  // Keep empty until categories have article counts — never invent rankings.
   if (ranked.length === 0 || ranked.every((c) => c.count === 0)) return [];
 
   return ranked;
@@ -165,7 +162,7 @@ export async function loadContentOverview(): Promise<ContentSlice[] | null> {
     db.mediaAsset.count({ where: { mimeType: { startsWith: "video/" } } }),
   ]);
 
-  // Keep the seeded demo donut until there is real content to visualize.
+  // Empty overview when there is nothing to visualize.
   if (articles + guides + tools + images + videos === 0) return null;
 
   return [
@@ -237,10 +234,7 @@ export async function loadLiveStats(
     }),
   ]);
 
-  // No real content yet — signal the caller to keep the seeded demo numbers
-  // (a nicer first-run experience). Live counts take over once content exists.
-  if (articles + guides + images + videos === 0) return [];
-
+  // Always return live counts — zeros are honest; never fall back to demo KPIs.
   return [
     {
       id: "articles",
@@ -274,33 +268,12 @@ export async function loadSystemMetrics(): Promise<SystemMetric[] | null> {
   if (!isDatabaseConfigured()) return null;
 
   const db = getPrisma();
-  const [mediaAgg, traffic, ai] = await Promise.all([
-    db.mediaAsset.aggregate({ _sum: { sizeBytes: true } }),
-    db.trafficAnalytics.findUnique({ where: { periodKey: PERIOD } }),
-    db.aIAnalytics.findUnique({ where: { periodKey: PERIOD } }),
-  ]);
+  const mediaAgg = await db.mediaAsset.aggregate({ _sum: { sizeBytes: true } });
 
   const storageBytes = mediaAgg._sum.sizeBytes ?? 0;
   const storagePct = Math.min(
     99,
     Math.round((storageBytes / STORAGE_QUOTA_BYTES) * 100),
-  );
-
-  const pageViews = traffic?.pageViews ?? 0;
-  const bandwidthBytes = Math.min(
-    BANDWIDTH_QUOTA_BYTES,
-    pageViews * 50_000,
-  );
-  const bandwidthPct = Math.min(
-    99,
-    Math.round((bandwidthBytes / BANDWIDTH_QUOTA_BYTES) * 100),
-  );
-
-  const creditsUsed = ai?.messages ?? 0;
-  const creditsRemaining = Math.max(0, AI_CREDITS_TOTAL - creditsUsed);
-  const creditsPct = Math.min(
-    99,
-    Math.round((creditsRemaining / AI_CREDITS_TOTAL) * 100),
   );
 
   return [
@@ -313,14 +286,14 @@ export async function loadSystemMetrics(): Promise<SystemMetric[] | null> {
     {
       id: "s2",
       label: "Bandwidth Usage",
-      value: `${bandwidthPct}%`,
-      detail: `${formatBytes(bandwidthBytes)} / ${formatBytes(BANDWIDTH_QUOTA_BYTES)}`,
+      value: "—",
+      detail: "Not tracked yet",
     },
     {
       id: "s3",
       label: "AI Credits Remaining",
-      value: `${creditsPct}%`,
-      detail: `${creditsRemaining.toLocaleString()} / ${AI_CREDITS_TOTAL.toLocaleString()}`,
+      value: "—",
+      detail: "Not tracked yet",
     },
   ];
 }

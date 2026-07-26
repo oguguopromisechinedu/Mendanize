@@ -6,7 +6,7 @@ import { AskDashboardView } from "@/features/ask-mendanize";
 import { loadAskDashboard } from "@/features/ask-mendanize/server";
 
 export const metadata: Metadata = {
-  title: "Ask Mendanize",
+  title: "AI Tutor",
   robots: { index: false },
 };
 
@@ -14,7 +14,7 @@ type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-/** Tier 2 Ask — PublicUser session only (MES-019 / MES-030) */
+/** Tier 2 Ask — PublicUser learner tutor only (MES-019 / MES-030). */
 export default async function AskPage({ searchParams }: PageProps) {
   const session = await requirePublicUser();
   if (!session?.user?.id) {
@@ -34,12 +34,10 @@ export default async function AskPage({ searchParams }: PageProps) {
   });
 
   return (
-    <div className="px-4 py-6 sm:px-6">
-      <AskDashboardView
-        payload={payload}
-        initialDraft={draft}
-        initialIntent={intent}
-      />
-    </div>
+    <AskDashboardView
+      payload={payload}
+      initialDraft={draft}
+      initialIntent={intent}
+    />
   );
 }

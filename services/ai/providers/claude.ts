@@ -1,5 +1,6 @@
 /**
  * Claude / Anthropic provider adapter (MES-002 / MES-011).
+ * Owns all article / text generation. Images are OpenAI-only.
  */
 
 import { generateStudioArticle } from "../studio"
@@ -11,8 +12,8 @@ export async function status(): Promise<AiProviderStatus> {
     provider: "claude",
     connected,
     message: connected
-      ? "Live — Studio article drafts and Ask Mendanize text"
-      : "Not configured — set ANTHROPIC_API_KEY",
+      ? "Live — all article / text generation (Studio + Ask)"
+      : "Not configured — set ANTHROPIC_API_KEY for articles",
   }
 }
 

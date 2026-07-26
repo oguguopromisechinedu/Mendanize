@@ -724,12 +724,14 @@ export async function updateSitemapConfig(
   };
 }
 
-/** Placeholder regeneration — records timestamp only (real XML deferred). */
-export async function regenerateSitemapPlaceholder(): Promise<{
+/** Regenerates sitemap timestamps and returns live URL inventory for /sitemap.xml. */
+export async function regenerateSitemap(): Promise<{
   regeneratedAt: string;
   includedTypes: number;
+  urlCount: number;
 }> {
   const at = new Date();
+  const entries = await buildSitemapEntries();
   if (!isDatabaseConfigured()) {
     ensureMemory();
     for (const s of memory.sitemap) {
@@ -738,6 +740,7 @@ export async function regenerateSitemapPlaceholder(): Promise<{
     return {
       regeneratedAt: at.toISOString(),
       includedTypes: memory.sitemap.filter((s) => s.included).length,
+      urlCount: entries.length,
     };
   }
   await ensurePrismaSeed();
@@ -748,7 +751,130 @@ export async function regenerateSitemapPlaceholder(): Promise<{
   const included = await getPrisma().sitemapConfiguration.count({
     where: { included: true },
   });
-  return { regeneratedAt: at.toISOString(), includedTypes: included };
+  return {
+    regeneratedAt: at.toISOString(),
+    includedTypes: included,
+    urlCount: entries.length,
+  };
+}
+
+/** @deprecated Use regenerateSitemap */
+export async function regenerateSitemapPlaceholder(): Promise<{
+  regeneratedAt: string;
+  includedTypes: number;
+}> {
+  const result = await regenerateSitemap();
+  return {
+    regeneratedAt: result.regeneratedAt,
+    includedTypes: result.includedTypes,
+  };
+}
+
+export type SitemapEntry = {
+  url: string;
+  lastModified: Date;
+  changeFrequency:
+    | "always"
+    | "hourly"
+    | "daily"
+    | "weekly"
+    | "monthly"
+    | "yearly"
+    | "never";
+  priority: number;
+};
+
+function mapChangefreq(
+  value: string | null | undefined,
+): SitemapEntry["changeFrequency"] {
+  const v = (value ?? "weekly").toLowerCase();
+  if (
+    v === "always" ||
+    v === "hourly" ||
+    v === "daily" ||
+    v === "weekly" ||
+    v === "monthly" ||
+    v === "yearly" ||
+    v === "never"
+  ) {
+    return v;
+  }
+  return "weekly";
+}
+
+/** Builds absolute sitemap URLs from published content + sitemap config. */
+export async function buildSitemapEntries(): Promise<SitemapEntry[]> {
+  const baseUrl = (
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://mendanize.com"
+  ).replace(/\/$/, "");
+  const configs = await listSitemapConfigs();
+  const byType = Object.fromEntries(
+    configs.map((c) => [c.entityType, c]),
+  ) as Record<string, (typeof configs)[number]>;
+
+  const entries: SitemapEntry[] = [];
+
+  const push = (
+    path: string,
+    entityType: string,
+    lastModified?: Date | string | null,
+  ) => {
+    const cfg = byType[entityType];
+    if (cfg && !cfg.included) return;
+    entries.push({
+      url: `${baseUrl}${path}`,
+      lastModified: lastModified ? new Date(lastModified) : new Date(),
+      changeFrequency: mapChangefreq(cfg?.changefreq),
+      priority: cfg?.priority ?? (path === "/" ? 1 : 0.7),
+    });
+  };
+
+  push("/", "HOMEPAGE");
+  push("/search", "HOMEPAGE");
+  push("/pricing", "HOMEPAGE");
+
+  try {
+    const { listArticlesAdmin } = await import("@/services/content/articles");
+    const { listGuidesAdmin } = await import("@/services/content/guides");
+    const { listToolsAdmin } = await import("@/services/content/tools");
+    const { listCategoriesAdmin, listTopicsAdmin } = await import(
+      "@/services/content/taxonomy"
+    );
+    const { listPagesAdmin } = await import("@/services/admin/pages");
+
+    const [articles, guides, tools, categories, topics, pages] =
+      await Promise.all([
+        listArticlesAdmin({ status: "PUBLISHED", pageSize: 100 }),
+        listGuidesAdmin({ status: "PUBLISHED", pageSize: 100 }),
+        listToolsAdmin({ status: "PUBLISHED", pageSize: 100 }),
+        listCategoriesAdmin({ status: "ACTIVE", pageSize: 100 }),
+        listTopicsAdmin({ status: "ACTIVE", pageSize: 100 }),
+        listPagesAdmin({ status: "PUBLISHED", pageSize: 100 }),
+      ]);
+
+    for (const a of articles.items) {
+      push(`/articles/${a.slug}`, "ARTICLE", a.updatedAt);
+    }
+    for (const g of guides.items) {
+      push(`/guides/${g.slug}`, "GUIDE", g.updatedAt);
+    }
+    for (const t of tools.items) {
+      push(`/ai-tools/${t.slug}`, "AI_TOOL", t.updatedAt);
+    }
+    for (const c of categories.items) {
+      push(`/categories/${c.slug}`, "CATEGORY", c.updatedAt);
+    }
+    for (const t of topics.items) {
+      push(`/topics/${t.slug}`, "TOPIC", t.updatedAt);
+    }
+    for (const p of pages.items) {
+      push(`/${p.slug}`, "PAGE", p.updatedAt);
+    }
+  } catch (error) {
+    console.error("[sitemap] content inventory failed:", error);
+  }
+
+  return entries;
 }
 
 export async function listStructuredData(): Promise<StructuredDataRecord[]> {

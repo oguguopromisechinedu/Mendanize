@@ -41,7 +41,7 @@ export type SubscriberRecord = {
 
 export type CommentRecord = {
   id: string
-  entityType: "ARTICLE" | "GUIDE" | "TOOL" | "PAGE"
+  entityType: "ARTICLE" | "GUIDE" | "TOOL" | "PAGE" | "PROJECT"
   entityId: string
   entityTitle: string | null
   authorName: string

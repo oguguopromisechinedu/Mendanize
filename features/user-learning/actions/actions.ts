@@ -10,6 +10,12 @@ import {
   updateUserPreferences,
   upsertLearningGoal,
 } from "@/services/learning";
+import {
+  startLearnerProject,
+  updateLearnerProjectStatus,
+  createCommunityPost,
+  markDailyActivity,
+} from "@/services/ecosystem";
 import { AppError } from "@/lib/api/errors";
 import {
   interestSchema,
@@ -134,6 +140,91 @@ export async function deleteGoalAction(goalId: string): Promise<ActionResult> {
     return {
       ok: false,
       message: err instanceof AppError ? err.message : "Could not remove goal",
+    };
+  }
+}
+
+// ─── Ecosystem learner actions ────────────────────────────────────────────────
+
+export async function markLessonCompleteAction(
+  _lessonId: string,
+): Promise<ActionResult> {
+  const auth = await gate();
+  if ("ok" in auth) return auth;
+  try {
+    await markDailyActivity(auth.userId);
+    revalidatePath(`/account`);
+    revalidatePath(`/account/continue`);
+    return { ok: true, message: "Lesson marked complete" };
+  } catch (err) {
+    return {
+      ok: false,
+      message: err instanceof AppError ? err.message : "Could not mark lesson complete",
+    };
+  }
+}
+
+export async function startLearnerProjectAction(
+  templateId: string,
+): Promise<ActionResult> {
+  const auth = await gate();
+  if ("ok" in auth) return auth;
+  try {
+    await startLearnerProject(auth.userId, templateId);
+    revalidatePath("/account/projects");
+    return { ok: true, message: "Project started" };
+  } catch (err) {
+    return {
+      ok: false,
+      message: err instanceof AppError ? err.message : "Could not start project",
+    };
+  }
+}
+
+export async function updateProjectStatusAction(
+  projectId: string,
+  status: string,
+): Promise<ActionResult> {
+  const auth = await gate();
+  if ("ok" in auth) return auth;
+  const validStatuses = ["NOT_STARTED", "IN_PROGRESS", "SUBMITTED", "COMPLETED"];
+  if (!validStatuses.includes(status)) {
+    return { ok: false, message: "Invalid project status" };
+  }
+  try {
+    await updateLearnerProjectStatus(auth.userId, projectId, {
+      status: status as "NOT_STARTED" | "IN_PROGRESS" | "SUBMITTED" | "COMPLETED",
+    });
+    revalidatePath("/account/projects");
+    return { ok: true, message: "Project updated" };
+  } catch (err) {
+    return {
+      ok: false,
+      message: err instanceof AppError ? err.message : "Could not update project",
+    };
+  }
+}
+
+export async function createCommunityPostAction(
+  body: string,
+): Promise<ActionResult> {
+  const auth = await gate();
+  if ("ok" in auth) return auth;
+  if (!body?.trim()) return { ok: false, message: "Post body is required" };
+  if (body.length > 2000) return { ok: false, message: "Post too long (max 2000 characters)" };
+  try {
+    await createCommunityPost({
+      publicUserId: auth.userId,
+      entityType: "GUIDE",
+      entityId: "community",
+      body: body.trim(),
+    });
+    revalidatePath("/account/community");
+    return { ok: true, message: "Post submitted for review" };
+  } catch (err) {
+    return {
+      ok: false,
+      message: err instanceof AppError ? err.message : "Could not post",
     };
   }
 }

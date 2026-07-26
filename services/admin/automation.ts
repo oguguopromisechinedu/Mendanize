@@ -165,12 +165,16 @@ export async function runAutomationJob(key: string): Promise<AutomationJobRecord
   let message = "Completed"
   try {
     if (key === "broken_link_scan") {
-      const n = await runBrokenLinkScan()
-      message = `Scan recorded ${n} link check(s)`
+      const result = await runBrokenLinkScan()
+      message = `Checked ${result.checked} link(s); ${result.broken} broken, ${result.recovered} recovered`
     } else if (key === "sitemap_regen") {
-      message = "Sitemap regeneration queued (stub success)"
+      const { regenerateSitemap } = await import("@/services/seo")
+      const result = await regenerateSitemap()
+      message = `Sitemap regenerated: ${result.urlCount} URLs across ${result.includedTypes} type(s)`
     } else if (key === "analytics_rollup") {
-      message = "Analytics rollup completed (stub success)"
+      const { rollupAnalyticsFromEvents } = await import("@/services/analytics")
+      const result = await rollupAnalyticsFromEvents()
+      message = `Rolled up ${result.events} events (${result.pageViews} page views, ${result.searches} searches)`
     } else {
       message = "Unknown job executed as no-op"
     }

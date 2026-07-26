@@ -260,9 +260,9 @@ Copy `.env.example` → `.env.local` and fill in values. Full reference:
 | `AUTH_URL` | Auth | Yes | Base URL for auth redirects |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Auth | Optional | Google OAuth (credentials auth works without) |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | Auth | Optional | GitHub OAuth |
-| `OPENAI_API_KEY` | AI | For live AI | Only live provider at v1.0 (chat + DALL·E) |
+| `OPENAI_API_KEY` | AI | For live images | Sole image provider |
 | `OPENAI_STUDIO_MODEL` | AI | Optional | Defaults to `gpt-4o-mini` |
-| `ANTHROPIC_API_KEY` / `GOOGLE_AI_API_KEY` / `XAI_API_KEY` | AI | Reserved | Post-v1.0 — adapters stubbed |
+| `ANTHROPIC_API_KEY` | AI | For live AI | Claude / Anthropic text |
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` | Supabase | Optional | Storage / media integrations |
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `STRIPE_PRICE_*` / `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Billing | For billing | Optional until monetization |
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Rate limit | Recommended (prod) | In-memory fallback if unset |

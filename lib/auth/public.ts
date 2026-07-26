@@ -65,14 +65,6 @@ function buildPublicProviders(): NextAuthConfig["providers"] {
           const valid = await bcrypt.compare(password, user.passwordHash);
           if (!valid) return null;
 
-          const { getAuthenticationSettings } = await import(
-            "@/services/settings/platform"
-          );
-          const authSettings = await getAuthenticationSettings();
-          if (authSettings.emailVerification && !user.emailVerified) {
-            return null;
-          }
-
           return {
             id: user.id,
             email: user.email,

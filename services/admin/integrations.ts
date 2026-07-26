@@ -23,35 +23,23 @@ export async function listIntegrationsAdmin(): Promise<IntegrationCard[]> {
   return [
     {
       id: "openai",
-      name: "OpenAI",
+      name: "OpenAI (images)",
       category: "AI",
-      configured: hasProvider("openai") || ai.defaultTextProvider.includes("openai"),
-      enabled: ai.defaultTextProvider.toLowerCase().includes("openai"),
-      detail: `Text: ${ai.defaultTextProvider} · Image: ${ai.defaultImageProvider}`,
+      configured: hasProvider("openai"),
+      enabled: ai.defaultImageProvider.toLowerCase().includes("openai"),
+      detail: `Sole image provider · ${ai.defaultImageProvider}`,
       settingsHref: "/dashboard/settings/ai",
     },
     {
       id: "anthropic",
-      name: "Anthropic / Claude",
+      name: "Anthropic / Claude (articles)",
       category: "AI",
       configured:
         hasProvider("claude") ||
         hasProvider("anthropic") ||
         ai.defaultTextProvider.toLowerCase().includes("claude"),
       enabled: ai.defaultTextProvider.toLowerCase().includes("claude"),
-      detail: `Default text provider: ${ai.defaultTextProvider}`,
-      settingsHref: "/dashboard/settings/ai",
-    },
-    {
-      id: "google-ai",
-      name: "Google AI",
-      category: "AI",
-      configured:
-        hasProvider("google") ||
-        hasProvider("gemini") ||
-        ai.defaultTextProvider.toLowerCase().includes("gemini"),
-      enabled: ai.defaultTextProvider.toLowerCase().includes("gemini"),
-      detail: `Image: ${ai.defaultImageProvider} · Video: ${ai.defaultVideoProvider}`,
+      detail: `Articles / text only · ${ai.defaultTextProvider}`,
       settingsHref: "/dashboard/settings/ai",
     },
     {

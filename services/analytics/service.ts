@@ -51,7 +51,7 @@ function formatCount(n: number): string {
 let seedPromise: Promise<void> | null = null;
 
 /**
- * Idempotently seeds analytics placeholder rows.
+ * Idempotently seeds analytics configuration only.
  *
  * NOTE: This intentionally uses sequential `upsert`s rather than an interactive
  * `$transaction`. Interactive transactions are not supported over the Supabase
@@ -73,6 +73,7 @@ async function ensureSeeded(): Promise<void> {
 }
 
 async function seedAnalytics(): Promise<void> {
+  // Bootstrap config only — never invent traffic/content KPI rows.
   await db().analyticsConfiguration.upsert({
     where: { key: KEY },
     update: {},
@@ -86,178 +87,21 @@ async function seedAnalytics(): Promise<void> {
       allowedRolesJson: JSON.stringify(["EDITOR", "ADMIN", "SUPER_ADMIN"]),
     },
   });
-
-  await db().contentAnalytics.upsert({
-    where: { periodKey: PERIOD },
-    update: {},
-    create: {
-      periodKey: PERIOD,
-      articleViews: 12450,
-      guideViews: 3820,
-      toolViews: 2910,
-      topContentJson: JSON.stringify([
-        {
-          id: "1",
-          label: "How transformers actually work",
-          value: "1.2K",
-          meta: "article",
-        },
-        {
-          id: "2",
-          label: "Prompt engineering basics",
-          value: "980",
-          meta: "article",
-        },
-        {
-          id: "3",
-          label: "AI literacy path",
-          value: "760",
-          meta: "guide",
-        },
-      ]),
-    },
-  });
-
-  await db().learningAnalytics.upsert({
-    where: { periodKey: PERIOD },
-    update: {},
-    create: {
-      periodKey: PERIOD,
-      guideStarts: 640,
-      lessonsCompleted: 210,
-      activeLearners: 420,
-      topGuidesJson: JSON.stringify([
-        {
-          id: "g1",
-          label: "AI literacy path",
-          value: "180 starts",
-          meta: "placeholder progress",
-        },
-        {
-          id: "g2",
-          label: "React fundamentals",
-          value: "142 starts",
-          meta: "placeholder progress",
-        },
-      ]),
-    },
-  });
-
-  await db().aIAnalytics.upsert({
-    where: { periodKey: PERIOD },
-    update: {},
-    create: {
-      periodKey: PERIOD,
-      conversations: 890,
-      messages: 4120,
-      avgMessagesPerConvo: 4.6,
-      topTopicsJson: JSON.stringify([
-        { id: "t1", label: "Explain this article", value: "32%", meta: "Ask" },
-        { id: "t2", label: "Compare AI tools", value: "21%", meta: "Ask" },
-        { id: "t3", label: "Quiz me", value: "14%", meta: "Ask" },
-      ]),
-    },
-  });
-
-  await db().searchAnalytics.upsert({
-    where: { periodKey: PERIOD },
-    update: {},
-    create: {
-      periodKey: PERIOD,
-      queryCount: 5600,
-      zeroResultCount: 180,
-      topQueriesJson: JSON.stringify([
-        { id: "s1", label: "Prompt engineering", value: "420", meta: "top" },
-        {
-          id: "s2",
-          label: "React Server Components",
-          value: "310",
-          meta: "top",
-        },
-        {
-          id: "s3",
-          label: "AI tools for beginners",
-          value: "275",
-          meta: "top",
-        },
-      ]),
-      zeroResultJson: JSON.stringify([
-        {
-          id: "z1",
-          label: "kubernetes helm charts ai",
-          value: "12",
-          meta: "zero-result",
-        },
-        {
-          id: "z2",
-          label: "fortran tutorials",
-          value: "8",
-          meta: "zero-result",
-        },
-      ]),
-    },
-  });
-
-  await db().trafficAnalytics.upsert({
-    where: { periodKey: PERIOD },
-    update: {},
-    create: {
-      periodKey: PERIOD,
-      visitors: 18200,
-      sessions: 24100,
-      pageViews: 91300,
-      returningUsers: 6400,
-      avgSessionSec: 192,
-      devicesJson: JSON.stringify([
-        { id: "d1", label: "Desktop", value: "58%", meta: "device" },
-        { id: "d2", label: "Mobile", value: "36%", meta: "device" },
-        { id: "d3", label: "Tablet", value: "6%", meta: "device" },
-      ]),
-      browsersJson: JSON.stringify([
-        { id: "b1", label: "Chrome", value: "61%", meta: "browser" },
-        { id: "b2", label: "Safari", value: "22%", meta: "browser" },
-        { id: "b3", label: "Firefox", value: "9%", meta: "browser" },
-        { id: "b4", label: "Edge", value: "8%", meta: "browser" },
-      ]),
-    },
-  });
-
-  const reportCount = await db().analyticsReport.count();
-  if (reportCount === 0) {
-    await db().analyticsReport.createMany({
-      data: [
-        {
-          name: "Monthly content engagement",
-          reportType: "content",
-          status: "ready",
-          exportNote: "Export placeholder — CSV/PDF arrives later.",
-          scheduleNote: "Scheduled reports placeholder.",
-          dateFrom: new Date(Date.now() - 30 * 86400000),
-          dateTo: new Date(),
-        },
-        {
-          name: "Search quality snapshot",
-          reportType: "search",
-          status: "ready",
-          exportNote: "Export placeholder.",
-          scheduleNote: null,
-          dateFrom: new Date(Date.now() - 7 * 86400000),
-          dateTo: new Date(),
-        },
-      ],
-    });
-  }
 }
 
 /**
- * Event capture interface — modules call this later.
- * No production instrumentation in this phase; writes when DB is configured.
+ * Event capture — writes when DB is configured and instrumentation is enabled
+ * (or `force` is true for trusted server callers).
  */
 export async function captureAnalyticsEvent(
-  input: CaptureAnalyticsEventInput,
+  input: CaptureAnalyticsEventInput & { force?: boolean },
 ): Promise<{ id: string } | null> {
   if (!isDatabaseConfigured()) return null;
   await ensureSeeded();
+  if (!input.force) {
+    const config = await getAnalyticsConfiguration();
+    if (!config.instrumentationEnabled) return null;
+  }
   const row = await db().analyticsEvent.create({
     data: {
       kind: input.kind as AnalyticsEventKind,
@@ -304,6 +148,36 @@ export async function getAnalyticsConfiguration(): Promise<AnalyticsConfigRecord
     allowedRoles,
     instrumentationEnabled: row.instrumentationEnabled,
   };
+}
+
+export async function updateAnalyticsConfiguration(
+  input: Partial<AnalyticsConfigRecord>,
+): Promise<AnalyticsConfigRecord> {
+  if (!isDatabaseConfigured()) {
+    return getAnalyticsConfiguration();
+  }
+  await ensureSeeded();
+  await db().analyticsConfiguration.update({
+    where: { key: KEY },
+    data: {
+      ...(input.retentionDays !== undefined
+        ? { retentionDays: input.retentionDays }
+        : {}),
+      ...(input.privacyMode !== undefined
+        ? { privacyMode: input.privacyMode }
+        : {}),
+      ...(input.auditLoggingNote !== undefined
+        ? { auditLoggingNote: input.auditLoggingNote }
+        : {}),
+      ...(input.instrumentationEnabled !== undefined
+        ? { instrumentationEnabled: input.instrumentationEnabled }
+        : {}),
+      ...(input.allowedRoles !== undefined
+        ? { allowedRolesJson: JSON.stringify(input.allowedRoles) }
+        : {}),
+    },
+  });
+  return getAnalyticsConfiguration();
 }
 
 async function liveContentCounts(): Promise<{
@@ -384,18 +258,19 @@ async function computeAnalyticsOverview(): Promise<AnalyticsOverview> {
       : null,
   ]);
 
+  const avgSessionSec = traffic?.avgSessionSec ?? 0;
   const stats: AnalyticsStat[] = [
     {
       id: "visitors",
       label: "Total Visitors",
-      value: formatCount(traffic?.visitors ?? 18200),
-      hint: "placeholder rollup",
+      value: formatCount(traffic?.visitors ?? 0),
+      hint: traffic ? "recorded" : "no traffic data yet",
     },
     {
       id: "active",
       label: "Active Users",
-      value: formatCount(traffic?.returningUsers ?? 6400),
-      hint: "returning proxy",
+      value: formatCount(traffic?.returningUsers ?? 0),
+      hint: "returning users",
     },
     {
       id: "articles",
@@ -406,40 +281,35 @@ async function computeAnalyticsOverview(): Promise<AnalyticsOverview> {
     {
       id: "guide-views",
       label: "Guide Views",
-      value: formatCount(content?.guideViews ?? 3820),
+      value: formatCount(content?.guideViews ?? 0),
       hint: "event stream rollup",
     },
     {
       id: "tool-views",
       label: "Tool Views",
-      value: formatCount(content?.toolViews ?? 2910),
+      value: formatCount(content?.toolViews ?? 0),
       hint: "event stream rollup",
     },
     {
       id: "ask",
       label: "Ask Conversations",
-      value: formatCount(
-        live.conversations > 0 ? live.conversations : (ai?.conversations ?? 890),
-      ),
-      hint: live.conversations > 0 ? "live" : "placeholder",
+      value: formatCount(live.conversations || (ai?.conversations ?? 0)),
+      hint: live.conversations > 0 ? "live" : "recorded",
     },
     {
       id: "search",
       label: "Search Queries",
-      value: formatCount(
-        live.searchHistory > 0
-          ? live.searchHistory
-          : (search?.queryCount ?? 5600),
-      ),
-      hint: live.searchHistory > 0 ? "live history" : "placeholder",
+      value: formatCount(live.searchHistory || (search?.queryCount ?? 0)),
+      hint: live.searchHistory > 0 ? "live history" : "recorded",
     },
     {
       id: "session",
       label: "Session Duration",
-      value: `${Math.round((traffic?.avgSessionSec ?? 192) / 60)}m ${
-        (traffic?.avgSessionSec ?? 192) % 60
-      }s`,
-      hint: "placeholder",
+      value:
+        avgSessionSec > 0
+          ? `${Math.round(avgSessionSec / 60)}m ${avgSessionSec % 60}s`
+          : "—",
+      hint: avgSessionSec > 0 ? "recorded" : "not instrumented",
     },
   ];
 
@@ -447,14 +317,12 @@ async function computeAnalyticsOverview(): Promise<AnalyticsOverview> {
     {
       id: "returning",
       label: "Returning Users",
-      value: formatCount(traffic?.returningUsers ?? 6400),
-      delta: "+9%",
+      value: formatCount(traffic?.returningUsers ?? 0),
     },
     {
       id: "page-views",
       label: "Page Views",
-      value: formatCount(traffic?.pageViews ?? 91300),
-      delta: "+8%",
+      value: formatCount(traffic?.pageViews ?? 0),
     },
     {
       id: "article-views",
@@ -462,15 +330,14 @@ async function computeAnalyticsOverview(): Promise<AnalyticsOverview> {
       value: formatCount(
         live.articleViewSum > 0
           ? live.articleViewSum
-          : (content?.articleViews ?? 12450),
+          : (content?.articleViews ?? 0),
       ),
-      delta: "+5%",
     },
     {
       id: "engagement",
       label: "Content Engagement",
-      value: "62%",
-      hint: "placeholder score",
+      value: "—",
+      hint: "not instrumented",
     },
   ];
 
@@ -479,8 +346,9 @@ async function computeAnalyticsOverview(): Promise<AnalyticsOverview> {
     engagement,
     periodKey: PERIOD,
     instrumentationEnabled: config.instrumentationEnabled,
-    sourceNote:
-      "Widgets blend live content/Ask/search counts with AnalyticsEvent rollup placeholders. Production instrumentation is off.",
+    sourceNote: config.instrumentationEnabled
+      ? "Live content counts plus recorded analytics rollups."
+      : "Showing live content counts. Traffic instrumentation is off until enabled in Analytics settings.",
   };
 }
 
@@ -498,18 +366,18 @@ export async function getContentAnalyticsDomain(): Promise<DomainAnalyticsPayloa
         id: "av",
         label: "Article views",
         value: formatCount(
-          row?.articleViews ?? (live.articleViewSum || 12450),
+          row?.articleViews ?? live.articleViewSum,
         ),
       },
       {
         id: "gv",
         label: "Guide views",
-        value: formatCount(row?.guideViews ?? 3820),
+        value: formatCount(row?.guideViews ?? 0),
       },
       {
         id: "tv",
         label: "Tool views",
-        value: formatCount(row?.toolViews ?? 2910),
+        value: formatCount(row?.toolViews ?? 0),
       },
     ],
     rows: parseJsonArray(row?.topContentJson),
@@ -529,18 +397,17 @@ export async function getLearningAnalyticsDomain(): Promise<DomainAnalyticsPaylo
       {
         id: "starts",
         label: "Guide starts",
-        value: formatCount(row?.guideStarts ?? 640),
+        value: formatCount(row?.guideStarts ?? 0),
       },
       {
         id: "lessons",
         label: "Lessons completed",
-        value: formatCount(row?.lessonsCompleted ?? 210),
-        hint: "placeholder",
+        value: formatCount(row?.lessonsCompleted ?? 0),
       },
       {
         id: "learners",
         label: "Active learners",
-        value: formatCount(row?.activeLearners ?? 420),
+        value: formatCount(row?.activeLearners ?? 0),
       },
     ],
     rows: parseJsonArray(row?.topGuidesJson),
@@ -564,18 +431,20 @@ export async function getAIAnalyticsDomain(): Promise<DomainAnalyticsPayload> {
         value: formatCount(
           live.conversations > 0
             ? live.conversations
-            : (row?.conversations ?? 890),
+            : (row?.conversations ?? 0),
         ),
       },
       {
         id: "msgs",
         label: "Messages",
-        value: formatCount(row?.messages ?? 4120),
+        value: formatCount(row?.messages ?? 0),
       },
       {
         id: "avg",
         label: "Avg msgs / convo",
-        value: String(row?.avgMessagesPerConvo ?? 4.6),
+        value: row?.avgMessagesPerConvo != null
+          ? String(row.avgMessagesPerConvo)
+          : "—",
       },
     ],
     rows: parseJsonArray(row?.topTopicsJson),
@@ -601,13 +470,13 @@ export async function getSearchAnalyticsDomain(): Promise<DomainAnalyticsPayload
         value: formatCount(
           live.searchHistory > 0
             ? live.searchHistory
-            : (row?.queryCount ?? 5600),
+            : (row?.queryCount ?? 0),
         ),
       },
       {
         id: "zero",
         label: "Zero-result",
-        value: formatCount(row?.zeroResultCount ?? 180),
+        value: formatCount(row?.zeroResultCount ?? 0),
       },
     ],
     rows: [...top, ...zero],
@@ -631,27 +500,23 @@ export async function getUserAnalyticsDomain(): Promise<DomainAnalyticsPayload> 
       {
         id: "users",
         label: "Registered users",
-        value: formatCount(userCount || 1280),
-        hint: userCount ? "live" : "placeholder",
+        value: formatCount(userCount),
+        hint: "live",
       },
       {
         id: "new",
         label: "New users (30d)",
-        value: formatCount(320),
-        hint: "placeholder",
+        value: "—",
+        hint: "not instrumented",
       },
       {
         id: "returning",
         label: "Returning users",
-        value: formatCount(traffic?.returningUsers ?? 6400),
+        value: formatCount(traffic?.returningUsers ?? 0),
       },
     ],
-    rows: [
-      { id: "u1", label: "Learners", value: "74%", meta: "role mix placeholder" },
-      { id: "u2", label: "Editors", value: "18%", meta: "role mix placeholder" },
-      { id: "u3", label: "Admins", value: "8%", meta: "role mix placeholder" },
-    ],
-    chartPlaceholder: "Cohort chart placeholder.",
+    rows: [],
+    chartPlaceholder: "Cohort chart available once user analytics events are recorded.",
   };
 }
 
@@ -669,17 +534,17 @@ export async function getTrafficAnalyticsDomain(): Promise<DomainAnalyticsPayloa
       {
         id: "visitors",
         label: "Visitors",
-        value: formatCount(row?.visitors ?? 18200),
+        value: formatCount(row?.visitors ?? 0),
       },
       {
         id: "sessions",
         label: "Sessions",
-        value: formatCount(row?.sessions ?? 24100),
+        value: formatCount(row?.sessions ?? 0),
       },
       {
         id: "pv",
         label: "Page views",
-        value: formatCount(row?.pageViews ?? 91300),
+        value: formatCount(row?.pageViews ?? 0),
       },
     ],
     rows: [...devices, ...browsers],
@@ -690,19 +555,7 @@ export async function getTrafficAnalyticsDomain(): Promise<DomainAnalyticsPayloa
 export async function listAnalyticsReports(): Promise<AnalyticsReportRecord[]> {
   await ensureSeeded();
   if (!isDatabaseConfigured()) {
-    return [
-      {
-        id: "local-1",
-        name: "Monthly content engagement",
-        reportType: "content",
-        dateFrom: new Date(Date.now() - 30 * 86400000).toISOString(),
-        dateTo: new Date().toISOString(),
-        status: "ready",
-        exportNote: "Export placeholder",
-        scheduleNote: "Scheduled reports placeholder",
-        createdAt: new Date().toISOString(),
-      },
-    ];
+    return [];
   }
   const rows = await db().analyticsReport.findMany({
     orderBy: { createdAt: "desc" },
@@ -746,33 +599,27 @@ export async function getPublicFacingStats(): Promise<PublicFacingStats> {
     : null;
   await ensureSeeded();
   return {
-    articles: formatCount(live.articles || 120),
-    guides: formatCount(live.guides || 35),
-    tools: formatCount(live.tools || 80),
-    categories: formatCount(live.categories || 18),
-    readers: formatCount(traffic?.visitors ?? 10000),
+    articles: formatCount(live.articles),
+    guides: formatCount(live.guides),
+    tools: formatCount(live.tools),
+    categories: formatCount(live.categories),
+    readers: formatCount(traffic?.visitors ?? 0),
   };
 }
 
-/** Top search queries for MES-017 trending when SearchAnalytics is seeded. */
+/** Top search queries for MES-017 trending when SearchAnalytics has real rows. */
 export async function getTopSearchQueriesFromAnalytics(
   limit = 6,
 ): Promise<Array<{ query: string; score: number }>> {
   await ensureSeeded();
-  if (!isDatabaseConfigured()) {
-    return [
-      { query: "Prompt engineering", score: 100 },
-      { query: "React Server Components", score: 80 },
-      { query: "AI tools for beginners", score: 60 },
-    ];
-  }
+  if (!isDatabaseConfigured()) return [];
   const row = await db().searchAnalytics.findUnique({
     where: { periodKey: PERIOD },
   });
   const top = parseJsonArray(row?.topQueriesJson);
   return top.slice(0, limit).map((r, i) => ({
     query: r.label,
-    score: Number.parseInt(r.value.replace(/\D/g, ""), 10) || 100 - i * 10,
+    score: Number.parseInt(r.value.replace(/\D/g, ""), 10) || Math.max(1, 100 - i * 10),
   }));
 }
 
@@ -795,9 +642,7 @@ function hashSeed(input: string, index: number): number {
 
 function distributeTotal(total: number, seed: string): number[] {
   if (total <= 0) {
-    return Array.from({ length: CHART_DAYS }, (_, i) =>
-      Math.round(10 + hashSeed(seed, i) * 40),
-    );
+    return Array.from({ length: CHART_DAYS }, () => 0);
   }
   const weights = Array.from({ length: CHART_DAYS }, (_, i) => {
     const t = i / Math.max(1, CHART_DAYS - 1);
@@ -899,11 +744,11 @@ export async function getDashboardAnalyticsCharts(options?: {
     ? await db().trafficAnalytics.findUnique({ where: { periodKey: PERIOD } })
     : null;
 
-  const visitorsTotal = traffic?.visitors ?? 4800;
-  const pageViewsTotal = traffic?.pageViews ?? 21300;
-  const avgSessionSec = traffic?.avgSessionSec ?? 192;
-  const bounceBase = 41;
-  const seoScore = options?.avgSeoScore ?? 78;
+  const visitorsTotal = traffic?.visitors ?? 0;
+  const pageViewsTotal = traffic?.pageViews ?? 0;
+  const avgSessionSec = traffic?.avgSessionSec ?? 0;
+  const seoScore = options?.avgSeoScore ?? null;
+  const emptySeries = Array.from({ length: CHART_DAYS }, () => 0);
 
   const { pageViews: eventPageViews, sessions: eventSessions } =
     await bucketEventCounts();
@@ -919,35 +764,19 @@ export async function getDashboardAnalyticsCharts(options?: {
     ? eventPageViews
     : distributeTotal(pageViewsTotal, "page-views");
 
-  const readTimeSeries = distributeTotal(avgSessionSec * CHART_DAYS, "read-time").map(
-    (v) => Math.max(60, Math.round(v / CHART_DAYS)),
-  );
+  const readTimeSeries =
+    avgSessionSec > 0
+      ? distributeTotal(avgSessionSec * CHART_DAYS, "read-time").map((v) =>
+          Math.max(0, Math.round(v / CHART_DAYS)),
+        )
+      : emptySeries;
 
-  const bounceSeries = Array.from({ length: CHART_DAYS }, (_, i) =>
-    Math.max(
-      25,
-      Math.min(
-        65,
-        bounceBase + Math.round((hashSeed("bounce", i) - 0.5) * 8),
-      ),
-    ),
-  );
+  const seoSeries =
+    seoScore != null
+      ? Array.from({ length: CHART_DAYS }, () => seoScore)
+      : emptySeries;
 
-  const seoSeries = Array.from({ length: CHART_DAYS }, (_, i) =>
-    Math.max(
-      40,
-      Math.min(
-        100,
-        seoScore + Math.round((hashSeed("seo", i) - 0.5) * 6),
-      ),
-    ),
-  );
-
-  const subscriberSeries =
-    subscriberBuckets.some((v) => v > 0)
-      ? subscriberBuckets
-      : distributeTotal(126, "subscribers");
-
+  const subscriberSeries = subscriberBuckets;
   const subscriberTotal = subscriberSeries.reduce((a, b) => a + b, 0);
 
   return [
@@ -968,22 +797,22 @@ export async function getDashboardAnalyticsCharts(options?: {
     {
       id: "an3",
       label: "Avg Read Time",
-      value: formatDuration(avgSessionSec),
-      delta: computeDelta(readTimeSeries),
+      value: avgSessionSec > 0 ? formatDuration(avgSessionSec) : "—",
+      delta: avgSessionSec > 0 ? computeDelta(readTimeSeries) : "—",
       points: toPoints(readTimeSeries),
     },
     {
       id: "an4",
       label: "Bounce Rate",
-      value: `${bounceBase}%`,
-      delta: computeDelta(bounceSeries.map((v) => 100 - v)),
-      points: toPoints(bounceSeries),
+      value: "—",
+      delta: "—",
+      points: toPoints(emptySeries),
     },
     {
       id: "an5",
       label: "SEO Score",
-      value: String(seoScore),
-      delta: computeDelta(seoSeries, ""),
+      value: seoScore != null ? String(seoScore) : "—",
+      delta: seoScore != null ? computeDelta(seoSeries, "") : "—",
       points: toPoints(seoSeries),
     },
     {
@@ -994,4 +823,151 @@ export async function getDashboardAnalyticsCharts(options?: {
       points: toPoints(subscriberSeries),
     },
   ];
+}
+
+/** Aggregate AnalyticsEvent rows into domain rollup tables for rolling-30d. */
+export async function rollupAnalyticsFromEvents(): Promise<{
+  events: number;
+  pageViews: number;
+  sessions: number;
+  searches: number;
+  askMessages: number;
+}> {
+  if (!isDatabaseConfigured()) {
+    return {
+      events: 0,
+      pageViews: 0,
+      sessions: 0,
+      searches: 0,
+      askMessages: 0,
+    };
+  }
+  await ensureSeeded();
+  const since = new Date(Date.now() - 30 * 86400000);
+  const events = await db().analyticsEvent.findMany({
+    where: { occurredAt: { gte: since } },
+    select: {
+      kind: true,
+      entityType: true,
+      query: true,
+      path: true,
+      sessionKey: true,
+    },
+  });
+
+  let pageViews = 0;
+  let sessions = 0;
+  let searches = 0;
+  let askMessages = 0;
+  let articleViews = 0;
+  let guideViews = 0;
+  let toolViews = 0;
+  let guideStarts = 0;
+  const queryCounts = new Map<string, number>();
+  const sessionKeys = new Set<string>();
+
+  for (const event of events) {
+    if (event.kind === AnalyticsEventKind.PAGE_VIEW) pageViews++;
+    if (event.kind === AnalyticsEventKind.SESSION_START) {
+      sessions++;
+      if (event.sessionKey) sessionKeys.add(event.sessionKey);
+    }
+    if (event.kind === AnalyticsEventKind.SEARCH_QUERY) {
+      searches++;
+      const q = (event.query ?? "").trim().toLowerCase();
+      if (q) queryCounts.set(q, (queryCounts.get(q) ?? 0) + 1);
+    }
+    if (event.kind === AnalyticsEventKind.ASK_MESSAGE) askMessages++;
+    if (event.kind === AnalyticsEventKind.CONTENT_VIEW) {
+      const t = (event.entityType ?? "").toLowerCase();
+      if (t === "article") articleViews++;
+      else if (t === "guide") guideViews++;
+      else if (t === "tool" || t === "ai_tool") toolViews++;
+    }
+    if (event.kind === AnalyticsEventKind.GUIDE_START) guideStarts++;
+    if (event.kind === AnalyticsEventKind.TOOL_VIEW) toolViews++;
+  }
+
+  const visitors = Math.max(sessionKeys.size, sessions, Math.ceil(pageViews * 0.6));
+  const topQueries = [...queryCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([label, value], i) => ({
+      id: `q${i}`,
+      label,
+      value: String(value),
+      meta: "top",
+    }));
+
+  await db().trafficAnalytics.upsert({
+    where: { periodKey: PERIOD },
+    create: {
+      periodKey: PERIOD,
+      visitors,
+      sessions: Math.max(sessions, sessionKeys.size),
+      pageViews,
+      returningUsers: 0,
+      avgSessionSec: 0,
+    },
+    update: {
+      visitors,
+      sessions: Math.max(sessions, sessionKeys.size),
+      pageViews,
+    },
+  });
+
+  await db().contentAnalytics.upsert({
+    where: { periodKey: PERIOD },
+    create: {
+      periodKey: PERIOD,
+      articleViews,
+      guideViews,
+      toolViews,
+    },
+    update: { articleViews, guideViews, toolViews },
+  });
+
+  await db().searchAnalytics.upsert({
+    where: { periodKey: PERIOD },
+    create: {
+      periodKey: PERIOD,
+      queryCount: searches,
+      zeroResultCount: 0,
+      topQueriesJson: JSON.stringify(topQueries),
+    },
+    update: {
+      queryCount: searches,
+      topQueriesJson: JSON.stringify(topQueries),
+    },
+  });
+
+  await db().aIAnalytics.upsert({
+    where: { periodKey: PERIOD },
+    create: {
+      periodKey: PERIOD,
+      conversations: 0,
+      messages: askMessages,
+      avgMessagesPerConvo: 0,
+    },
+    update: { messages: askMessages },
+  });
+
+  await db().learningAnalytics.upsert({
+    where: { periodKey: PERIOD },
+    create: {
+      periodKey: PERIOD,
+      guideStarts,
+      lessonsCompleted: 0,
+      activeLearners: 0,
+    },
+    update: { guideStarts },
+  });
+
+  return {
+    events: events.length,
+    pageViews,
+    sessions: Math.max(sessions, sessionKeys.size),
+    searches,
+    askMessages,
+  };
 }

@@ -1,9 +1,10 @@
 /**
  * OpenAI provider adapter (MES-002 / MES-011).
- * Status reflects live env config; generation delegates to Studio.
+ * Sole source of truth for image generation. Article text is Anthropic-only.
  */
 
-import { generateStudioArticle } from "../studio"
+import { AppError, ErrorCode } from "@/lib/api/errors"
+import { generateStudioImage } from "../studio"
 import type { AiGenerateParams, AiGenerateResult, AiProviderStatus } from "../types"
 
 export async function status(): Promise<AiProviderStatus> {
@@ -12,23 +13,32 @@ export async function status(): Promise<AiProviderStatus> {
     provider: "openai",
     connected,
     message: connected
-      ? "Live — Studio images (DALL·E) and article generation via OpenAI"
-      : "Not configured — set OPENAI_API_KEY",
+      ? "Live — sole image provider (cover, inline, Studio)"
+      : "Not configured — set OPENAI_API_KEY for images",
   }
 }
 
 export async function generateText(
+  _params: AiGenerateParams
+): Promise<AiGenerateResult> {
+  throw new AppError(
+    ErrorCode.SERVICE_UNAVAILABLE,
+    "OpenAI does not generate articles. Use Anthropic for article text.",
+    503
+  )
+}
+
+export async function generateImage(
   params: AiGenerateParams
 ): Promise<AiGenerateResult> {
-  const result = await generateStudioArticle({
+  const result = await generateStudioImage({
     userId: "system",
-    topic: params.prompt,
-    tone: typeof params.meta?.tone === "string" ? params.meta.tone : undefined,
+    prompt: params.prompt,
     provider: "openai",
   })
   return {
     provider: "openai",
-    content: result.outputText ?? "",
+    content: result.outputUrls[0] ?? "",
     urls: result.outputUrls,
     model: result.model ?? undefined,
   }

@@ -2,12 +2,18 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
+import {
+  contentHref,
+  type ContentScope,
+} from "@/lib/content-paths";
 import type { ArticleSummary } from "@/services/content";
 
 export function PublicArticleListView({
   articles,
+  scope = "public",
 }: {
   articles: ArticleSummary[];
+  scope?: ContentScope;
 }) {
   return (
     <div className="mx-auto max-w-4xl">
@@ -31,7 +37,7 @@ export function PublicArticleListView({
           {articles.map((article) => (
             <li key={article.id}>
               <Link
-                href={`/articles/${article.slug}`}
+                href={contentHref("article", article.slug, { scope })}
                 className="group grid gap-4 sm:grid-cols-[12rem_minmax(0,1fr)]"
               >
                 <div className="relative aspect-[16/10] overflow-hidden rounded-lg border border-border bg-muted">

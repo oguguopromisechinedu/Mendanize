@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { contentHref, type ContentScope } from "@/lib/content-paths";
 import { cn } from "@/lib/utils";
 import type {
   CategorySummary,
@@ -29,10 +30,12 @@ export function ToolDirectoryView({
   tools,
   categories,
   topics,
+  scope = "public",
 }: {
   tools: ToolRecord[];
   categories: CategorySummary[];
   topics: TopicSummary[];
+  scope?: ContentScope;
 }) {
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -150,7 +153,7 @@ export function ToolDirectoryView({
           <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {featured.map((tool) => (
               <li key={tool.id}>
-                <ToolCard tool={tool} compact />
+                <ToolCard tool={tool} compact scope={scope} />
               </li>
             ))}
           </ul>
@@ -299,7 +302,7 @@ export function ToolDirectoryView({
         <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {pageItems.map((tool) => (
             <li key={tool.id}>
-              <ToolCard tool={tool} />
+              <ToolCard tool={tool} scope={scope} />
             </li>
           ))}
         </ul>
@@ -307,7 +310,7 @@ export function ToolDirectoryView({
         <ul className="space-y-4">
           {pageItems.map((tool) => (
             <li key={tool.id}>
-              <ToolCard tool={tool} list />
+              <ToolCard tool={tool} list scope={scope} />
             </li>
           ))}
         </ul>
@@ -379,14 +382,16 @@ function ToolCard({
   tool,
   compact,
   list,
+  scope = "public",
 }: {
   tool: ToolRecord;
   compact?: boolean;
   list?: boolean;
+  scope?: ContentScope;
 }) {
   return (
     <Link
-      href={`/ai-tools/${tool.slug}`}
+      href={contentHref("ai_tool", tool.slug, { scope })}
       className={cn(
         "group block rounded-xl border border-border bg-surface/40 transition-colors hover:border-primary/40",
         list

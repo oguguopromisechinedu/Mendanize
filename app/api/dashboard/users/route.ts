@@ -1,6 +1,9 @@
-import { handleApiError } from "@/lib/api/errors"
+﻿import { handleApiError } from "@/lib/api/errors"
 import { ok, unauthorized } from "@/lib/api/response"
-import { requireAdmin } from "@/features/authentication/server"
+import {
+  PERMISSIONS,
+  requirePermission,
+} from "@/features/authentication/server"
 import { listUsersAdmin, updateUserRole } from "@/services/admin"
 import { parseBody, parseSearchParams, dashboardListQuerySchema, z } from "@/validators"
 import type { AdminRoleKey } from "@prisma/client"
@@ -19,8 +22,8 @@ const roleBodySchema = z.object({
 
 export async function GET(req: Request) {
   try {
-    const session = await requireAdmin()
-    if (!session) return unauthorized("Admin required")
+    const session = await requirePermission(PERMISSIONS.USERS_MANAGE)
+    if (!session) return unauthorized("Permission required: users.manage")
 
     const params = parseSearchParams(req.url, dashboardListQuerySchema)
     const data = await listUsersAdmin({
@@ -38,8 +41,8 @@ export async function GET(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const session = await requireAdmin()
-    if (!session) return unauthorized("Admin required")
+    const session = await requirePermission(PERMISSIONS.USERS_MANAGE)
+    if (!session) return unauthorized("Permission required: users.manage")
 
     const body = await parseBody(req, roleBodySchema)
     const user = await updateUserRole(

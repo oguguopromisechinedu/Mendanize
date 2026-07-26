@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Plus, Settings, ThumbsUp } from "lucide-react";
 
+import { MendanizeRobot } from "@/components/brand/MendanizeRobot";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import MarkdownRenderer from "@/components/ai/MarkdownRenderer";
@@ -21,6 +22,11 @@ import {
   submitAskFeedbackAction,
 } from "../actions/actions";
 
+/**
+ * Ask UI for PublicUser (learner) Tier-2 tutoring.
+ * Admin CMS intents/settings are never shown on the public surface —
+ * AI providers/keys are controlled only from Admin Platform Settings.
+ */
 export function AskDashboardView({
   payload,
   initialDraft,
@@ -30,6 +36,7 @@ export function AskDashboardView({
   initialDraft?: string | null;
   initialIntent?: string | null;
 }) {
+  const isPublic = payload.surface !== "admin";
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [draft, setDraft] = useState(initialDraft ?? "");
@@ -43,17 +50,19 @@ export function AskDashboardView({
   }, [activeId, payload.active]);
 
   const cmsShortcuts = useMemo(() => {
+    if (isPublic) return [];
     const q = draft.trim() || initialDraft?.trim() || "organize CMS";
     return adminActionsForQuery(q);
-  }, [draft, initialDraft]);
+  }, [draft, initialDraft, isPublic]);
 
   const intentHint = useMemo(() => {
+    if (isPublic) return null;
     const q = draft.trim() || initialDraft?.trim();
     if (!q) return null;
     const intent = resolveAdminIntent(q);
     if (intent.kind === "ask_general") return null;
     return intent;
-  }, [draft, initialDraft]);
+  }, [draft, initialDraft, isPublic]);
 
   function selectConversation(id: string) {
     setActiveId(id);
@@ -128,35 +137,43 @@ export function AskDashboardView({
   }
 
   useEffect(() => {
+    if (autoSent.current) return;
     const seed = initialDraft?.trim();
-    if (!seed || autoSent.current) return;
-    const key = `mendanize-ask-auto:${seed.slice(0, 120)}`;
-    try {
-      if (typeof window !== "undefined" && sessionStorage.getItem(key)) {
-        autoSent.current = true;
-        return;
-      }
-      sessionStorage.setItem(key, "1");
-    } catch {
-      /* ignore storage failures */
-    }
+    if (!seed) return;
     autoSent.current = true;
     send(seed);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- command-bar handoff once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialDraft]);
 
+  const suggestions =
+    payload.suggestions.length > 0
+      ? payload.suggestions
+      : isPublic
+        ? [
+            "Explain this in simpler terms",
+            "What should I learn next?",
+            "Give me a short study checklist",
+            "Quiz me on this topic",
+          ]
+        : ADMIN_COMMAND_SUGGESTIONS.map((s) => s.draft);
+
   return (
-    <div className="mx-auto grid max-w-6xl gap-4 lg:grid-cols-[14rem_minmax(0,1fr)_14rem]">
+    <div className="mx-auto grid max-w-[90rem] gap-4 lg:grid-cols-[14rem_minmax(0,1fr)_16rem]">
       <aside className="space-y-3 rounded-xl border border-border bg-surface p-3">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            History
-          </p>
-          <Button type="button" size="sm" variant="outline" onClick={newChat} disabled={pending}>
-            <Plus className="size-3.5" />
-          </Button>
-        </div>
-        <ul className="space-y-1">
+        <Button
+          type="button"
+          size="sm"
+          className="w-full rounded-xl"
+          onClick={newChat}
+          disabled={pending}
+        >
+          <Plus className="mr-1.5 size-3.5" />
+          New chat
+        </Button>
+        <p className="px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Conversations
+        </p>
+        <ul className="max-h-[28rem] space-y-1 overflow-y-auto">
           {payload.conversations.map((c) => (
             <li key={c.id}>
               <button
@@ -180,41 +197,59 @@ export function AskDashboardView({
 
       <section className="flex min-h-[32rem] flex-col rounded-xl border border-border bg-background">
         <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
-          <div>
-            <h1 className="font-display text-lg font-semibold">Ask Mendanize Admin</h1>
-            <p className="text-xs text-muted-foreground">
-              {active?.contextTitle
-                ? `CMS context: ${active.contextTitle}`
-                : "Generate content or organize the CMS — not the live frontend"}
-            </p>
-            {intentHint || initialIntent ? (
-              <p className="mt-1 text-[11px] text-primary">
-                {intentHint
-                  ? `Intent: ${intentHint.label}`
-                  : `Intent: ${initialIntent}`}
-              </p>
+          <div className="flex items-start gap-3">
+            {isPublic ? (
+              <MendanizeRobot variant="avatar" className="h-12 w-10" />
             ) : null}
+            <div>
+              <h1 className="font-display text-lg font-semibold">
+                {isPublic ? "AI Tutor" : "Ask Mendanize Admin"}
+              </h1>
+              <p className="text-xs text-muted-foreground">
+                {isPublic
+                  ? active?.contextTitle
+                    ? `Learning context: ${active.contextTitle}`
+                    : "Ask anything — explanations, practice, and next steps"
+                  : active?.contextTitle
+                    ? `CMS context: ${active.contextTitle}`
+                    : "Generate content or organize the CMS — not the live frontend"}
+              </p>
+              {!isPublic && (intentHint || initialIntent) ? (
+                <p className="mt-1 text-[11px] text-primary">
+                  {intentHint
+                    ? `Intent: ${intentHint.label}`
+                    : `Intent: ${initialIntent}`}
+                </p>
+              ) : null}
+            </div>
           </div>
-          <Button asChild size="sm" variant="outline">
-            <Link href={payload.aiSettingsHref}>
-              <Settings className="mr-1.5 size-3.5" />
-              AI settings
-            </Link>
-          </Button>
+          {isPublic ? (
+            <Button asChild size="sm" variant="outline" className="rounded-xl">
+              <Link href="/account">Back to learning</Link>
+            </Button>
+          ) : (
+            <Button asChild size="sm" variant="outline">
+              <Link href={payload.aiSettingsHref}>
+                <Settings className="mr-1.5 size-3.5" />
+                AI settings
+              </Link>
+            </Button>
+          )}
         </header>
 
-        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4" aria-live="polite">
+        <div
+          className="flex-1 space-y-4 overflow-y-auto px-4 py-4"
+          aria-live="polite"
+        >
           {!active?.messages.length ? (
             <div className="space-y-3 text-sm text-muted-foreground">
               <p>
-                Ask to generate articles/images or organize articles, categories,
-                homepage, SEO, media, and publishing.
+                {isPublic
+                  ? "I’m your Mendanize AI Tutor. Ask for explanations, quizzes, study plans, or what to learn next. Platform AI keys stay on the server — managed by administrators."
+                  : "Ask to generate articles/images or organize articles, categories, homepage, SEO, media, and publishing."}
               </p>
               <ul className="flex flex-wrap gap-2">
-                {(payload.suggestions.length
-                  ? payload.suggestions
-                  : ADMIN_COMMAND_SUGGESTIONS.map((s) => s.draft)
-                ).map((s) => (
+                {suggestions.map((s) => (
                   <li key={s}>
                     <button
                       type="button"
@@ -239,7 +274,11 @@ export function AskDashboardView({
                 }`}
               >
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  {m.role === "USER" ? "You" : "Ask Mendanize"}
+                  {m.role === "USER"
+                    ? "You"
+                    : isPublic
+                      ? "Mendanize AI"
+                      : "Ask Mendanize"}
                 </p>
                 {m.role === "ASSISTANT" ? (
                   <MarkdownRenderer
@@ -277,12 +316,20 @@ export function AskDashboardView({
           <Textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="Generate an article, organize drafts, update homepage, SEO checklist…"
+            placeholder={
+              isPublic
+                ? "Ask for an explanation, quiz, or learning path…"
+                : "Generate an article, organize drafts, update homepage, SEO checklist…"
+            }
             rows={3}
             aria-label="Message"
           />
           <div className="mt-2 flex justify-end">
-            <Button type="submit" disabled={pending || !draft.trim()}>
+            <Button
+              type="submit"
+              className="rounded-xl"
+              disabled={pending || !draft.trim()}
+            >
               {pending ? "Sending…" : "Send"}
             </Button>
           </div>
@@ -290,26 +337,42 @@ export function AskDashboardView({
       </section>
 
       <aside className="space-y-4 rounded-xl border border-border bg-surface p-3">
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            CMS actions
-          </p>
-          <ul className="space-y-2">
-            {cmsShortcuts.map((a) => (
-              <li key={a.href}>
-                <Link
-                  href={a.href}
-                  className="block rounded-lg border border-border px-2 py-2 text-left text-sm hover:border-primary/40"
-                >
-                  <span className="font-medium text-foreground">{a.title}</span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">
-                    {a.reason}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {!isPublic ? (
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              CMS actions
+            </p>
+            <ul className="space-y-2">
+              {cmsShortcuts.map((a) => (
+                <li key={a.href}>
+                  <Link
+                    href={a.href}
+                    className="block rounded-lg border border-border px-2 py-2 text-left text-sm hover:border-primary/40"
+                  >
+                    <span className="font-medium text-foreground">{a.title}</span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      {a.reason}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+            <div className="mb-2 flex items-center gap-2">
+              <MendanizeRobot variant="tip" className="h-12 w-10" />
+              <p className="text-sm font-semibold text-foreground">Tutor tip</p>
+            </div>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Guides, tools, and recommendations are published by administrators.
+              Your progress and Ask history stay in your learner account only.
+            </p>
+            <Button asChild size="sm" variant="outline" className="mt-3 w-full rounded-xl">
+              <Link href="/guides">Browse courses</Link>
+            </Button>
+          </div>
+        )}
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Prompt templates
@@ -333,11 +396,17 @@ export function AskDashboardView({
                 </button>
               </li>
             ))}
+            {!payload.templates.length ? (
+              <li className="text-xs text-muted-foreground">
+                Templates are managed by administrators.
+              </li>
+            ) : null}
           </ul>
         </div>
         <p className="text-xs text-muted-foreground">
-          AI configuration is owned by Platform Settings — this screen only links there
-          (MES-020).
+          {isPublic
+            ? "AI providers and API keys are configured in Admin Platform Settings and never exposed here."
+            : "AI configuration is owned by Platform Settings — this screen only links there."}
         </p>
       </aside>
     </div>

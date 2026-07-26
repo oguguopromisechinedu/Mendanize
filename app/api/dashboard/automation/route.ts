@@ -3,7 +3,10 @@
  */
 import { handleApiError } from "@/lib/api/errors"
 import { ok, unauthorized } from "@/lib/api/response"
-import { requireAdmin } from "@/features/authentication/server"
+import {
+  PERMISSIONS,
+  requirePermission,
+} from "@/features/authentication/server"
 import {
   listAutomationJobs,
   runAutomationJob,
@@ -22,8 +25,8 @@ const runSchema = z.object({
 
 export async function GET() {
   try {
-    const session = await requireAdmin()
-    if (!session) return unauthorized("Admin required")
+    const session = await requirePermission(PERMISSIONS.SETTINGS_MANAGE)
+    if (!session) return unauthorized("Permission required: settings.manage")
     return ok(await listAutomationJobs())
   } catch (error) {
     return handleApiError(error)
@@ -32,8 +35,8 @@ export async function GET() {
 
 export async function PATCH(req: Request) {
   try {
-    const session = await requireAdmin()
-    if (!session) return unauthorized("Admin required")
+    const session = await requirePermission(PERMISSIONS.SETTINGS_MANAGE)
+    if (!session) return unauthorized("Permission required: settings.manage")
     const body = await parseBody(req, toggleSchema)
     const job = await setAutomationJobEnabled(body.key, body.enabled)
     return ok(job)
@@ -44,11 +47,11 @@ export async function PATCH(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const session = await requireAdmin()
-    if (!session) return unauthorized("Admin required")
+    const session = await requirePermission(PERMISSIONS.SETTINGS_MANAGE)
+    if (!session) return unauthorized("Permission required: settings.manage")
     const body = await parseBody(req, runSchema)
     const job = await runAutomationJob(body.key)
-    return ok(job, { action: "run" })
+    return ok(job)
   } catch (error) {
     return handleApiError(error)
   }

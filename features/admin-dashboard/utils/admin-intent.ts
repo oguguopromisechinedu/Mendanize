@@ -262,7 +262,7 @@ export function adminActionsForQuery(raw: string): Array<{
     {
       title: "AI Studio · Article",
       href: "/dashboard/ai-studio/article",
-      reason: "Generate with Claude + OpenAI image",
+      reason: "Generate with Anthropic + OpenAI image",
     },
     {
       title: "Articles CMS",

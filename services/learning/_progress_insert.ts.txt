@@ -1,0 +1,350 @@
+/** Real guide progress — no placeholder seeding. */
+
+async function bumpDailyStat(userId: string, minutesApprox = 5) {
+  const day = new Date();
+  day.setUTCHours(0, 0, 0, 0);
+  await db().learningDailyStat.upsert({
+    where: {
+      publicUserId_day: { publicUserId: userId, day },
+    },
+    create: {
+      publicUserId: userId,
+      day,
+      activityCount: 1,
+      minutesApprox,
+    },
+    update: {
+      activityCount: { increment: 1 },
+      minutesApprox: { increment: minutesApprox },
+    },
+  });
+}
+
+async function computeStreakDays(userId: string): Promise<number> {
+  const rows = await db().learningDailyStat.findMany({
+    where: { publicUserId: userId },
+    orderBy: { day: "desc" },
+    take: 120,
+    select: { day: true },
+  });
+  if (rows.length === 0) {
+    const history = await db().learningHistory.findMany({
+      where: { publicUserId: userId },
+      orderBy: { viewedAt: "desc" },
+      take: 200,
+      select: { viewedAt: true },
+    });
+    const days = new Set(
+      history.map((h) => h.viewedAt.toISOString().slice(0, 10)),
+    );
+    let streak = 0;
+    const cursor = new Date();
+    for (;;) {
+      const key = cursor.toISOString().slice(0, 10);
+      if (!days.has(key)) break;
+      streak += 1;
+      cursor.setUTCDate(cursor.getUTCDate() - 1);
+    }
+    return streak;
+  }
+
+  let streak = 0;
+  const cursor = new Date();
+  cursor.setUTCHours(0, 0, 0, 0);
+  const daySet = new Set(rows.map((r) => r.day.toISOString().slice(0, 10)));
+  for (;;) {
+    const key = cursor.toISOString().slice(0, 10);
+    if (!daySet.has(key)) break;
+    streak += 1;
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+  return streak;
+}
+
+async function computeWeeklyActivity(userId: string): Promise<number[]> {
+  const start = new Date();
+  start.setUTCHours(0, 0, 0, 0);
+  start.setUTCDate(start.getUTCDate() - 6);
+  const rows = await db().learningDailyStat.findMany({
+    where: { publicUserId: userId, day: { gte: start } },
+    select: { day: true, activityCount: true },
+  });
+  const byDay = new Map(
+    rows.map((r) => [r.day.toISOString().slice(0, 10), r.activityCount]),
+  );
+  const bars: number[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start);
+    d.setUTCDate(start.getUTCDate() + i);
+    const key = d.toISOString().slice(0, 10);
+    const count = byDay.get(key) ?? 0;
+    bars.push(Math.min(100, count * 20));
+  }
+  return bars;
+}
+
+async function grantAchievement(userId: string, key: string) {
+  const achievement = await db().achievement.findUnique({ where: { key } });
+  if (!achievement?.active) return;
+  try {
+    await db().achievementGrant.create({
+      data: { publicUserId: userId, achievementId: achievement.id },
+    });
+  } catch {
+    /* already granted */
+  }
+}
+
+export async function maybeIssueCertificate(input: {
+  userId: string;
+  guideId: string;
+}): Promise<{ issued: boolean; credentialCode?: string }> {
+  if (!isDatabaseConfigured()) return { issued: false };
+
+  const progress = await db().guideProgress.findUnique({
+    where: {
+      publicUserId_guideId: {
+        publicUserId: input.userId,
+        guideId: input.guideId,
+      },
+    },
+  });
+  if (!progress?.completedAt || progress.percentComplete < 100) {
+    return { issued: false };
+  }
+
+  const template = await db().certificateTemplate.findFirst({
+    where: { guideId: input.guideId, status: "PUBLISHED" },
+  });
+  if (!template) return { issued: false };
+
+  const existing = await db().certificate.findUnique({
+    where: {
+      publicUserId_templateId: {
+        publicUserId: input.userId,
+        templateId: template.id,
+      },
+    },
+  });
+  if (existing) {
+    return { issued: false, credentialCode: existing.credentialCode };
+  }
+
+  const credentialCode = `MNZ-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  const cert = await db().certificate.create({
+    data: {
+      publicUserId: input.userId,
+      templateId: template.id,
+      guideId: input.guideId,
+      credentialCode,
+    },
+  });
+
+  try {
+    const { dispatch } = await import("@/services/notification");
+    await dispatch({
+      channel: "in_app",
+      template: "system.success",
+      userId: input.userId,
+      title: "Certificate earned",
+      body: `Congratulations — you earned “${template.title}”.`,
+      type: "SUCCESS",
+      link: "/account/certificates",
+    });
+  } catch {
+    /* non-blocking */
+  }
+
+  await grantAchievement(input.userId, "first_certificate");
+  return { issued: true, credentialCode: cert.credentialCode };
+}
+
+export async function markLessonComplete(input: {
+  userId: string;
+  guideId: string;
+  lessonId: string;
+}): Promise<import("./types").MarkLessonCompleteResult> {
+  if (!isDatabaseConfigured()) {
+    throw new ValidationError("Database not configured.");
+  }
+
+  const guide = await db().guide.findFirst({
+    where: { id: input.guideId, status: "PUBLISHED" },
+    include: {
+      sections: {
+        orderBy: { sortOrder: "asc" },
+        include: { lessons: { orderBy: { sortOrder: "asc" } } },
+      },
+    },
+  });
+  if (!guide) throw new ValidationError("Guide is not published.");
+
+  const allLessons = guide.sections.flatMap((s) => s.lessons);
+  const lesson = allLessons.find((l) => l.id === input.lessonId);
+  if (!lesson) throw new ValidationError("Lesson not found on this guide.");
+
+  const total = allLessons.length || 1;
+  const existing = await db().guideProgress.findUnique({
+    where: {
+      publicUserId_guideId: {
+        publicUserId: input.userId,
+        guideId: input.guideId,
+      },
+    },
+  });
+
+  const completedIds = new Set(existing?.completedLessonIds ?? []);
+  const wasEmpty = completedIds.size === 0;
+  completedIds.add(input.lessonId);
+  const completedLessons = completedIds.size;
+  const percentComplete = Math.min(
+    100,
+    Math.round((completedLessons / total) * 100),
+  );
+  const completed = percentComplete >= 100;
+  const remaining = Math.max(0, total - completedLessons);
+
+  const row = await db().guideProgress.upsert({
+    where: {
+      publicUserId_guideId: {
+        publicUserId: input.userId,
+        guideId: input.guideId,
+      },
+    },
+    create: {
+      publicUserId: input.userId,
+      guideId: input.guideId,
+      completedLessonIds: [...completedIds],
+      percentComplete,
+      lastLessonId: input.lessonId,
+      completedAt: completed ? new Date() : null,
+    },
+    update: {
+      completedLessonIds: [...completedIds],
+      percentComplete,
+      lastLessonId: input.lessonId,
+      ...(completed && !existing?.completedAt
+        ? { completedAt: new Date() }
+        : {}),
+    },
+  });
+
+  await db().learningProgress.upsert({
+    where: {
+      publicUserId_guideId: {
+        publicUserId: input.userId,
+        guideId: input.guideId,
+      },
+    },
+    create: {
+      publicUserId: input.userId,
+      guideId: input.guideId,
+      lastLessonTitle: lesson.title,
+      completedLessons,
+      totalLessons: total,
+      estimatedMinutesLeft: remaining * 8,
+      percentComplete,
+      lastOpenedAt: new Date(),
+    },
+    update: {
+      lastLessonTitle: lesson.title,
+      completedLessons,
+      totalLessons: total,
+      estimatedMinutesLeft: remaining * 8,
+      percentComplete,
+      lastOpenedAt: new Date(),
+    },
+  });
+
+  await trackContentView({
+    userId: input.userId,
+    entityType: "guide",
+    entityId: input.guideId,
+  });
+  await bumpDailyStat(input.userId, lesson.readingTimeMin || 5);
+
+  if (wasEmpty) await grantAchievement(input.userId, "first_lesson");
+  const streak = await computeStreakDays(input.userId);
+  if (streak >= 7) await grantAchievement(input.userId, "streak_7");
+
+  let certificateIssued = false;
+  let credentialCode: string | undefined;
+  if (completed || row.completedAt) {
+    const issued = await maybeIssueCertificate({
+      userId: input.userId,
+      guideId: input.guideId,
+    });
+    certificateIssued = issued.issued;
+    credentialCode = issued.credentialCode;
+  }
+
+  return {
+    percentComplete,
+    completed,
+    certificateIssued,
+    credentialCode,
+  };
+}
+
+export async function listContinueLearning(
+  userId: string,
+): Promise<ContinueLearningCard[]> {
+  if (!isDatabaseConfigured()) return [];
+
+  const rows = await db().guideProgress.findMany({
+    where: {
+      publicUserId: userId,
+      OR: [{ completedAt: null }, { percentComplete: { lt: 100 } }],
+    },
+    orderBy: { updatedAt: "desc" },
+    take: 12,
+  });
+
+  if (rows.length === 0) return [];
+
+  const guides = await db().guide.findMany({
+    where: {
+      id: { in: rows.map((r) => r.guideId) },
+      status: "PUBLISHED",
+    },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      sections: {
+        select: {
+          lessons: { select: { id: true, title: true, readingTimeMin: true } },
+        },
+      },
+    },
+  });
+  const byId = new Map(guides.map((g) => [g.id, g]));
+
+  return rows
+    .map((row) => {
+      const g = byId.get(row.guideId);
+      if (!g) return null;
+      const lessons = g.sections.flatMap((s) => s.lessons);
+      const total = lessons.length || 1;
+      const completedLessons = row.completedLessonIds.length;
+      const last =
+        lessons.find((l) => l.id === row.lastLessonId)?.title ??
+        "Continue where you left off";
+      const remaining = Math.max(0, total - completedLessons);
+      return {
+        id: row.id,
+        guideId: row.guideId,
+        title: g.title,
+        slug: g.slug,
+        href: hrefFor("guide", g.slug),
+        lastLessonTitle: last,
+        completedLessons,
+        totalLessons: total,
+        remainingLessons: remaining,
+        estimatedMinutesLeft: remaining * 8,
+        percentComplete: row.percentComplete,
+        lastOpenedAt: row.updatedAt.toISOString(),
+      } satisfies ContinueLearningCard;
+    })
+    .filter(Boolean) as ContinueLearningCard[];
+}

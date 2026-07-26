@@ -5,7 +5,6 @@ export type AiProviderId =
   | "openai"
   | "gemini"
   | "grok"
-  | "dalle"
   | "video_tbd"
   | "local_mock";
 
@@ -32,6 +31,7 @@ export type AiGenerateResult = {
 };
 
 export type AIGenerationTypeValue = "ARTICLE" | "IMAGE" | "VIDEO";
+/** Includes legacy DALLE for existing DB rows; new image gens use OPENAI. */
 export type AIGenerationProviderValue =
   | "CLAUDE"
   | "OPENAI"

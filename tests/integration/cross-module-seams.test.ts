@@ -149,10 +149,13 @@ describe("MES-006 email verification end-to-end seams", () => {
     expect(page).toContain("searchParams")
   })
 
-  it("credentials authorize respects emailVerification setting", () => {
+  it("credentials authorize allows immediate login after registration", () => {
     const auth = read("lib/auth/public.ts")
-    expect(auth).toContain("getAuthenticationSettings")
-    expect(auth).toContain("emailVerified")
+    const signup = read("features/authentication/actions/actions.ts")
+    expect(auth).toContain('id: "credentials"')
+    expect(auth).not.toContain("emailVerification && !user.emailVerified")
+    expect(signup).toContain("publicSignIn")
+    expect(signup).toContain("Account created. You are signed in.")
   })
 })
 

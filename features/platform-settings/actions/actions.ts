@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/features/authentication/server";
+import { requirePermission, PERMISSIONS } from "@/features/authentication/server";
 import {
   setFeatureFlagEnabled,
   updateAiPlatformSettings,
@@ -52,7 +52,7 @@ function revalidateSettings() {
 }
 
 async function gate(): Promise<ActionResult | null> {
-  const session = await requireAdmin();
+  const session = await requirePermission(PERMISSIONS.SETTINGS_MANAGE);
   if (!session) return { ok: false, message: "Unauthorized" };
   return null;
 }

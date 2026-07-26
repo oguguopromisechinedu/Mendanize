@@ -70,12 +70,13 @@ Operational status of every MES so agents and contributors know **what to work o
 | MES-033 | Caching & Performance | Complete | [Handoff](./MES-033-COMPLETION.md); public revalidate on publish |
 | MES-034 | Backup & Recovery | Complete | [Handoff](./MES-034-COMPLETION.md); [restore runbook](./runbooks/restore.md) |
 | MES-035 | Privacy & Compliance Basics | Complete | [Handoff](./MES-035-COMPLETION.md); consent, export, delete |
+| MES-036 | Community Platform (Phase 1) | Complete | [Handoff](./MES-036-COMPLETION.md); `/community` + `/dashboard/community` |
 
 ## Recommended next work order
 
-1. Apply migration `20260723000000_mes031_035_pipeline_privacy_logs` in each environment (`npx prisma migrate deploy`).
-2. Smoke-test Ask gap → AI Knowledge queue; System Logs; publish → public cache refresh; consent + `/privacy` + `/account/privacy`.
-3. Re-run launch checks in **MES-028 / MES-029** against 031–035 acceptance criteria when ready for release.
+1. Apply migration `20260726170000_mes036_community` in each environment (`npx prisma migrate deploy`).
+2. Smoke-test Community home, post discussion as PublicUser, moderation as Admin, and confirm Community Moderator flag does not open `/dashboard/*`.
+3. Leave MES-037–040 empty until specified.
 
 ## Related
 

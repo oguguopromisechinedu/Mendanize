@@ -574,7 +574,8 @@ export async function updateHomepage(
   const prisma = getPrisma();
   const current = await ensurePrismaHomepage();
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(
+    async (tx) => {
     await tx.homepage.update({
       where: { id: current.id },
       data: {
@@ -716,13 +717,37 @@ export async function updateHomepage(
         })),
       });
     }
-  });
+  },
+    { maxWait: 15_000, timeout: 60_000 },
+  );
 
   return getHomepageAdmin();
 }
 
 export async function publishHomepage(): Promise<HomepageAdminRecord> {
   return updateHomepage({ status: "PUBLISHED" });
+}
+
+/**
+ * Overwrite the CMS Homepage (`key: main`) with SEEDED_HOMEPAGE_CONTENT as DRAFT.
+ * Does not publish — use publishHomepage() or the dashboard Publish action for go-live.
+ */
+export async function syncHomepageFromSeed(): Promise<HomepageAdminRecord> {
+  const seed = seedToAdmin();
+  return updateHomepage({
+    status: "DRAFT",
+    sections: seed.sections,
+    hero: seed.hero,
+    statistics: seed.statistics,
+    faqs: seed.faqs,
+    cta: seed.cta,
+    featured: seed.featured,
+    testimonials: seed.testimonials,
+    ask: seed.ask,
+    why: seed.why,
+    newsletter: seed.newsletter,
+    latestArticles: seed.latestArticles,
+  });
 }
 
 async function resolveFeaturedCards(

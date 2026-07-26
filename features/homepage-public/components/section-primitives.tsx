@@ -60,19 +60,19 @@ export function SectionHeading({
   return (
     <div
       className={cn(
-        "mb-8 lg:mb-10",
+        "mb-5 sm:mb-8 lg:mb-10",
         action
-          ? "flex flex-wrap items-end justify-between gap-3"
+          ? "flex flex-wrap items-end justify-between gap-2 sm:gap-3"
           : "max-w-2xl",
       )}
     >
       <div className={action ? "min-w-0 max-w-2xl" : undefined}>
         {eyebrow ? (
-          <p className="type-eyebrow mb-3 text-primary">{eyebrow}</p>
+          <p className="type-eyebrow mb-2 text-primary sm:mb-3">{eyebrow}</p>
         ) : null}
         <h2 className="type-h2 text-foreground">{displayTitle}</h2>
         {description ? (
-          <p className="mt-3 text-lg leading-[1.6] text-muted-foreground">
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:mt-3 sm:text-lg sm:leading-[1.6]">
             {description}
           </p>
         ) : null}
@@ -81,12 +81,12 @@ export function SectionHeading({
         <Link
           href={action.href}
           className={cn(
-            "inline-flex shrink-0 items-center gap-1 text-sm text-primary hover:underline",
+            "inline-flex shrink-0 items-center gap-0.5 text-xs text-primary hover:underline sm:gap-1 sm:text-sm",
             action.className,
           )}
         >
           {action.label}
-          <ChevronRight className="size-3.5" aria-hidden />
+          <ChevronRight className="size-3 sm:size-3.5" aria-hidden />
         </Link>
       ) : null}
     </div>

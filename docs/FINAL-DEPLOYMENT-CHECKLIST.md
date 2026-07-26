@@ -57,7 +57,7 @@ Validated against `.env.example`, Auth.js, Prisma, Stripe, and AI Service (OpenA
 
 | Variable | Purpose | Notes |
 |----------|---------|-------|
-| `OPENAI_API_KEY` | Studio / Ask / assist / DALL·E | **Only live AI provider at v1.0** |
+| `OPENAI_API_KEY` | Studio / Ask images | Sole image provider |
 
 ### Optional but recommended for production
 
@@ -76,7 +76,7 @@ Validated against `.env.example`, Auth.js, Prisma, Stripe, and AI Service (OpenA
 
 | Variable | Notes |
 |----------|-------|
-| `ANTHROPIC_API_KEY`, `GOOGLE_AI_API_KEY`, `XAI_API_KEY` | **Reserved** — adapters stubbed; do not expect live routing |
+| `ANTHROPIC_API_KEY` | Claude / Anthropic text — **supported** with OpenAI as SSOT keys |
 | Supabase URL / anon / service role | Media cloud optional; URL/placeholder media works without |
 | `SMTP_*` / `EMAIL_FROM` | Notification Service logs email; SMTP not wired at v1.0 |
 

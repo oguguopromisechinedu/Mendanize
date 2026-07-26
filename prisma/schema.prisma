@@ -13,7 +13,7 @@ datasource db {
   provider = "postgresql"
 }
 
-/// MES-030 admin RBAC role keys ‚Äî extendable via AdminRole rows.
+/// MES-030 admin RBAC role keys ó extendable via AdminRole rows.
 enum AdminRoleKey {
   SUPER_ADMINISTRATOR
   ADMINISTRATOR
@@ -23,7 +23,7 @@ enum AdminRoleKey {
   SUPPORT_MANAGER
 }
 
-/// @deprecated MES-030 ‚Äî kept only so the dual-auth migration can read legacy rows.
+/// @deprecated MES-030 ó kept only so the dual-auth migration can read legacy rows.
 /// Remove after scripts/migrate-dual-auth.ts has been run and verified.
 enum UserRole {
   USER
@@ -89,7 +89,7 @@ model PublicUser {
   emailVerified DateTime?
   image         String?
   passwordHash  String?
-  /// MES-035 ‚Äî analytics/cookie consent captured on the public site
+  /// MES-035 ó analytics/cookie consent captured on the public site
   cookieConsentAt    DateTime?
   analyticsConsent   Boolean   @default(false)
   marketingConsent   Boolean   @default(false)
@@ -119,6 +119,25 @@ model PublicUser {
   guideProgress          GuideProgress[]
   userPreference         UserPreference?
   conversations          Conversation[]
+  certificates           Certificate[]
+  achievementGrants      AchievementGrant[]
+  learnerProjects        LearnerProject[]
+  comments               Comment[]
+  learningDailyStats     LearningDailyStat[]
+  communityProfile       CommunityProfile?
+  communityModeratorFlag CommunityModeratorFlag?
+  discussions            Discussion[]
+  discussionReplies      DiscussionReply[]
+  discussionLikes        DiscussionLike[]
+  studyGroupsOwned       StudyGroup[]            @relation("StudyGroupOwner")
+  studyGroupMemberships  StudyGroupMember[]
+  teamsOwned             Team[]                  @relation("TeamOwner")
+  teamMemberships        TeamMember[]
+  showcaseProjects       ShowcaseProject[]
+  projectLikes           ProjectLike[]
+  projectComments        ProjectComment[]
+  projectBookmarks       ProjectBookmark[]
+  communityReports       CommunityReport[]       @relation("CommunityReportReporter")
 }
 
 model Admin {
@@ -128,21 +147,25 @@ model Admin {
   emailVerified DateTime?
   image         String?
   passwordHash  String?
+  totpSecret    String?
+  totpEnabled   Boolean   @default(false)
   active        Boolean   @default(true)
   roleId        String
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  role             AdminRole        @relation(fields: [roleId], references: [id], onDelete: Restrict)
-  sessions         AdminSession[]
-  posts            Post[]
-  articles         Article[]
-  articleRevisions ArticleRevision[]
-  guides           Guide[]
-  guideRevisions   GuideRevision[]
-  aiGenerations    AIGeneration[]
-  notifications    Notification[]
-  authorizationLogs AuthorizationLog[]
+  role                   AdminRole                 @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  sessions               AdminSession[]
+  posts                  Post[]
+  articles               Article[]
+  articleRevisions       ArticleRevision[]
+  guides                 Guide[]
+  guideRevisions         GuideRevision[]
+  aiGenerations          AIGeneration[]
+  notifications          Notification[]
+  authorizationLogs      AuthorizationLog[]
+  communityModeratorGrants CommunityModeratorFlag[] @relation("CommunityModeratorGrantedBy")
+  communityReportResolutions CommunityReport[]     @relation("CommunityReportResolver")
 }
 
 model AdminRole {
@@ -309,14 +332,6 @@ model WorkspaceMember {
   publicUser   PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
 
   @@unique([workspaceId, publicUserId])
-}
-
-model Team {
-  id        String   @id @default(cuid())
-  name      String
-  ownerId   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model Project {
@@ -716,7 +731,7 @@ model ArticleTag {
   @@id([articleId, tagId])
 }
 
-/// Architecture only in MES-008 ‚Äî no version-history UI yet.
+/// Architecture only in MES-008 ó no version-history UI yet.
 model ArticleRevision {
   id          String   @id @default(cuid())
   articleId   String
@@ -779,6 +794,9 @@ model Guide {
   sections              GuideSection[]
   revisions             GuideRevision[]
   progressRecords       GuideProgress[]
+  certificateTemplates  CertificateTemplate[]
+  workspacePresets      WorkspacePreset[]
+  showcaseProjects      ShowcaseProject[]
 
   @@index([status])
   @@index([topicId])
@@ -826,7 +844,7 @@ model GuideLesson {
   @@index([sectionId, sortOrder])
 }
 
-/// Architecture only ‚Äî version-history UI not in MES-010.
+/// Architecture only ó version-history UI not in MES-010.
 model GuideRevision {
   id          String   @id @default(cuid())
   guideId     String
@@ -840,7 +858,7 @@ model GuideRevision {
   @@index([guideId])
 }
 
-/// Modeled for MES-022 personalization ‚Äî not implemented in MES-010.
+/// Modeled for MES-022 personalization ó not implemented in MES-010.
 model GuideProgress {
   id                 String     @id @default(cuid())
   publicUserId       String
@@ -1671,7 +1689,7 @@ model SearchFilter {
 
 // === MES-018 Recommendations Engine ===
 // UserInterest / SavedContent / LearningHistory: written by Personalization (MES-022),
-// read by Recommendations. Single engine ‚Äî no parallel ranking elsewhere.
+// read by Recommendations. Single engine ó no parallel ranking elsewhere.
 
 enum RecommendationEntityKind {
   ARTICLE
@@ -1845,7 +1863,7 @@ model AskFeedback {
   @@index([messageId])
 }
 
-/// Ephemeral Tier 1 ‚Üí Tier 2 handoff payload (expires quickly).
+/// Ephemeral Tier 1 ? Tier 2 handoff payload (expires quickly).
 model AskHandoff {
   id           String         @id @default(cuid())
   question     String         @db.Text
@@ -1914,6 +1932,7 @@ model AuthenticationSetting {
   passwordPolicyNote    String?  @db.Text
   sessionTimeoutMinutes Int      @default(10080)
   rememberMeEnabled     Boolean  @default(true)
+  twoFactorRequired     Boolean  @default(false)
   twoFactorPlaceholder  Boolean  @default(false)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
@@ -1923,7 +1942,7 @@ model AiPlatformSetting {
   id                      String   @id @default(cuid())
   key                     String   @unique @default("main")
   defaultTextProvider     String   @default("claude")
-  defaultImageProvider    String   @default("dalle")
+  defaultImageProvider    String   @default("openai")
   defaultVideoProvider    String   @default("video_tbd")
   maxResponseLength       Int      @default(4000)
   conversationHistoryOn   Boolean  @default(true)
@@ -1950,6 +1969,11 @@ model EmailSetting {
   key                String   @unique @default("main")
   senderName         String   @default("Mendanize")
   senderEmail        String   @default("noreply@mendanize.com")
+  smtpHost           String?
+  smtpPort           Int      @default(587)
+  smtpUser           String?
+  smtpPassword       String?
+  smtpSecure         Boolean  @default(false)
   smtpPlaceholder    String?  @db.Text
   templatesNote      String?  @db.Text
   createdAt          DateTime @default(now())
@@ -2113,22 +2137,26 @@ enum CommentEntityType {
   GUIDE
   TOOL
   PAGE
+  PROJECT
 }
 
 model Comment {
-  id          String            @id @default(cuid())
-  entityType  CommentEntityType
-  entityId    String
-  entityTitle String?
-  authorName  String
-  authorEmail String?
-  body        String            @db.Text
-  status      CommentStatus     @default(PENDING)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  id           String            @id @default(cuid())
+  entityType   CommentEntityType
+  entityId     String
+  entityTitle  String?
+  authorName   String
+  authorEmail  String?
+  publicUserId String?
+  body         String            @db.Text
+  status       CommentStatus     @default(PENDING)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  publicUser   PublicUser?       @relation(fields: [publicUserId], references: [id], onDelete: SetNull)
 
   @@index([status, createdAt])
   @@index([entityType, entityId])
+  @@index([publicUserId])
 }
 
 enum StaticPageStatus {
@@ -2273,7 +2301,7 @@ enum AIGenerationJobStatus {
 model AIGenerationJob {
   id                   String                 @id @default(cuid())
   question             String                 @db.Text
-  /// Anonymized fingerprint of the asker ‚Äî never stores PublicUser.id (MES-031)
+  /// Anonymized fingerprint of the asker ó never stores PublicUser.id (MES-031)
   sourceFingerprint    String?
   status               AIGenerationJobStatus  @default(QUEUED)
   articleId            String?
@@ -2314,4 +2342,466 @@ model ApplicationLog {
   @@index([level, createdAt])
   @@index([requestId])
   @@index([createdAt])
+}
+
+// === Learner ? Admin ecosystem (catalog templates + personal progress) ===
+
+enum CatalogPublishStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum LearnerProjectStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  SUBMITTED
+  COMPLETED
+}
+
+model PromptPack {
+  id          String                @id @default(cuid())
+  title       String
+  slug        String                @unique
+  description String?               @db.Text
+  category    String?
+  status      CatalogPublishStatus  @default(DRAFT)
+  sortOrder   Int                   @default(0)
+  publishedAt DateTime?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  items       PromptPackItem[]
+
+  @@index([status, sortOrder])
+}
+
+model PromptPackItem {
+  id        String    @id @default(cuid())
+  packId    String
+  title     String
+  prompt    String    @db.Text
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  pack      PromptPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+
+  @@index([packId, sortOrder])
+}
+
+model ProjectTemplate {
+  id           String               @id @default(cuid())
+  title        String
+  slug         String               @unique
+  brief        String               @db.Text
+  difficulty   GuideDifficulty      @default(BEGINNER)
+  guideIds     String[]             @default([])
+  toolIds      String[]             @default([])
+  status       CatalogPublishStatus @default(DRAFT)
+  estimatedHours Int                @default(4)
+  publishedAt  DateTime?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  learners     LearnerProject[]
+
+  @@index([status])
+}
+
+model LearnerProject {
+  id           String               @id @default(cuid())
+  publicUserId String
+  templateId   String
+  status       LearnerProjectStatus @default(NOT_STARTED)
+  notes        String?              @db.Text
+  startedAt    DateTime             @default(now())
+  completedAt  DateTime?
+  updatedAt    DateTime             @updatedAt
+  publicUser   PublicUser           @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  template     ProjectTemplate      @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([publicUserId, templateId])
+  @@index([publicUserId, status])
+}
+
+model CertificateTemplate {
+  id          String               @id @default(cuid())
+  title       String
+  slug        String               @unique
+  description String?              @db.Text
+  guideId     String
+  badgeUrl    String?
+  status      CatalogPublishStatus @default(DRAFT)
+  publishedAt DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  guide       Guide                @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  certificates Certificate[]
+
+  @@unique([guideId])
+  @@index([status])
+}
+
+model Certificate {
+  id           String              @id @default(cuid())
+  publicUserId String
+  templateId   String
+  guideId      String
+  credentialCode String            @unique
+  issuedAt     DateTime            @default(now())
+  publicUser   PublicUser          @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  template     CertificateTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([publicUserId, templateId])
+  @@index([publicUserId, issuedAt])
+  @@index([guideId])
+}
+
+model Achievement {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  title       String
+  description String?
+  iconKey     String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  grants      AchievementGrant[]
+}
+
+model AchievementGrant {
+  id            String      @id @default(cuid())
+  publicUserId  String
+  achievementId String
+  grantedAt     DateTime    @default(now())
+  publicUser    PublicUser  @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([publicUserId, achievementId])
+  @@index([publicUserId])
+}
+
+model LearningFeaturedSetting {
+  id              String   @id @default(cuid())
+  key             String   @unique @default("main")
+  featuredGuideIds String[] @default([])
+  featuredArticleIds String[] @default([])
+  featuredToolIds String[] @default([])
+  featuredPromptPackIds String[] @default([])
+  featuredProjectIds String[] @default([])
+  updatedAt       DateTime @updatedAt
+}
+
+model WorkspacePreset {
+  id          String               @id @default(cuid())
+  title       String
+  slug        String               @unique
+  description String?              @db.Text
+  guideId     String?
+  starterPrompt String?            @db.Text
+  challengeNote String?            @db.Text
+  status      CatalogPublishStatus @default(DRAFT)
+  publishedAt DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  guide       Guide?               @relation(fields: [guideId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+}
+
+model LearningDailyStat {
+  id           String     @id @default(cuid())
+  publicUserId String
+  day          DateTime   @db.Date
+  activityCount Int       @default(0)
+  minutesApprox Int       @default(0)
+  publicUser   PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+
+  @@unique([publicUserId, day])
+  @@index([publicUserId, day])
+}
+
+// -- MES-036 Community Platform -----------------------------------------------
+
+enum CommunityVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum StudyGroupMemberRole {
+  OWNER
+  MODERATOR
+  MEMBER
+}
+
+enum TeamMemberRole {
+  OWNER
+  LEAD
+  MEMBER
+}
+
+enum TeamProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETE
+}
+
+enum CommunityReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+enum CommunityReportContentType {
+  DISCUSSION
+  REPLY
+  PROJECT
+  COMMENT
+}
+
+model CommunityCategory {
+  id          String       @id @default(cuid())
+  name        String
+  slug        String       @unique
+  description String?
+  sortOrder   Int          @default(0)
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  discussions Discussion[]
+  teams       Team[]
+
+  @@index([active, sortOrder])
+}
+
+model Discussion {
+  id           String    @id @default(cuid())
+  publicUserId String
+  categoryId   String
+  title        String
+  body         String    @db.Text
+  tags         String[]  @default([])
+  viewCount    Int       @default(0)
+  pinned       Boolean   @default(false)
+  hidden       Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  publicUser   PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  category     CommunityCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  replies      DiscussionReply[]
+  likes        DiscussionLike[]
+
+  @@index([categoryId, createdAt])
+  @@index([publicUserId])
+  @@index([hidden, pinned, createdAt])
+}
+
+model DiscussionReply {
+  id           String     @id @default(cuid())
+  publicUserId String
+  discussionId String
+  body         String     @db.Text
+  helpful      Boolean    @default(false)
+  hidden       Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  publicUser   PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  discussion   Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+
+  @@index([discussionId, createdAt])
+  @@index([publicUserId])
+}
+
+model DiscussionLike {
+  id           String     @id @default(cuid())
+  publicUserId String
+  discussionId String
+  createdAt    DateTime   @default(now())
+  publicUser   PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  discussion   Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+
+  @@unique([publicUserId, discussionId])
+  @@index([discussionId])
+}
+
+model StudyGroup {
+  id                String              @id @default(cuid())
+  ownerPublicUserId String
+  name              String
+  slug              String              @unique
+  description       String?             @db.Text
+  visibility        CommunityVisibility @default(PUBLIC)
+  archived          Boolean             @default(false)
+  pinnedResources   String[]            @default([])
+  sharedNotes       String?             @db.Text
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  owner             PublicUser          @relation("StudyGroupOwner", fields: [ownerPublicUserId], references: [id], onDelete: Cascade)
+  members           StudyGroupMember[]
+
+  @@index([visibility, archived])
+  @@index([ownerPublicUserId])
+}
+
+model StudyGroupMember {
+  id           String               @id @default(cuid())
+  publicUserId String
+  studyGroupId String
+  role         StudyGroupMemberRole @default(MEMBER)
+  status       String               @default("ACTIVE") // ACTIVE | PENDING | LEFT
+  joinedAt     DateTime             @default(now())
+  publicUser   PublicUser           @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  studyGroup   StudyGroup           @relation(fields: [studyGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([publicUserId, studyGroupId])
+  @@index([studyGroupId, status])
+}
+
+model Team {
+  id           String             @id @default(cuid())
+  name         String
+  slug         String             @unique
+  description  String?            @db.Text
+  categoryId   String?
+  skills       String[]           @default([])
+  visibility   CommunityVisibility @default(PUBLIC)
+  progressStatus TeamProgressStatus @default(NOT_STARTED)
+  ownerPublicUserId String
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  category     CommunityCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  owner        PublicUser         @relation("TeamOwner", fields: [ownerPublicUserId], references: [id], onDelete: Cascade)
+  members      TeamMember[]
+  projects     ShowcaseProject[]
+
+  @@index([visibility, progressStatus])
+  @@index([ownerPublicUserId])
+}
+
+model TeamMember {
+  id           String         @id @default(cuid())
+  publicUserId String
+  teamId       String
+  role         TeamMemberRole @default(MEMBER)
+  joinedAt     DateTime       @default(now())
+  publicUser   PublicUser     @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  team         Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([publicUserId, teamId])
+  @@index([teamId])
+}
+
+model ShowcaseProject {
+  id           String   @id @default(cuid())
+  publicUserId String?
+  teamId       String?
+  guideId      String?
+  title        String
+  slug         String   @unique
+  description  String   @db.Text
+  screenshotUrls String[] @default([])
+  technologies String[] @default([])
+  demoUrl      String?
+  repoUrl      String?
+  featured     Boolean  @default(false)
+  hidden       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  publicUser   PublicUser? @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  team         Team?       @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  guide        Guide?      @relation(fields: [guideId], references: [id], onDelete: SetNull)
+  likes        ProjectLike[]
+  comments     ProjectComment[]
+  bookmarks    ProjectBookmark[]
+
+  @@index([featured, hidden, createdAt])
+  @@index([publicUserId])
+  @@index([teamId])
+  @@index([guideId])
+}
+
+model ProjectLike {
+  id           String          @id @default(cuid())
+  publicUserId String
+  projectId    String
+  createdAt    DateTime        @default(now())
+  publicUser   PublicUser      @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  project      ShowcaseProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([publicUserId, projectId])
+  @@index([projectId])
+}
+
+model ProjectComment {
+  id           String          @id @default(cuid())
+  publicUserId String
+  projectId    String
+  body         String          @db.Text
+  hidden       Boolean         @default(false)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  publicUser   PublicUser      @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  project      ShowcaseProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+  @@index([publicUserId])
+}
+
+model ProjectBookmark {
+  id           String          @id @default(cuid())
+  publicUserId String
+  projectId    String
+  createdAt    DateTime        @default(now())
+  publicUser   PublicUser      @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  project      ShowcaseProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([publicUserId, projectId])
+  @@index([projectId])
+}
+
+model CommunityProfile {
+  id           String     @id @default(cuid())
+  publicUserId String     @unique
+  avatarUrl    String?
+  bio          String?    @db.Text
+  skills       String[]   @default([])
+  reputation   Int        @default(0)
+  /// Placeholder until certificate system is real ù do not fabricate display numbers
+  certificatesPlaceholder Boolean @default(true)
+  /// Placeholder until MES-010 progress tracking is real
+  guidesCompletedPlaceholder Boolean @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  publicUser   PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+}
+
+model CommunityModeratorFlag {
+  id               String     @id @default(cuid())
+  publicUserId     String     @unique
+  grantedByAdminId String
+  active           Boolean    @default(true)
+  note             String?
+  grantedAt        DateTime   @default(now())
+  revokedAt        DateTime?
+  publicUser       PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  grantedBy        Admin      @relation("CommunityModeratorGrantedBy", fields: [grantedByAdminId], references: [id], onDelete: Restrict)
+
+  @@index([active])
+}
+
+model CommunityReport {
+  id                   String                     @id @default(cuid())
+  contentType          CommunityReportContentType
+  contentId            String
+  reporterPublicUserId String
+  reason               String                     @db.Text
+  status               CommunityReportStatus      @default(OPEN)
+  resolvedByAdminId    String?
+  resolutionNote       String?
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+  reporter             PublicUser                 @relation("CommunityReportReporter", fields: [reporterPublicUserId], references: [id], onDelete: Cascade)
+  resolvedBy           Admin?                     @relation("CommunityReportResolver", fields: [resolvedByAdminId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([contentType, contentId])
+  @@index([reporterPublicUserId])
 }

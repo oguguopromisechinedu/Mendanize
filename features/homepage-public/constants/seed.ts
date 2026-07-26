@@ -45,6 +45,7 @@ export const SEEDED_HOMEPAGE_CONTENT: HomepageContent = {
   stats: [
     { id: "articles", label: "Articles", value: "10K+", icon: "articles" },
     { id: "tools", label: "AI Tools", value: "500+", icon: "tools" },
+    { id: "learners", label: "Learners", value: "50K+", icon: "learners" },
     { id: "subscribers", label: "Subscribers", value: "100K+", icon: "subscribers" },
     { id: "content", label: "Weekly New Content", value: "Fresh", icon: "content" },
     { id: "hub", label: "AI-Powered Learning Hub", value: "Live", icon: "hub" },

@@ -15,10 +15,11 @@ import {
   loadSystemMetrics,
   loadTopCategories,
 } from "./live-data";
+import { loadPublishingWorkflowSteps } from "@/services/admin/workflow";
 
 const PROVIDER_LABELS: Record<string, string> = {
   openai: "OpenAI",
-  dalle: "DALL·E (via OpenAI)",
+  dalle: "OpenAI",
   claude: "Claude / Anthropic",
   gemini: "Gemini",
   grok: "Grok",
@@ -77,8 +78,6 @@ export function invalidateDashboardHome(): void {
 async function computeDashboardHome(): Promise<DashboardHomeData> {
   const home = structuredClone(SEEDED_DASHBOARD_HOME);
 
-  // Load every source independently and in parallel. A failure in any one
-  // source (e.g. analytics) must not discard the others.
   const [
     providers,
     slice,
@@ -88,6 +87,7 @@ async function computeDashboardHome(): Promise<DashboardHomeData> {
     topCategories,
     activity,
     system,
+    workflow,
   ] = await Promise.all([
     safeSource("providers", () => getProviderStatuses()),
     safeSource("analyticsSlice", () => getDashboardAnalyticsSlice()),
@@ -97,6 +97,7 @@ async function computeDashboardHome(): Promise<DashboardHomeData> {
     safeSource("topCategories", () => loadTopCategories()),
     safeSource("recentActivity", () => loadRecentActivity()),
     safeSource("systemMetrics", () => loadSystemMetrics()),
+    safeSource("workflow", () => loadPublishingWorkflowSteps()),
   ]);
 
   if (providers) {
@@ -108,18 +109,27 @@ async function computeDashboardHome(): Promise<DashboardHomeData> {
     }));
   }
 
-  const seedVisitors =
-    SEEDED_DASHBOARD_HOME.stats.find((s) => s.id === "visitors")?.value ?? "—";
-  const visitorsLabel = slice?.visitors ?? seedVisitors;
+  const visitorsLabel = slice?.visitors ?? "0";
 
   const liveStats = await safeSource("liveStats", () =>
     loadLiveStats(visitorsLabel),
   );
-  if (liveStats && liveStats.length > 0) {
+  if (liveStats) {
     home.stats = mergeStats(home.stats, liveStats);
   } else if (slice) {
     home.stats = mergeStats(home.stats, [
       { id: "visitors", value: slice.visitors, hint: "from Analytics" },
+    ]);
+  }
+
+  if (avgSeo != null) {
+    home.stats = mergeStats(home.stats, [
+      {
+        id: "seo",
+        value: String(avgSeo),
+        hint: "avg of recent articles",
+        trend: "live",
+      },
     ]);
   }
 
@@ -137,12 +147,11 @@ async function computeDashboardHome(): Promise<DashboardHomeData> {
   }
 
   if (contentOverview) home.contentOverview = contentOverview;
-  if (recentArticles && recentArticles.length > 0)
-    home.recentArticles = recentArticles;
-  if (topCategories && topCategories.length > 0)
-    home.topCategories = topCategories;
-  if (activity && activity.length > 0) home.activity = activity;
+  home.recentArticles = recentArticles ?? [];
+  home.topCategories = topCategories ?? [];
+  home.activity = activity ?? [];
   if (system) home.system = system;
+  if (workflow) home.workflow = workflow;
 
   return home;
 }

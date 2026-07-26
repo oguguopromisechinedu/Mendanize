@@ -21,6 +21,8 @@ export {
   resendVerificationEmail,
   adminSignInWithCredentials,
   adminSignOutAction,
+  requestAdminPasswordReset,
+  resetAdminPassword,
 } from "./actions/actions";
 
 export {

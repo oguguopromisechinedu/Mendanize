@@ -1,10 +1,20 @@
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
+import {
+  contentHref,
+  type ContentScope,
+} from "@/lib/content-paths";
 import type { GuideSummary } from "@/services/content";
 import { GUIDE_DIFFICULTY_LABELS } from "../../constants/constants";
 
-export function PublicGuideListView({ guides }: { guides: GuideSummary[] }) {
+export function PublicGuideListView({
+  guides,
+  scope = "public",
+}: {
+  guides: GuideSummary[];
+  scope?: ContentScope;
+}) {
   return (
     <div className="mx-auto max-w-4xl">
       <header className="mb-10 max-w-2xl">
@@ -27,7 +37,7 @@ export function PublicGuideListView({ guides }: { guides: GuideSummary[] }) {
           {guides.map((guide) => (
             <li key={guide.id}>
               <Link
-                href={`/guides/${guide.slug}`}
+                href={contentHref("guide", guide.slug, { scope })}
                 className="group grid gap-4 sm:grid-cols-[12rem_minmax(0,1fr)]"
               >
                 <div className="relative aspect-[16/10] overflow-hidden rounded-lg border border-border bg-muted">

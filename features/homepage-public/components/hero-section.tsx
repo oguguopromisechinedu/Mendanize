@@ -2,6 +2,7 @@ import Link from "next/link"
 import {
   BookOpen,
   Cpu,
+  GraduationCap,
   Newspaper,
   Sparkles,
   Users,
@@ -19,6 +20,7 @@ import { HomeSection } from "./section-primitives"
 const STAT_ICONS: Record<string, LucideIcon> = {
   articles: BookOpen,
   tools: Cpu,
+  learners: GraduationCap,
   subscribers: Users,
   content: Newspaper,
   hub: Sparkles,
@@ -102,13 +104,13 @@ export function HeroSection({
             <HeroAskBar content={ask} />
           ) : null}
 
-          <div className="mt-6 flex flex-wrap gap-2.5">
-            <Button asChild size="lg" className="rounded-xl shadow-glow">
+          <div className="mt-5 flex w-full flex-col gap-2 sm:mt-6 sm:w-auto sm:flex-row sm:flex-wrap sm:gap-2.5">
+            <Button asChild size="lg" className="w-full rounded-xl shadow-glow sm:w-auto">
               <Link href={content.primaryCta.href}>
                 {content.primaryCta.label}
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="rounded-xl">
+            <Button asChild size="lg" variant="outline" className="w-full rounded-xl sm:w-auto">
               <Link href={content.secondaryCta.href}>
                 {content.secondaryCta.label}
               </Link>

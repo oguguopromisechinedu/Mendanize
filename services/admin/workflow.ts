@@ -10,6 +10,64 @@ import type { ListResult, WorkflowItem } from "./types"
 
 const QUEUE_STATUSES = ["DRAFT", "REVIEW", "SCHEDULED"] as const
 
+/** Live publishing pipeline steps for the dashboard right rail. */
+export async function loadPublishingWorkflowSteps(): Promise<
+  Array<{ id: string; label: string; status: "done" | "current" | "upcoming" }>
+> {
+  const queue = await listWorkflowQueue({})
+  const drafts = queue.items.filter((i) => i.status === "DRAFT").length
+  const review = queue.items.filter((i) => i.status === "REVIEW").length
+  const scheduled = queue.items.filter((i) => i.status === "SCHEDULED").length
+
+  type StepStatus = "done" | "current" | "upcoming"
+  const steps: Array<{ id: string; label: string; status: StepStatus }> = [
+    { id: "w1", label: "Draft", status: "upcoming" },
+    { id: "w2", label: "Review", status: "upcoming" },
+    { id: "w3", label: "Scheduled", status: "upcoming" },
+    { id: "w4", label: "Publish", status: "upcoming" },
+  ]
+
+  if (drafts + review + scheduled === 0) {
+    return steps.map((s) => ({ ...s, status: "upcoming" as const }))
+  }
+
+  // Mark earlier stages done when later stages have work; current = first with items.
+  if (drafts > 0) {
+    steps[0]!.status = "current"
+    steps[0]!.label = `Draft (${drafts})`
+  } else {
+    steps[0]!.status = "done"
+  }
+
+  if (review > 0) {
+    if (steps[0]!.status === "current") {
+      steps[1]!.status = "upcoming"
+    } else {
+      steps[1]!.status = "current"
+    }
+    steps[1]!.label = `Review (${review})`
+    if (drafts === 0) steps[0]!.status = "done"
+  } else if (drafts === 0) {
+    steps[1]!.status = "done"
+  }
+
+  if (scheduled > 0) {
+    const earlierCurrent = steps.some(
+      (s, i) => i < 2 && s.status === "current",
+    )
+    steps[2]!.status = earlierCurrent ? "upcoming" : "current"
+    steps[2]!.label = `Scheduled (${scheduled})`
+    if (!earlierCurrent) {
+      steps[0]!.status = "done"
+      steps[1]!.status = "done"
+    }
+  } else if (drafts === 0 && review === 0) {
+    steps[2]!.status = "done"
+  }
+
+  return steps
+}
+
 export async function listWorkflowQueue(params: {
   query?: string
   status?: string

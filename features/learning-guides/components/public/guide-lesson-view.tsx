@@ -2,6 +2,11 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { prepareArticleHtml } from "@/features/articles";
+import {
+  contentHref,
+  contentLessonHref,
+  type ContentScope,
+} from "@/lib/content-paths";
 import type {
   GuideLessonRecord,
   GuideRecord,
@@ -19,6 +24,7 @@ export function GuideLessonView({
   related,
   structuredData,
   breadcrumbJsonLd,
+  scope = "public",
 }: {
   guide: GuideRecord;
   lesson: GuideLessonRecord;
@@ -27,6 +33,7 @@ export function GuideLessonView({
   related: RecommendationItem[];
   structuredData?: Record<string, unknown> | null;
   breadcrumbJsonLd?: Record<string, unknown> | null;
+  scope?: ContentScope;
 }) {
   const { html } = prepareArticleHtml(lesson.content || "");
   const excerpt =
@@ -57,13 +64,17 @@ export function GuideLessonView({
           <div className="sticky top-24">
             <p className="mb-2 text-xs text-muted-foreground">
               <Link
-                href={`/guides/${guide.slug}`}
+                href={contentHref("guide", guide.slug, { scope })}
                 className="hover:text-foreground hover:underline"
               >
                 {guide.title}
               </Link>
             </p>
-            <GuideLessonNav guide={guide} currentLessonSlug={lesson.slug} />
+            <GuideLessonNav
+              guide={guide}
+              currentLessonSlug={lesson.slug}
+              scope={scope}
+            />
           </div>
         </aside>
 
@@ -73,14 +84,18 @@ export function GuideLessonView({
               Lesson navigation
             </summary>
             <div className="mt-3">
-              <GuideLessonNav guide={guide} currentLessonSlug={lesson.slug} />
+              <GuideLessonNav
+                guide={guide}
+                currentLessonSlug={lesson.slug}
+                scope={scope}
+              />
             </div>
           </details>
 
           <header className="max-w-3xl">
             <p className="text-sm text-muted-foreground">
               <Link
-                href={`/guides/${guide.slug}`}
+                href={contentHref("guide", guide.slug, { scope })}
                 className="text-primary hover:underline"
               >
                 {guide.title}
@@ -132,7 +147,7 @@ export function GuideLessonView({
           <div className="mt-10 grid max-w-3xl gap-4 sm:grid-cols-2">
             {prev ? (
               <Link
-                href={`/guides/${guide.slug}/lessons/${prev.slug}`}
+                href={contentLessonHref(guide.slug, prev.slug, { scope })}
                 className="rounded-lg border border-border p-4 transition-colors hover:border-primary/40"
               >
                 <p className="text-xs text-muted-foreground">Previous</p>
@@ -143,7 +158,7 @@ export function GuideLessonView({
             )}
             {next ? (
               <Link
-                href={`/guides/${guide.slug}/lessons/${next.slug}`}
+                href={contentLessonHref(guide.slug, next.slug, { scope })}
                 className="rounded-lg border border-border p-4 text-right transition-colors hover:border-primary/40 sm:justify-self-end"
               >
                 <p className="text-xs text-muted-foreground">Next</p>
@@ -151,7 +166,9 @@ export function GuideLessonView({
               </Link>
             ) : (
               <Button asChild variant="outline" className="justify-self-end">
-                <Link href={`/guides/${guide.slug}`}>Guide overview</Link>
+                <Link href={contentHref("guide", guide.slug, { scope })}>
+                  Guide overview
+                </Link>
               </Button>
             )}
           </div>
@@ -163,6 +180,7 @@ export function GuideLessonView({
             lessonTitle={lesson.title}
             lessonExcerpt={excerpt}
             related={related}
+            scope={scope}
           />
         </div>
 

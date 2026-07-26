@@ -3,6 +3,12 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AskContextualWidget } from "@/features/ask-mendanize";
+import {
+  contentHref,
+  contentLessonHref,
+  contentListHref,
+  type ContentScope,
+} from "@/lib/content-paths";
 import type { GuideRecord } from "@/services/content";
 import { flattenGuideLessons } from "@/services/content";
 import type { RecommendationItem } from "@/services/recommendations";
@@ -14,11 +20,13 @@ export function GuideOverviewView({
   related,
   structuredData,
   breadcrumbJsonLd,
+  scope = "public",
 }: {
   guide: GuideRecord;
   related: RecommendationItem[];
   structuredData?: Record<string, unknown> | null;
   breadcrumbJsonLd?: Record<string, unknown> | null;
+  scope?: ContentScope;
 }) {
   const lessons = flattenGuideLessons(guide);
   const firstLesson = lessons[0] ?? null;
@@ -49,14 +57,16 @@ export function GuideOverviewView({
               {guide.categoryName ? (
                 guide.categorySlug ? (
                   <Link
-                    href={`/categories/${guide.categorySlug}`}
+                    href={contentHref("category", guide.categorySlug, {
+                      scope,
+                    })}
                     className="font-medium text-primary hover:underline"
                   >
                     {guide.categoryName}
                   </Link>
                 ) : (
                   <Link
-                    href="/categories"
+                    href={contentListHref("category", { scope })}
                     className="font-medium text-primary hover:underline"
                   >
                     {guide.categoryName}
@@ -66,7 +76,7 @@ export function GuideOverviewView({
               {guide.topicName ? (
                 guide.topicSlug ? (
                   <Link
-                    href={`/topics/${guide.topicSlug}`}
+                    href={contentHref("topic", guide.topicSlug, { scope })}
                     className="text-muted-foreground hover:text-foreground hover:underline"
                   >
                     · {guide.topicName}
@@ -172,7 +182,9 @@ export function GuideOverviewView({
                     {section.lessons.map((lesson, li) => (
                       <li key={lesson.id}>
                         <Link
-                          href={`/guides/${guide.slug}/lessons/${lesson.slug}`}
+                          href={contentLessonHref(guide.slug, lesson.slug, {
+                            scope,
+                          })}
                           className="flex items-baseline justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm transition-colors hover:border-primary/40"
                         >
                           <span className="font-medium text-foreground">
@@ -194,14 +206,16 @@ export function GuideOverviewView({
             {firstLesson ? (
               <Button asChild size="lg">
                 <Link
-                  href={`/guides/${guide.slug}/lessons/${firstLesson.slug}`}
+                  href={contentLessonHref(guide.slug, firstLesson.slug, {
+                    scope,
+                  })}
                 >
                   Start learning
                 </Link>
               </Button>
             ) : null}
             <Button asChild variant="outline" size="lg">
-              <Link href="/guides">All guides</Link>
+              <Link href={contentListHref("guide", { scope })}>All guides</Link>
             </Button>
           </div>
 

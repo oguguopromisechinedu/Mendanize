@@ -5,6 +5,7 @@ import {
 } from "@/features/admin-dashboard";
 import type { AnalyticsOverview } from "@/services/analytics";
 import { AnalyticsNav } from "./analytics-nav";
+import { InstrumentationToggle } from "./instrumentation-toggle";
 
 export function AnalyticsOverviewView({ data }: { data: AnalyticsOverview }) {
   return (
@@ -12,16 +13,21 @@ export function AnalyticsOverviewView({ data }: { data: AnalyticsOverview }) {
       <AdminPageHeader
         title="Analytics overview"
         description={data.sourceNote}
+        actions={<InstrumentationToggle enabled={data.instrumentationEnabled} />}
       />
       <AnalyticsNav />
 
       {!data.instrumentationEnabled ? (
         <p className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-          Production event instrumentation is disabled. Capture API exists on{" "}
-          <code className="text-xs">captureAnalyticsEvent</code>; modules will
-          write when wired.
+          Event instrumentation is off. Enable it to record page views, then run
+          the analytics rollup automation job to refresh domain widgets.
         </p>
-      ) : null}
+      ) : (
+        <p className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          Instrumentation is on — page views are collected via{" "}
+          <code className="text-xs">/api/analytics/collect</code>.
+        </p>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {data.stats.map((s) => (

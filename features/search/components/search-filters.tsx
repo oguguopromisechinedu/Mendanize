@@ -27,10 +27,13 @@ export function SearchFilters({
   state,
   categories,
   topics,
+  basePath = "/search",
 }: {
   state: SearchFiltersState;
   categories: Array<{ slug: string; name: string }>;
   topics: Array<{ slug: string; name: string }>;
+  /** Search page path — account search uses /account/search */
+  basePath?: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -49,7 +52,7 @@ export function SearchFilters({
     if (merged.from) params.set("from", merged.from);
     if (merged.to) params.set("to", merged.to);
     startTransition(() => {
-      router.push(`/search?${params.toString()}`);
+      router.push(`${basePath}?${params.toString()}`);
     });
   }
 
@@ -63,7 +66,7 @@ export function SearchFilters({
   function clear() {
     const q = searchParams.get("q") ?? state.q;
     startTransition(() => {
-      router.push(q ? `/search?q=${encodeURIComponent(q)}` : "/search");
+      router.push(q ? `${basePath}?q=${encodeURIComponent(q)}` : basePath);
     });
   }
 

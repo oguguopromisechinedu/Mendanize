@@ -3,6 +3,12 @@ import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  contentHref,
+  contentListHref,
+  contentSearchHref,
+  type ContentScope,
+} from "@/lib/content-paths";
 import type {
   ArticleSummary,
   GuideSummary,
@@ -16,12 +22,14 @@ export function PublicTopicDetailView({
   articles,
   guides,
   tools,
+  scope = "public",
 }: {
   topic: TopicDetail;
   categorySlug?: string | null;
   articles: ArticleSummary[];
   guides: GuideSummary[];
   tools: ToolSummary[];
+  scope?: ContentScope;
 }) {
   return (
     <div className="mx-auto max-w-5xl">
@@ -45,7 +53,7 @@ export function PublicTopicDetailView({
           <Badge variant="outline">Topic</Badge>
           {topic.categoryName && categorySlug ? (
             <Link
-              href={`/categories/${categorySlug}`}
+              href={contentHref("category", categorySlug, { scope })}
               className="text-xs text-muted-foreground hover:text-primary"
             >
               {topic.categoryName}
@@ -66,10 +74,12 @@ export function PublicTopicDetailView({
         ) : null}
         <div className="mt-6 flex flex-wrap gap-3">
           <Button asChild>
-            <Link href="/guides">Related guides</Link>
+            <Link href={contentListHref("guide", { scope })}>
+              Related guides
+            </Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href="/search">Search this topic</Link>
+            <Link href={contentSearchHref({ scope })}>Search this topic</Link>
           </Button>
         </div>
       </header>
@@ -81,7 +91,7 @@ export function PublicTopicDetailView({
             {articles.map((article) => (
               <li key={article.id}>
                 <Link
-                  href={`/articles/${article.slug}`}
+                  href={contentHref("article", article.slug, { scope })}
                   className="text-foreground hover:text-primary"
                 >
                   {article.title}
@@ -99,7 +109,7 @@ export function PublicTopicDetailView({
             {guides.map((guide) => (
               <li key={guide.id}>
                 <Link
-                  href={`/guides/${guide.slug}`}
+                  href={contentHref("guide", guide.slug, { scope })}
                   className="text-foreground hover:text-primary"
                 >
                   {guide.title}
@@ -117,7 +127,7 @@ export function PublicTopicDetailView({
             {tools.map((tool) => (
               <li key={tool.id}>
                 <Link
-                  href={`/ai-tools/${tool.slug}`}
+                  href={contentHref("ai_tool", tool.slug, { scope })}
                   className="text-foreground hover:text-primary"
                 >
                   {tool.name}

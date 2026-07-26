@@ -68,9 +68,12 @@ export async function requirePublicUser() {
   return getPublicSession();
 }
 
-/** Authenticated Admin or null. */
+/** Authenticated Admin with administrator-tier role (ADMINISTRATOR+). */
 export async function requireAdmin() {
-  return getAdminSession();
+  const session = await getAdminSession();
+  if (!session) return null;
+  if (!isAdminRoleKey(session.admin.roleKey)) return null;
+  return session;
 }
 
 /** Admin with dashboard.access (or any staff role). */

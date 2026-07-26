@@ -36,6 +36,9 @@ type PageShellProps = {
   hero?: ReactNode
   /** Skip default title/description header (custom page headers) */
   hideHeader?: boolean
+  /** Breadcrumb root — defaults to public homepage; account pages use /account */
+  homeHref?: string
+  homeLabel?: string
 }
 
 /**
@@ -51,6 +54,8 @@ export function PageShell({
   className,
   hero,
   hideHeader = false,
+  homeHref = "/",
+  homeLabel = "Home",
 }: PageShellProps) {
   return (
     <div className={cn("pb-[var(--space-16)]", className)}>
@@ -60,7 +65,7 @@ export function PageShell({
           <Breadcrumb className="mb-6">
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/">Home</BreadcrumbLink>
+                <BreadcrumbLink href={homeHref}>{homeLabel}</BreadcrumbLink>
               </BreadcrumbItem>
               {crumbs.map((crumb, index) => {
                 const isLast = index === crumbs.length - 1

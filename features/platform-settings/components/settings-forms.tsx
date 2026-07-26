@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select } from "@/components/ui/select";
+import { AdminTotpEnrollPanel } from "@/features/authentication/components/admin-totp-enroll-panel";
 import type {
   AIPlatformSettingRecord,
   AuthenticationSettingRecord,
@@ -30,7 +31,7 @@ import type {
   SearchPlatformSettingRecord,
   SecuritySettingRecord,
 } from "@/services/settings/platform-types";
-import { AI_PROVIDERS } from "../constants/constants";
+import { AI_IMAGE_PROVIDERS, AI_TEXT_PROVIDERS } from "../constants/constants";
 import {
   saveAiSettingsAction,
   saveAuthSettingsAction,
@@ -192,15 +193,17 @@ export function LocalizationSettingsView({
 
 export function AuthSettingsView({
   settings,
+  totpEnabled = false,
 }: {
   settings: AuthenticationSettingRecord;
+  totpEnabled?: boolean;
 }) {
   const { pending, run } = useSave();
   const [form, setForm] = useState({ ...settings });
   return (
     <SettingsShell
       title="Authentication settings"
-      description="Configuration surface over MES-006 — not a reimplementation of auth."
+      description="Public registration, sessions, and admin two-factor authentication."
       pending={pending}
       onSave={() => run(() => saveAuthSettingsAction(form))}
     >
@@ -210,7 +213,7 @@ export function AuthSettingsView({
         onChange={(v) => setForm((p) => ({ ...p, registrationEnabled: v }))}
       />
       <ToggleRow
-        label="Email verification"
+        label="Email verification emails (optional — does not block sign-in)"
         checked={form.emailVerification}
         onChange={(v) => setForm((p) => ({ ...p, emailVerification: v }))}
       />
@@ -220,9 +223,9 @@ export function AuthSettingsView({
         onChange={(v) => setForm((p) => ({ ...p, rememberMeEnabled: v }))}
       />
       <ToggleRow
-        label="2FA placeholder"
-        checked={form.twoFactorPlaceholder}
-        onChange={(v) => setForm((p) => ({ ...p, twoFactorPlaceholder: v }))}
+        label="Encourage Admin 2FA enrollment"
+        checked={form.twoFactorRequired}
+        onChange={(v) => setForm((p) => ({ ...p, twoFactorRequired: v }))}
       />
       <div className="mt-4 space-y-1.5">
         <Label>Session timeout (minutes)</Label>
@@ -247,6 +250,9 @@ export function AuthSettingsView({
           rows={3}
         />
       </div>
+      <div className="mt-6">
+        <AdminTotpEnrollPanel totpEnabled={totpEnabled} />
+      </div>
     </SettingsShell>
   );
 }
@@ -262,7 +268,7 @@ export function AiSettingsView({ settings }: { settings: AIPlatformSettingRecord
   return (
     <SettingsShell
       title="AI settings"
-      description="Canonical AI configuration for AI Studio and Ask Mendanize. At v1.0 only OpenAI is live (OPENAI_API_KEY); Claude, Gemini, and Grok remain adapter stubs."
+      description="Ownership lock: Anthropic generates all article text; OpenAI generates all images (cover, inline, Studio)."
       pending={pending}
       onSave={() => {
         let models: Record<string, string> = settings.models;
@@ -292,11 +298,11 @@ export function AiSettingsView({ settings }: { settings: AIPlatformSettingRecord
       <div className="grid gap-4 sm:grid-cols-2">
         {(
           [
-            ["defaultTextProvider", "Writing provider"],
-            ["defaultImageProvider", "Image provider"],
-            ["defaultVideoProvider", "Video provider"],
+            ["defaultTextProvider", "Writing provider (Anthropic)", AI_TEXT_PROVIDERS],
+            ["defaultImageProvider", "Image provider (OpenAI)", AI_IMAGE_PROVIDERS],
+            ["defaultVideoProvider", "Video provider", ["video_tbd", "local_mock"] as const],
           ] as const
-        ).map(([key, label]) => (
+        ).map(([key, label, options]) => (
           <div key={key} className="space-y-1.5">
             <Label>{label}</Label>
             <Select
@@ -305,7 +311,7 @@ export function AiSettingsView({ settings }: { settings: AIPlatformSettingRecord
                 setForm((p) => ({ ...p, [key]: e.target.value }))
               }
             >
-              {AI_PROVIDERS.map((p) => (
+              {options.map((p) => (
                 <option key={p} value={p}>
                   {p}
                 </option>
@@ -426,7 +432,7 @@ export function EmailSettingsView({ settings }: { settings: EmailSettingRecord }
   return (
     <SettingsShell
       title="Email settings"
-      description="Sender identity and SMTP/template placeholders — no live SMTP in this phase."
+      description="Sender identity and delivery. Uses RESEND_API_KEY when set; otherwise SMTP below."
       pending={pending}
       onSave={() => run(() => saveEmailSettingsAction(form))}
     >
@@ -438,16 +444,56 @@ export function EmailSettingsView({ settings }: { settings: EmailSettingRecord }
         form={form as unknown as Record<string, string>}
         setForm={setForm as unknown as Dispatch<SetStateAction<Record<string, string>>>}
       />
-      <div className="mt-4 space-y-1.5">
-        <Label>SMTP placeholder</Label>
-        <Textarea
-          value={form.smtpPlaceholder ?? ""}
-          onChange={(e) =>
-            setForm((p) => ({ ...p, smtpPlaceholder: e.target.value }))
-          }
-          rows={3}
-        />
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label>SMTP host</Label>
+          <Input
+            value={form.smtpHost ?? ""}
+            onChange={(e) =>
+              setForm((p) => ({ ...p, smtpHost: e.target.value || null }))
+            }
+            placeholder="smtp.example.com"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>SMTP port</Label>
+          <Input
+            type="number"
+            value={form.smtpPort ?? 587}
+            onChange={(e) =>
+              setForm((p) => ({
+                ...p,
+                smtpPort: Number(e.target.value) || 587,
+              }))
+            }
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>SMTP user</Label>
+          <Input
+            value={form.smtpUser ?? ""}
+            onChange={(e) =>
+              setForm((p) => ({ ...p, smtpUser: e.target.value || null }))
+            }
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>SMTP password</Label>
+          <Input
+            type="password"
+            value={form.smtpPassword ?? ""}
+            onChange={(e) =>
+              setForm((p) => ({ ...p, smtpPassword: e.target.value || null }))
+            }
+            autoComplete="new-password"
+          />
+        </div>
       </div>
+      <ToggleRow
+        label="SMTP secure (TLS/SSL)"
+        checked={form.smtpSecure ?? false}
+        onChange={(v) => setForm((p) => ({ ...p, smtpSecure: v }))}
+      />
       <div className="mt-4 space-y-1.5">
         <Label>Templates note</Label>
         <Textarea

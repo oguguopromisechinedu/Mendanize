@@ -61,7 +61,7 @@ export function GenerateImageView({
     <div className="mx-auto max-w-5xl space-y-6">
       <AdminPageHeader
         title="Generate image"
-        description="OpenAI DALL·E generates visuals for articles and the media library. Select an output and save via the Media Service."
+        description="OpenAI owns every image — covers, figures, illustrations, and media-library assets."
         actions={
           <Button asChild size="sm" variant="outline">
             <Link href="/dashboard/media">Open Media</Link>

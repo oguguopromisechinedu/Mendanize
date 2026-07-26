@@ -29,7 +29,7 @@ export function ToolsSection({
         titleOverride={titleOverride}
         description="Curated directory entries — full profiles land in MES-027."
       />
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 lg:grid-cols-3">
         {items.map((item) => (
           <Card key={item.id} className="flex h-full flex-col">
             <CardHeader>

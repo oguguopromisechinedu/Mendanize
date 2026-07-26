@@ -31,7 +31,7 @@ export function PathsSection({
         titleOverride={titleOverride}
         description="Guided sequences with clear difficulty and time expectations."
       />
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 lg:grid-cols-3">
         {items.map((item) => (
           <Card key={item.id} className="flex h-full flex-col">
             <CardHeader>

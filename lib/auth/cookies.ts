@@ -3,12 +3,14 @@
 const isProd = process.env.NODE_ENV === "production";
 
 export function sessionCookieOptions(name: string) {
+  const isAdminCookie = name.includes(".admin.");
   return {
     sessionToken: {
       name,
       options: {
         httpOnly: true,
-        sameSite: "lax" as const,
+        // Admin surface prefers strict CSRF posture; public keeps lax for OAuth returns.
+        sameSite: (isAdminCookie ? "strict" : "lax") as "strict" | "lax",
         path: "/",
         secure: isProd,
       },

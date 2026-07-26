@@ -9,6 +9,8 @@ import { RecommendationEntityKind } from "@prisma/client";
 
 import { getPrisma, isDatabaseConfigured } from "@/lib/db/prisma";
 import { AuthorizationError, ValidationError } from "@/lib/api/errors";
+import { contentHref } from "@/lib/content-paths";
+import { resolveFeaturedPublishedContent } from "@/services/content/featured-published";
 import {
   getRecommendations,
   recordContentView,
@@ -55,18 +57,8 @@ const KIND_FROM: Record<RecommendationEntityKind, RecommendationEntityType> = {
 };
 
 function hrefFor(type: RecommendationEntityType, slug: string): string {
-  switch (type) {
-    case "article":
-      return `/articles/${slug}`;
-    case "guide":
-      return `/guides/${slug}`;
-    case "ai_tool":
-      return `/ai-tools/${slug}`;
-    case "category":
-      return `/categories/${slug}`;
-    case "topic":
-      return `/topics/${slug}`;
-  }
+  // Learning service is account-only — keep learners inside LearnerShell.
+  return contentHref(type, slug, { scope: "account" });
 }
 
 function parseJsonIds(raw: string | null | undefined): string[] {
@@ -123,94 +115,80 @@ async function resolveTitles(
   return map;
 }
 
-/** Placeholder continue-learning cards when no LearningProgress rows yet. */
-async function seedPlaceholderProgress(
-  userId: string,
-): Promise<ContinueLearningCard[]> {
-  if (!isDatabaseConfigured()) {
-    return [
-      {
-        id: "placeholder-1",
-        guideId: "local",
-        title: "Introduction to AI Literacy",
-        slug: "ai-literacy",
-        href: "/guides/ai-literacy",
-        lastLessonTitle: "What is machine learning?",
-        completedLessons: 2,
-        totalLessons: 6,
-        remainingLessons: 4,
-        estimatedMinutesLeft: 45,
-        percentComplete: 33,
-        lastOpenedAt: new Date().toISOString(),
-      },
-    ];
-  }
-
-  const published = await db().guide.findMany({
-    where: { status: "PUBLISHED" },
-    orderBy: { updatedAt: "desc" },
-    take: 3,
-    select: { id: true, title: true, slug: true },
-  });
-
-  if (published.length === 0) return [];
-
-  const cards: ContinueLearningCard[] = [];
-  for (const [i, g] of published.entries()) {
-    const completed = Math.min(i + 1, 4);
-    const total = 6;
-    const percent = Math.round((completed / total) * 100);
-    const row = await db().learningProgress.upsert({
-      where: { publicUserId_guideId: { publicUserId: userId, guideId: g.id } },
-      create: {
-        publicUserId: userId,
-        guideId: g.id,
-        lastLessonTitle: `Lesson ${completed}: Getting started`,
-        completedLessons: completed,
-        totalLessons: total,
-        estimatedMinutesLeft: (total - completed) * 12,
-        percentComplete: percent,
-        lastOpenedAt: new Date(Date.now() - i * 86400000),
-      },
-      update: {},
-    });
-    cards.push({
-      id: row.id,
-      guideId: g.id,
-      title: g.title,
-      slug: g.slug,
-      href: hrefFor("guide", g.slug),
-      lastLessonTitle: row.lastLessonTitle ?? "Lesson",
-      completedLessons: row.completedLessons,
-      totalLessons: row.totalLessons,
-      remainingLessons: Math.max(0, row.totalLessons - row.completedLessons),
-      estimatedMinutesLeft: row.estimatedMinutesLeft,
-      percentComplete: row.percentComplete,
-      lastOpenedAt: row.lastOpenedAt.toISOString(),
-    });
-  }
-  return cards;
-}
-
+/** Continue learning from real learner progress against Admin-published guides only. */
 export async function listContinueLearning(
   userId: string,
 ): Promise<ContinueLearningCard[]> {
-  if (!isDatabaseConfigured()) {
-    return seedPlaceholderProgress(userId);
+  if (!isDatabaseConfigured()) return [];
+
+  const guideProgress = await db().guideProgress.findMany({
+    where: { publicUserId: userId },
+    orderBy: { updatedAt: "desc" },
+    take: 12,
+  });
+
+  if (guideProgress.length > 0) {
+    const guides = await db().guide.findMany({
+      where: {
+        id: { in: guideProgress.map((r) => r.guideId) },
+        status: "PUBLISHED",
+      },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        sections: {
+          select: {
+            lessons: { select: { id: true, title: true, sortOrder: true } },
+          },
+        },
+      },
+    });
+    const byId = new Map(guides.map((g) => [g.id, g]));
+
+    return guideProgress
+      .map((row) => {
+        const g = byId.get(row.guideId);
+        if (!g) return null;
+        const lessons = g.sections
+          .flatMap((s) => s.lessons)
+          .sort((a, b) => a.sortOrder - b.sortOrder);
+        const total = Math.max(1, lessons.length);
+        const completed = row.completedLessonIds?.length ?? 0;
+        const lastLesson =
+          lessons.find((l) => l.id === row.lastLessonId)?.title ??
+          (completed > 0 ? `Lesson ${completed}` : "Start learning");
+        return {
+          id: row.id,
+          guideId: row.guideId,
+          title: g.title,
+          slug: g.slug,
+          href: hrefFor("guide", g.slug),
+          lastLessonTitle: lastLesson,
+          completedLessons: completed,
+          totalLessons: total,
+          remainingLessons: Math.max(0, total - completed),
+          estimatedMinutesLeft: Math.max(0, total - completed) * 8,
+          percentComplete: row.percentComplete,
+          lastOpenedAt: row.updatedAt.toISOString(),
+        } satisfies ContinueLearningCard;
+      })
+      .filter(Boolean) as ContinueLearningCard[];
   }
 
+  // Legacy LearningProgress rows only — never invent placeholder progress.
   const rows = await db().learningProgress.findMany({
     where: { publicUserId: userId },
     orderBy: { lastOpenedAt: "desc" },
     take: 12,
   });
-
-  if (rows.length === 0) {
-    return seedPlaceholderProgress(userId);
-  }
+  if (rows.length === 0) return [];
 
   const guides = await db().guide.findMany({
-    where: { id: { in: rows.map((r) => r.guideId) } },
+    where: {
+      id: { in: rows.map((r) => r.guideId) },
+      status: "PUBLISHED",
+    },
     select: { id: true, title: true, slug: true },
   });
   const byId = new Map(guides.map((g) => [g.id, g]));
@@ -699,30 +677,83 @@ export async function deleteLearningGoal(
 }
 
 export async function getLearningStats(userId: string): Promise<LearningStats> {
-  if (!isDatabaseConfigured()) {
-    return {
-      savedCount: 0,
-      historyCount: 0,
-      interestCount: 0,
-      continueCount: 0,
-      streakDaysPlaceholder: 0,
-      weeklyGoalPlaceholder: "Set a weekly goal in Preferences",
-    };
-  }
-  const [savedCount, historyCount, interestCount, continueCount] =
+  const empty: LearningStats = {
+    savedCount: 0,
+    historyCount: 0,
+    interestCount: 0,
+    continueCount: 0,
+    completedPathsCount: 0,
+    certificatesCount: 0,
+    streakDays: 0,
+    dailyGoalPercent: 0,
+    dailyGoalLabel: "Set a daily goal in Preferences",
+    weeklyActivity: [0, 0, 0, 0, 0, 0, 0],
+  };
+
+  if (!isDatabaseConfigured()) return empty;
+
+  const [savedCount, historyCount, interestCount, continueCount, history] =
     await Promise.all([
       db().savedContent.count({ where: { publicUserId: userId } }),
       db().learningHistory.count({ where: { publicUserId: userId } }),
       db().userInterest.count({ where: { publicUserId: userId } }),
-      db().learningProgress.count({ where: { publicUserId: userId } }),
+      db().guideProgress.count({ where: { publicUserId: userId } }),
+      db().learningHistory.findMany({
+        where: { publicUserId: userId },
+        orderBy: { viewedAt: "desc" },
+        take: 200,
+        select: { viewedAt: true },
+      }),
     ]);
+
+  const [completedPathsCount, certificatesCount, activeGoals] =
+    await Promise.all([
+      db().guideProgress.count({
+        where: { publicUserId: userId, completedAt: { not: null } },
+      }),
+      db().certificate.count({ where: { publicUserId: userId } }),
+      db().learningGoal.count({
+        where: { publicUserId: userId, isActive: true },
+      }),
+    ]);
+
+  const days = new Set(
+    history.map((h) => h.viewedAt.toISOString().slice(0, 10)),
+  );
+  let streak = 0;
+  const cursor = new Date();
+  for (;;) {
+    const key = cursor.toISOString().slice(0, 10);
+    if (!days.has(key)) break;
+    streak += 1;
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+
+  const weeklyActivity = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() - (6 - i));
+    const key = d.toISOString().slice(0, 10);
+    return history.filter((h) => h.viewedAt.toISOString().slice(0, 10) === key)
+      .length;
+  });
+
+  const dailyGoalPercent =
+    activeGoals > 0 ? Math.min(100, Math.round((streak > 0 ? 1 : 0) * 100)) : 0;
+
   return {
     savedCount,
     historyCount,
     interestCount,
     continueCount,
-    streakDaysPlaceholder: 0,
-    weeklyGoalPlaceholder: "Weekly goal tracking arrives in a later spec",
+    completedPathsCount,
+    certificatesCount,
+    streakDays: streak,
+    dailyGoalPercent,
+    dailyGoalLabel:
+      activeGoals > 0
+        ? `${activeGoals} active learning goal${activeGoals === 1 ? "" : "s"}`
+        : "Set a daily goal in Preferences",
+    weeklyActivity,
   };
 }
 
@@ -734,6 +765,7 @@ export async function getRecommendedForLearner(
     contextType: "user",
     contextId: userId,
     limit,
+    hrefScope: "account",
   });
   return result.items;
 }
@@ -742,14 +774,21 @@ export async function getLearningDashboard(input: {
   userId: string;
   userName?: string | null;
 }): Promise<LearningDashboard> {
-  const [stats, continueLearning, recentlyViewed, savedPreview, recommendations] =
-    await Promise.all([
-      getLearningStats(input.userId),
-      listContinueLearning(input.userId),
-      listLearningHistory(input.userId, { limit: 6 }),
-      listSavedContent(input.userId, { sort: "newest" }),
-      getRecommendedForLearner(input.userId, 6),
-    ]);
+  const [
+    stats,
+    continueLearning,
+    recentlyViewed,
+    savedPreview,
+    recommendations,
+    featuredFromHomepage,
+  ] = await Promise.all([
+    getLearningStats(input.userId),
+    listContinueLearning(input.userId),
+    listLearningHistory(input.userId, { limit: 6 }),
+    listSavedContent(input.userId, { sort: "newest" }),
+    getRecommendedForLearner(input.userId, 6),
+    resolveFeaturedPublishedContent(),
+  ]);
 
   return {
     userName: input.userName ?? null,
@@ -758,5 +797,6 @@ export async function getLearningDashboard(input: {
     recentlyViewed,
     savedPreview: savedPreview.slice(0, 4),
     recommendations,
+    featuredFromHomepage,
   };
 }

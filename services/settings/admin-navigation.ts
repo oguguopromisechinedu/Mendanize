@@ -46,6 +46,11 @@ export const SEEDED_ADMIN_NAVIGATION: AdminNavigationConfig = {
         { label: "Media Library", href: "/dashboard/media", icon: "image" },
         { label: "Pages", href: "/dashboard/pages", icon: "layout" },
         { label: "Comments", href: "/dashboard/comments", icon: "message-square" },
+        { label: "Prompt Library", href: "/dashboard/prompt-library", icon: "message-square-text" },
+        { label: "Project Templates", href: "/dashboard/project-templates", icon: "folder-kanban" },
+        { label: "Certificates", href: "/dashboard/certificates", icon: "award" },
+        { label: "Featured Learning", href: "/dashboard/featured-learning", icon: "star" },
+        { label: "Workspace Presets", href: "/dashboard/workspace-presets", icon: "code-2" },
       ],
     },
     {
@@ -68,6 +73,11 @@ export const SEEDED_ADMIN_NAVIGATION: AdminNavigationConfig = {
         { label: "Notifications", href: "/dashboard/notifications", icon: "bell" },
         { label: "Subscribers", href: "/dashboard/subscribers", icon: "users" },
         { label: "Analytics", href: "/dashboard/analytics", icon: "bar-chart-3" },
+        {
+          label: "Community",
+          href: "/dashboard/community",
+          icon: "message-square",
+        },
       ],
     },
     {

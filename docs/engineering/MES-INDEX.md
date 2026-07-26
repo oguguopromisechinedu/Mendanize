@@ -1,60 +1,60 @@
-# Mendanize Engineering Specifications — Master Index (Final, v1.5)
+# Mendanize Engineering Specifications — Master Index (Final, v1.8)
 
-Complete sequence — **MES-001 through MES-035**, plus MSEM Appendix A. This supersedes every earlier draft. **Note:** per the build history, MES-001–028 were already implemented by Cursor and a v1.0 Production Readiness Report (MES-029) was produced before MES-030 (Dual Authentication) was introduced. MES-030 is therefore a **retrofit** against the live codebase, not greenfield — see MES-030 and the updated MES-006 for what that means in practice. Specs MES-031–035 extend the platform after that baseline. Every other spec in this index has been updated in place to reference `PublicUser`/`Admin` explicitly wherever it previously said "user," "authenticated," or implied a single shared session.
-
-**Operational status:** [MES-DOCUMENTS-STATUS.md](../MES-DOCUMENTS-STATUS.md) — use that table to know what is Complete vs next to implement.
+Complete sequence — MES-001 through MES-030, plus MSEM Appendix A. This supersedes every earlier draft. **Note:** per the build history, MES-001–028 were already implemented by Cursor and a v1.0 Production Readiness Report was produced before MES-030 (Dual Authentication) was introduced. MES-030 is therefore a **retrofit** against the live codebase, not greenfield — see MES-030 and the updated MES-006 for what that means in practice. Every other spec in this v1.1 index has been updated in place to reference `PublicUser`/`Admin` explicitly wherever it previously said "user," "authenticated," or implied a single shared session.
 
 ---
 
 ## HOW TO USE THIS
 
-1. Give Cursor / contributors **this index first**, then [MES-DOCUMENTS-STATUS.md](../MES-DOCUMENTS-STATUS.md), then [Project-Rules.md](../core/Project-Rules.md) + Appendix A.
-2. Proceed **spec by spec in numerical order**. Each spec states its own dependencies — don't skip ahead.
-3. Confirm folder ownership in [Module-Map.md](../architecture/Module-Map.md) and routes in [App-Router-Paths.md](../architecture/App-Router-Paths.md).
-4. Meet ACCEPTANCE CRITERIA, honour WHAT NOT TO BUILD, then **STOP** and wait for approval before the next MES.
+Save every file to `docs/` (including `MSEM-Appendix-A-Engineering-Standards.md`). Give Cursor this index first, then proceed spec by spec in order. Each spec states its own dependencies — don't skip ahead.
 
 ---
 
 ## THE SEQUENCE
 
-| #          | Title                                                                                                | Layer                                                        |
-| ---------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Appendix A | Engineering Standards (Accessibility, Responsive, Performance, SEO, Code Quality, Security, Testing) | Referenced by every spec                                     |
-| MES-001    | Project Foundation & Product Vision                                                                  | Foundation                                                   |
-| MES-002    | Shared Services & API Architecture                                                                   | Foundation                                                   |
-| MES-003    | Design System                                                                                        | Foundation                                                   |
-| MES-004    | Public Website Structure & Global Navigation                                                         | Foundation                                                   |
-| MES-005    | Premium Homepage Experience                                                                          | Foundation                                                   |
-| MES-006    | Authentication & Authorization Foundation (v2.0 — dual-domain aware)                                 | Foundation                                                   |
-| MES-007    | Enterprise Admin Dashboard Architecture (v3.0 — Platform Services–integrated)                        | Foundation                                                   |
-| MES-008    | Article Management System (CMS)                                                                      | Content Module                                               |
-| MES-009    | Categories & Topics Management                                                                       | Content Module                                               |
-| MES-010    | Learning Guides Management                                                                           | Content Module                                               |
-| MES-011    | Admin AI Studio (Content Generation)                                                                 | Content Module                                               |
-| MES-012    | AI Tools Management                                                                                  | Content Module                                               |
-| MES-013    | Homepage Content Management System                                                                   | Content Module                                               |
-| MES-014    | Media Library & Digital Asset Management                                                             | Content Module                                               |
-| MES-015    | SEO & Metadata Management (SEO Center)                                                               | Content Module                                               |
-| MES-016    | Navigation & Menu Management (Navbar Manager)                                                        | Content Module                                               |
-| MES-017    | Search & Discovery Engine                                                                            | Platform Service                                             |
-| MES-018    | Recommendations Engine                                                                               | Platform Service                                             |
-| MES-019    | Ask Mendanize AI Platform                                                                            | Platform Service                                             |
-| MES-020    | Platform Settings & Configuration                                                                    | Platform Service                                             |
-| MES-021    | Billing & Subscriptions                                                                              | Platform Service                                             |
-| MES-022    | User Learning Experience & Personalization                                                           | User Experience                                              |
-| MES-023    | Analytics & Insights Platform                                                                        | User Experience                                              |
-| MES-024    | Notification & Communication System                                                                  | User Experience                                              |
-| MES-025    | Public Article Experience                                                                            | Public Surface                                               |
-| MES-026    | Public Learning Guide Experience                                                                     | Public Surface                                               |
-| MES-027    | Public AI Tools Directory                                                                            | Public Surface                                               |
-| MES-028    | Performance, Security & Production Readiness                                                         | Launch                                                       |
-| MES-029    | Final QA, Testing & Production Launch                                                                | Launch                                                       |
-| MES-030    | Dual Authentication & Authorization Architecture (retrofit)                                          | Foundation — supersedes single-domain assumptions everywhere |
-| MES-031    | AI Knowledge Generation Pipeline                                                                     | Platform Service — connects MES-019 and MES-011              |
-| MES-032    | Observability & Logging                                                                              | Launch — rightsized, fleshes out MES-028                     |
-| MES-033    | Caching & Performance                                                                                | Launch — rightsized, focus on AI response cost control       |
-| MES-034    | Backup & Recovery                                                                                    | Launch — rightsized, relies on Supabase's built-in backups   |
-| MES-035    | Privacy & Compliance Basics                                                                          | Launch — rightsized, real GDPR/CCPA obligations only         |
+
+| #          | Title                                                                                                | Layer                                                                                                                                         |
+| ---------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Appendix A | Engineering Standards (Accessibility, Responsive, Performance, SEO, Code Quality, Security, Testing) | Referenced by every spec                                                                                                                      |
+| MES-001    | Project Foundation & Product Vision                                                                  | Foundation                                                                                                                                    |
+| MES-002    | Shared Services & API Architecture                                                                   | Foundation                                                                                                                                    |
+| MES-003    | Design System                                                                                        | Foundation                                                                                                                                    |
+| MES-004    | Public Website Structure & Global Navigation                                                         | Foundation                                                                                                                                    |
+| MES-005    | Premium Homepage Experience                                                                          | Foundation                                                                                                                                    |
+| MES-006    | Authentication & Authorization Foundation (v2.0 — dual-domain aware)                                 | Foundation                                                                                                                                    |
+| MES-007    | Enterprise Admin Dashboard Architecture (v3.0 — Platform Services–integrated)                        | Foundation                                                                                                                                    |
+| MES-008    | Article Management System (CMS)                                                                      | Content Module                                                                                                                                |
+| MES-009    | Categories & Topics Management                                                                       | Content Module                                                                                                                                |
+| MES-010    | Learning Guides Management                                                                           | Content Module                                                                                                                                |
+| MES-011    | Admin AI Studio (Content Generation)                                                                 | Content Module                                                                                                                                |
+| MES-012    | AI Tools Management                                                                                  | Content Module                                                                                                                                |
+| MES-013    | Homepage Content Management System                                                                   | Content Module                                                                                                                                |
+| MES-014    | Media Library & Digital Asset Management                                                             | Content Module                                                                                                                                |
+| MES-015    | SEO & Metadata Management (SEO Center)                                                               | Content Module                                                                                                                                |
+| MES-016    | Navigation & Menu Management (Navbar Manager)                                                        | Content Module                                                                                                                                |
+| MES-017    | Search & Discovery Engine                                                                            | Platform Service                                                                                                                              |
+| MES-018    | Recommendations Engine                                                                               | Platform Service                                                                                                                              |
+| MES-019    | Ask Mendanize AI Platform                                                                            | Platform Service                                                                                                                              |
+| MES-020    | Platform Settings & Configuration                                                                    | Platform Service                                                                                                                              |
+| MES-021    | Billing & Subscriptions                                                                              | Platform Service                                                                                                                              |
+| MES-022    | User Learning Experience & Personalization                                                           | User Experience                                                                                                                               |
+| MES-023    | Analytics & Insights Platform                                                                        | User Experience                                                                                                                               |
+| MES-024    | Notification & Communication System                                                                  | User Experience                                                                                                                               |
+| MES-025    | Public Article Experience                                                                            | Public Surface                                                                                                                                |
+| MES-026    | Public Learning Guide Experience                                                                     | Public Surface                                                                                                                                |
+| MES-027    | Public AI Tools Directory                                                                            | Public Surface                                                                                                                                |
+| MES-028    | Performance, Security & Production Readiness                                                         | Launch                                                                                                                                        |
+| MES-029    | Final QA, Testing & Production Launch                                                                | Launch                                                                                                                                        |
+| MES-030    | Dual Authentication & Authorization Architecture (retrofit)                                          | Foundation — supersedes single-domain assumptions everywhere                                                                                  |
+| MES-031    | AI Knowledge Generation Pipeline                                                                     | Platform Service — connects MES-019 and MES-011                                                                                               |
+| MES-032    | Observability & Logging                                                                              | Launch — rightsized, fleshes out MES-028                                                                                                      |
+| MES-033    | Caching & Performance                                                                                | Launch — rightsized, focus on AI response cost control                                                                                        |
+| MES-034    | Backup & Recovery                                                                                    | Launch — rightsized, relies on Supabase's built-in backups                                                                                    |
+| MES-035    | Privacy & Compliance Basics                                                                          | Launch — rightsized, real GDPR/CCPA obligations only                                                                                          |
+| MES-036    | Community Platform (Phase 1)                                                                         | Post-v1.0 feature — knowingly reopens a deferred item, full scope, at user's explicit request                                                 |
+| MES-039    | Professional Growth & Earnings Ecosystem                                                             | Post-v1.0 feature — full scope including two marketplaces; real legal/business sign-off still needed before launch, not resolved by this spec |
+| MES-037    | Founder Valuation Dashboard (Estimated Company Worth)                                                | Post-v1.0 feature — Super-Administrator-only internal tool; reads from MES-021/023/039 rather than duplicating their analytics                |
+
 
 ---
 
@@ -81,11 +81,11 @@ MES-030 splits the single user model into `PublicUser` (learners) and `Admin` (s
 - **MES-019 (Ask Mendanize AI)** — Tier 2 auth, sign-in handoff, and the `Conversation` model's foreign key all explicitly tied to `PublicUser`.
 - **MES-020** — Authentication Settings scoped explicitly to the Public domain; Admin account/role policy lives in MES-030 instead.
 - **MES-021 (Billing) — real conflict found and fixed:** the original spec routed subscription management through `/dashboard/settings/billing`, which is now Admin-only under MES-030. Billing management is a `PublicUser` feature and has been moved to `/account/billing`; `Subscription.userId` corrected to `Subscription.publicUserId`. Added a read-only, admin-side revenue reporting view that never touches an individual user's payment details directly.
-- **MES-022 (Personalization)** — rewritten to scope every model and route (`/account/`_, not `/dashboard/_`) to `PublicUser` explicitly, matching the MES-021 fix.
+- **MES-022 (Personalization)** — rewritten to scope every model and route (`/account/`*, not `/dashboard/*`) to `PublicUser` explicitly, matching the MES-021 fix.
 - **MES-024** — notification preferences split explicitly between `PublicUser` and `Admin`.
 - **MES-028, MES-029** — both now depend on MES-030; MES-028's Security Audit checks for the two independent session contracts and real RBAC enforcement (not just "prepared"); MES-029 adds an explicit dual-auth isolation test to its cross-module integration checks.
 
-**The most important catch in this pass:** the original MES-021/MES-022 routing under `/dashboard/`_ would have been a real bug if built as originally written — learners would have had no working billing or account area at all once MES-030 locked `/dashboard/_` to Admins only. This is exactly the kind of cross-spec conflict this patch pass exists to catch before Cursor builds it.
+**The most important catch in this pass:** the original MES-021/MES-022 routing under `/dashboard/`* would have been a real bug if built as originally written — learners would have had no working billing or account area at all once MES-030 locked `/dashboard/*` to Admins only. This is exactly the kind of cross-spec conflict this patch pass exists to catch before Cursor builds it.
 
 ---
 
@@ -146,6 +146,31 @@ MES-001 was found to still contain a stale four-item Spec Roadmap fragment that 
 
 ---
 
+## v1.6 UPDATE — MES-036 COMMUNITY PLATFORM (deliberate, full-scope reopening)
+
+A pasted Community Platform design arrived numbered MES-031 — already taken by the AI Knowledge Generation Pipeline. Before drafting it, two things were flagged: the numbering collision, and that Cursor's actual v1.0 Production Readiness Report had already placed "community features" on its deferred-to-post-v1.0 list — a real, evidence-based call made after MES-001–028 shipped, not a guess. Given the choice to draft it now at full scope anyway, it's built as **MES-036**, with three corrections the original draft needed regardless of scope: it referenced a "Course" model that doesn't exist (Mendanize has Learning Guides, MES-010); its team roles included "Admin," which collides with the platform's security-critical `Admin` RBAC role from MES-030 (renamed to Owner/Lead/Member); and it assumed real learning-progress and certificate data exists, when both are explicitly deferred placeholders even within this same spec.
+
+Architecturally, Community isn't a fourth surface — per MES-001's model, it spans the Teaching Frontend (public browsing) and the same `PublicUser` auth as the Learner Account Area (posting/joining), with moderation living in a new domain added to MES-007's Admin Dashboard. It introduces one genuinely new permission concept: a **Community Moderator flag**, grantable by an `Admin` to a trusted `PublicUser`, scoped entirely to `/community` and never granting `/dashboard/`* access — distinct from, and not a shortcut around, MES-030's RBAC. Community's own data (Discussions, Groups, Teams, Projects) is deliberately kept out of the Content Service (MES-002), which stays scoped to editorial content — Community reuses the cross-cutting services (Search, Notification, Media, Audit, AI) the same way Billing does, without pretending to be Content.
+
+---
+
+## v1.7 UPDATE — MES-039 PROFESSIONAL GROWTH & EARNINGS ECOSYSTEM (full scope, marketplaces included)
+
+A pasted "Professional Growth & Earnings Ecosystem" doc arrived at MES-039 — a free slot (the original enterprise batch's MES-039, Workflow Automation, was folded into MES-007 rather than kept as its own spec). Before drafting, two things were flagged, distinct from the MES-036 conversation: this bundles three separate businesses (a freelance marketplace, a digital-product marketplace, and a career-services suite) into one document, and two of its six hubs move real money between third parties — a materially different problem than MES-021's subscription billing. Given the explicit choice to proceed at full scope anyway, MES-039 was drafted with those realities named rather than glossed over: Work Marketplace and AI Tools Marketplace both run on Stripe Connect as a deliberately separate payment rail from MES-021, Client and Creator capabilities are `PublicUser` flags (same pattern as MES-036's Community Moderator, not a new session type), every marketplace listing requires Admin pre-publication review (not just post-hoc reporting), and the spec is explicit that Terms of Service, tax-reporting thresholds, and dispute policy are real legal/business decisions it does not resolve.
+
+Consolidation mattered as much as new design here: the doc's Community Hub almost entirely re-described MES-036 (kept as four genuinely new pieces — Mentorship, Leaderboards, Challenges, Hackathons — rather than rebuilt), "Courses" was again corrected to Learning Guides, "AI Tutor" and "Learning Recommendations" both fold into existing Ask Mendanize AI (MES-019) and Recommendations (MES-018) rather than becoming new systems. One piece was deliberately **not** built even at full scope: the Coding Workspace's actual code-execution engine, called out as its own future, security-critical spec rather than a bullet point — running arbitrary user code is a different order of risk than a payments integration, and deserves the same dedicated treatment this spec gave to the marketplace payment rails.
+
+---
+
+## v1.8 UPDATE — MES-037 FOUNDER VALUATION DASHBOARD
+
+A pasted "Founder Valuation Dashboard" doc arrived numbered MES-031 — already taken (AI Knowledge Generation Pipeline). It was correctly renumbered to **MES-037**, a slot left free when the original enterprise-batch "Observability Platform" that once held that number was rightsized as MES-032 instead — both facts caught and confirmed before drafting.
+
+The real fix here wasn't the number — it was that the draft's Revenue/Marketplace/Workforce/Learning/Traffic Analytics sections would have recreated most of **MES-023**, which already owns that ground with a shared `AnalyticsEvent` stream. MES-037 is scoped down to what's genuinely new: a computed valuation heuristic, its history, AI-generated growth insights (via the existing AI Service, MES-002 — not a new AI system), and an investor-facing summary view. Everything under "Platform Metrics" is explicit that it's a read from MES-021 (revenue), MES-023 (traffic/learning/content), and MES-039 (marketplace/jobs) — not a sixth analytics implementation. Access is Super Administrator specifically (MES-030's strictest existing role), and unlike MES-036/MES-039, this one has no `PublicUser`-facing surface at all, so there's no dual-auth boundary question to resolve — it's the simplest of the three post-v1.0 additions on that front.
+
+---
+
 ## FUTURE ROADMAP (explicitly out of this sequence)
 
 Real ML-based recommendations, real learning-progress tracking and completion certificates, multi-language support, community features, mobile apps, enterprise offerings, AI tool submissions/reviews, affiliate tracking, final per-tier billing gates. Each becomes its own MES-03X spec once actually designed — not before.
+

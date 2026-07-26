@@ -38,7 +38,8 @@ export const authSettingsSchema = z.object({
   passwordPolicyNote: z.string().max(2000).nullable().optional(),
   sessionTimeoutMinutes: z.number().int().min(5).max(525600),
   rememberMeEnabled: z.boolean(),
-  twoFactorPlaceholder: z.boolean(),
+  twoFactorRequired: z.boolean(),
+  twoFactorPlaceholder: z.boolean().optional(),
 });
 
 export const aiSettingsSchema = z.object({
@@ -62,6 +63,11 @@ export const searchSettingsSchema = z.object({
 export const emailSettingsSchema = z.object({
   senderName: z.string().min(1).max(120),
   senderEmail: z.string().email(),
+  smtpHost: z.string().max(200).nullable().optional(),
+  smtpPort: z.number().int().min(1).max(65535).optional(),
+  smtpUser: z.string().max(200).nullable().optional(),
+  smtpPassword: z.string().max(500).nullable().optional(),
+  smtpSecure: z.boolean().optional(),
   smtpPlaceholder: z.string().max(2000).nullable().optional(),
   templatesNote: z.string().max(2000).nullable().optional(),
 });

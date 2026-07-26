@@ -5,7 +5,11 @@ export type SearchEntityType =
   | "guide"
   | "ai_tool"
   | "category"
-  | "topic";
+  | "topic"
+  | "discussion"
+  | "study_group"
+  | "team"
+  | "showcase_project";
 
 export type SearchDifficulty = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
 
@@ -24,6 +28,8 @@ export type SearchParams = {
   recordHistory?: boolean;
   userId?: string | null;
   sessionKey?: string | null;
+  /** Account scope keeps learners inside /account/* result links. */
+  hrefScope?: "public" | "account";
 };
 
 export type SearchHit = {

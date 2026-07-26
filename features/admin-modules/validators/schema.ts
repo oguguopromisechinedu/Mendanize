@@ -22,6 +22,11 @@ export const userRoleSchema = z.object({
   ]),
 })
 
+export const adminPasswordSchema = z.object({
+  id: z.string().min(1),
+  password: z.string().min(8).max(128),
+})
+
 export const subscriberWriteSchema = z.object({
   email: z.string().email(),
   name: z.string().max(120).optional().nullable(),

@@ -16,11 +16,13 @@ import type {
   LearningGoalRecord,
   UserPreferenceRecord,
 } from "@/services/learning";
+import type { NotificationPreferenceRecord } from "@/services/notification";
 import {
   deleteGoalAction,
   saveGoalAction,
   savePreferencesAction,
 } from "../actions/actions";
+import { saveNotificationPreferencesAction } from "@/features/notifications/actions/actions";
 import { DIFFICULTY_OPTIONS, THEME_OPTIONS } from "../constants/constants";
 import { LearningNav } from "./learning-nav";
 
@@ -28,15 +30,18 @@ export function PreferencesView({
   preferences,
   goals,
   taxonomy,
+  notificationPreferences,
 }: {
   preferences: UserPreferenceRecord;
   goals: LearningGoalRecord[];
   taxonomy: { categories: InterestOption[]; topics: InterestOption[] };
+  notificationPreferences?: NotificationPreferenceRecord | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [form, setForm] = useState(preferences);
   const [goalTitle, setGoalTitle] = useState("");
+  const [notifForm, setNotifForm] = useState(notificationPreferences ?? null);
 
   function savePrefs() {
     startTransition(async () => {
@@ -239,15 +244,66 @@ export function PreferencesView({
       </AdminPanel>
 
       <AdminPanel title="Notification preferences">
-        <p className="text-sm text-muted-foreground">
-          Learning, AI, security, and announcement toggles live in the
-          Notification Service (MES-024).
+        <p className="mb-3 text-sm text-muted-foreground">
+          Administrators publish announcements and system messages. These toggles
+          control what reaches your learner inbox — not the admin dashboard.
         </p>
-        <Button asChild size="sm" variant="outline" className="mt-3">
-          <Link href="/dashboard/notifications/preferences">
-            Manage notifications
-          </Link>
-        </Button>
+        {notifForm ? (
+          <>
+            {(
+              [
+                ["learningUpdates", "Learning updates"],
+                ["aiUpdates", "AI Tutor updates"],
+                ["securityAlerts", "Security alerts"],
+                ["newsletter", "Newsletter"],
+                ["productUpdates", "Product updates"],
+                ["announcements", "Announcements"],
+              ] as const
+            ).map(([key, label]) => (
+              <div
+                key={key}
+                className="flex items-center justify-between gap-2 border-b border-border py-3 last:border-0"
+              >
+                <Label>{label}</Label>
+                <Switch
+                  checked={notifForm[key]}
+                  onCheckedChange={(v) =>
+                    setNotifForm((p) => (p ? { ...p, [key]: Boolean(v) } : p))
+                  }
+                />
+              </div>
+            ))}
+            <Button
+              size="sm"
+              className="mt-4"
+              disabled={pending}
+              onClick={() => {
+                if (!notifForm) return;
+                startTransition(async () => {
+                  const res = await saveNotificationPreferencesAction({
+                    learningUpdates: notifForm.learningUpdates,
+                    aiUpdates: notifForm.aiUpdates,
+                    securityAlerts: notifForm.securityAlerts,
+                    newsletter: notifForm.newsletter,
+                    productUpdates: notifForm.productUpdates,
+                    announcements: notifForm.announcements,
+                  });
+                  if (!res.ok) toast.error(res.message);
+                  else {
+                    toast.success(res.message);
+                    router.refresh();
+                  }
+                });
+              }}
+            >
+              Save notification preferences
+            </Button>
+          </>
+        ) : (
+          <Button asChild size="sm" variant="outline" className="mt-1">
+            <Link href="/account/notifications">Open notifications</Link>
+          </Button>
+        )}
       </AdminPanel>
     </div>
   );

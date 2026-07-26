@@ -3,13 +3,18 @@ import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TopicCard } from "./topic-card";
+import {
+  contentHref,
+  contentListHref,
+  type ContentScope,
+} from "@/lib/content-paths";
 import type {
   ArticleSummary,
   CategoryDetail,
   GuideSummary,
   ToolSummary,
 } from "@/services/content/types";
+import { TopicCard } from "./topic-card";
 
 function ContentLinks({
   title,
@@ -45,11 +50,13 @@ export function PublicCategoryDetailView({
   articles,
   guides,
   tools,
+  scope = "public",
 }: {
   category: CategoryDetail;
   articles: ArticleSummary[];
   guides: GuideSummary[];
   tools: ToolSummary[];
+  scope?: ContentScope;
 }) {
   return (
     <div className="mx-auto max-w-5xl">
@@ -82,10 +89,12 @@ export function PublicCategoryDetailView({
         ) : null}
         <div className="mt-6 flex flex-wrap gap-3">
           <Button asChild>
-            <Link href="/guides">Browse guides</Link>
+            <Link href={contentListHref("guide", { scope })}>Browse guides</Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href="/articles">Read articles</Link>
+            <Link href={contentListHref("article", { scope })}>
+              Read articles
+            </Link>
           </Button>
         </div>
       </header>
@@ -96,7 +105,11 @@ export function PublicCategoryDetailView({
           <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {category.topics.map((topic) => (
               <li key={topic.id}>
-                <TopicCard topic={topic} categoryName={category.name} />
+                <TopicCard
+                  topic={topic}
+                  categoryName={category.name}
+                  scope={scope}
+                />
               </li>
             ))}
           </ul>
@@ -106,13 +119,13 @@ export function PublicCategoryDetailView({
       <ContentLinks
         title="Articles"
         items={articles.map((a) => ({ id: a.id, title: a.title, slug: a.slug }))}
-        hrefFor={(slug) => `/articles/${slug}`}
+        hrefFor={(slug) => contentHref("article", slug, { scope })}
       />
 
       <ContentLinks
         title="Guides"
         items={guides.map((g) => ({ id: g.id, title: g.title, slug: g.slug }))}
-        hrefFor={(slug) => `/guides/${slug}`}
+        hrefFor={(slug) => contentHref("guide", slug, { scope })}
       />
 
       {tools.length > 0 ? (
@@ -122,7 +135,7 @@ export function PublicCategoryDetailView({
             {tools.map((tool) => (
               <li key={tool.id}>
                 <Link
-                  href={`/ai-tools/${tool.slug}`}
+                  href={contentHref("ai_tool", tool.slug, { scope })}
                   className="text-foreground hover:text-primary"
                 >
                   {tool.name}

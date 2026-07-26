@@ -24,6 +24,18 @@ export async function POST(req: Request) {
       );
     }
 
+    const { getAuthenticationSettings } = await import(
+      "@/services/settings/platform"
+    );
+    const authSettings = await getAuthenticationSettings();
+    if (!authSettings.registrationEnabled) {
+      return fail(
+        "FORBIDDEN",
+        "Public registration is currently disabled by an administrator.",
+        403,
+      );
+    }
+
     const ip =
       req.headers.get("x-forwarded-for") ||
       req.headers.get("x-real-ip") ||

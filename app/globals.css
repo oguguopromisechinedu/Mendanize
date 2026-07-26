@@ -90,12 +90,24 @@
   .container-app {
     width: 100%;
     margin-inline: auto;
-    padding-inline: var(--space-6);
+    padding-inline: var(--space-4);
     max-width: var(--container-xl);
   }
 
+  @media (min-width: 640px) {
+    .container-app {
+      padding-inline: var(--space-6);
+    }
+  }
+
   .section-y {
-    padding-block: var(--space-16);
+    padding-block: var(--space-12);
+  }
+
+  @media (min-width: 640px) {
+    .section-y {
+      padding-block: var(--space-16);
+    }
   }
 
   @media (min-width: 1024px) {

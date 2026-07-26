@@ -190,47 +190,45 @@ GRANT ALL PRIVILEGES ON DATABASE mendanize TO mendanize_user;
 
 ---
 
-### OpenAI API (v1.0 live AI provider)
+### AI providers (Anthropic text · OpenAI images)
 
-**Launch posture:** Mendanize v1.0 wires **OpenAI only**. MES-002 defined a multi-provider AI Service seam (Claude, Gemini, Grok, DALL·E adapters under `services/ai/providers/`), but those adapters still throw `NotImplementedError`. Studio text, Ask, and article assist call OpenAI directly when `OPENAI_API_KEY` is set; otherwise they use deterministic local mocks. DALL·E image generation also uses `OPENAI_API_KEY` (same OpenAI account).
+**Source of truth:**
+- **Anthropic** (`ANTHROPIC_API_KEY`) — sole article / text generator
+- **OpenAI** (`OPENAI_API_KEY`) — sole image generator (cover, inline, Studio)
 
-| Provider | Env var | v1.0 status |
-|----------|---------|-------------|
-| OpenAI (chat / Studio text / Ask) | `OPENAI_API_KEY` | **Live** when key is set |
-| DALL·E (Studio images) | `OPENAI_API_KEY` | **Live** via OpenAI when key is set |
-| Claude / Anthropic | `ANTHROPIC_API_KEY` (reserved) | Stub adapter — not connected |
-| Gemini | `GOOGLE_AI_API_KEY` (reserved) | Stub adapter — not connected |
-| Grok / xAI | `XAI_API_KEY` (reserved) | Stub adapter — not connected |
+There is no separate DALL·E provider in the product — image calls go through OpenAI.
 
-The dashboard **AI & API Status** panel and AI Studio status list reflect this: OpenAI/DALL·E show connected only when `OPENAI_API_KEY` is present; Claude/Gemini/Grok always show as stubs.
+| Provider | Env var | Owns |
+|----------|---------|------|
+| Claude / Anthropic | `ANTHROPIC_API_KEY` | All article / text generation |
+| OpenAI | `OPENAI_API_KEY` | All image generation |
+
+The dashboard **AI & API Status** panel lists Claude and OpenAI only.
 
 #### `OPENAI_API_KEY`
 
-- **Description:** API key for OpenAI — the only live AI provider at v1.0
+- **Description:** API key for OpenAI image generation
 - **How to get:**
   1. Go to [OpenAI Platform](https://platform.openai.com/api-keys)
   2. Create a new API key
   3. Copy to `.env.local`
 - **Type:** String
-- **Required:** For live content generation (Studio, Ask, article assist). Optional for local UI work (mock drafts).
-- **Used by:** Admin AI Studio, Ask Mendanize, article authoring assist, DALL·E image generation
+- **Required:** For live image generation (Studio, Ask illustrations, article covers/body images). Optional for local UI work (mock drafts).
+- **Used by:** Admin AI Studio images, Ask Mendanize images, article cover/inline images
 - **Never share:** This is sensitive! Never commit to git.
 
 #### `OPENAI_STUDIO_MODEL` (optional)
 
-- **Description:** Chat model override for Studio text generation
+- **Description:** Reserved chat model override (text is Anthropic-owned; unused for articles)
 - **Default:** `gpt-4o-mini`
 - **Required:** No
 
-#### Reserved multi-provider keys (post-v1.0)
+#### `ANTHROPIC_API_KEY`
 
-Do not expect these to activate generation in v1.0 even if set — provider modules are stubs until a later release wires them:
-
-```env
-# ANTHROPIC_API_KEY=
-# GOOGLE_AI_API_KEY=
-# XAI_API_KEY=
-```
+- **Description:** API key for Anthropic Claude article / text generation
+- **How to get:** [Anthropic Console](https://console.anthropic.com/)
+- **Required:** For live article generation. Optional for local UI work (mock drafts).
+- **Never share:** Sensitive — never commit to git.
 
 ---
 

@@ -6,7 +6,6 @@ import { Suspense, useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthShell } from "@/features/authentication/components/auth-shell";
@@ -21,7 +20,8 @@ function AdminLoginForm() {
   const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(true);
+  const [totp, setTotp] = useState("");
+  const [needsTotp, setNeedsTotp] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(false);
@@ -44,11 +44,16 @@ function AdminLoginForm() {
     const res = await adminSignInWithCredentials({
       email: parsed.data.email,
       password: parsed.data.password,
-      remember,
+      totp: needsTotp ? totp : undefined,
     });
     setLoading(false);
 
     if (!res.ok) {
+      if ("needsTotp" in res && res.needsTotp) {
+        setNeedsTotp(true);
+        setError(res.message);
+        return;
+      }
       setError(res.message);
       return;
     }
@@ -60,7 +65,7 @@ function AdminLoginForm() {
   return (
     <AuthShell
       title="Admin sign in"
-      description="Staff access only. Accounts are provisioned by a Super Administrator."
+      description="Staff access only. Sessions last 7 days. Accounts are provisioned by a Super Administrator."
       footer={
         <Link href="/dashboard/forgot-password" className="text-primary hover:opacity-90">
           Forgot password?
@@ -83,6 +88,7 @@ function AdminLoginForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             aria-invalid={!!fieldErrors.email}
+            disabled={needsTotp}
           />
           {fieldErrors.email?.[0] ? (
             <p className="text-xs text-destructive">{fieldErrors.email[0]}</p>
@@ -98,25 +104,30 @@ function AdminLoginForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             aria-invalid={!!fieldErrors.password}
+            disabled={needsTotp}
           />
           {fieldErrors.password?.[0] ? (
             <p className="text-xs text-destructive">{fieldErrors.password[0]}</p>
           ) : null}
         </div>
 
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="remember"
-            checked={remember}
-            onCheckedChange={(v) => setRemember(v === true)}
-          />
-          <Label htmlFor="remember" className="font-normal">
-            Remember me
-          </Label>
-        </div>
+        {needsTotp ? (
+          <div className="space-y-2">
+            <Label htmlFor="admin-totp">Authenticator code</Label>
+            <Input
+              id="admin-totp"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              value={totp}
+              onChange={(e) => setTotp(e.target.value)}
+              placeholder="6-digit code"
+              required
+            />
+          </div>
+        ) : null}
 
         <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "Signing in…" : "Sign in"}
+          {loading ? "Signing in…" : needsTotp ? "Verify & sign in" : "Sign in"}
         </Button>
       </form>
     </AuthShell>
