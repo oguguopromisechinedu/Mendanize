@@ -5,7 +5,9 @@ import {
   BookOpen,
   Bot,
   Briefcase,
+  BriefcaseBusiness,
   Code2,
+  Folder,
   FolderKanban,
   GraduationCap,
   Home,
@@ -13,15 +15,54 @@ import {
   MessageSquareText,
   Store,
   Users,
-  Folder,
   Wrench,
-  BriefcaseBusiness,
 } from "lucide-react";
+
+/**
+ * Serializable icon keys — required because LearnerShell is a Client Component
+ * and Server layouts cannot pass LucideIcon functions across the RSC boundary.
+ */
+export type LearnerIconName =
+  | "award"
+  | "bell"
+  | "bookOpen"
+  | "bot"
+  | "briefcase"
+  | "briefcaseBusiness"
+  | "code2"
+  | "folder"
+  | "folderKanban"
+  | "graduationCap"
+  | "home"
+  | "messageSquare"
+  | "messageSquareText"
+  | "store"
+  | "users"
+  | "wrench";
+
+export const LEARNER_ICON_MAP: Record<LearnerIconName, LucideIcon> = {
+  award: Award,
+  bell: Bell,
+  bookOpen: BookOpen,
+  bot: Bot,
+  briefcase: Briefcase,
+  briefcaseBusiness: BriefcaseBusiness,
+  code2: Code2,
+  folder: Folder,
+  folderKanban: FolderKanban,
+  graduationCap: GraduationCap,
+  home: Home,
+  messageSquare: MessageSquare,
+  messageSquareText: MessageSquareText,
+  store: Store,
+  users: Users,
+  wrench: Wrench,
+};
 
 export type LearnerNavItem = {
   label: string;
   href: string;
-  icon: LucideIcon;
+  icon: LearnerIconName;
   badge?: string;
   soon?: boolean;
   /** Admin FeatureFlag key — item hidden when Admin disables the flag */
@@ -42,52 +83,72 @@ export const LEARNER_NAV_GROUPS: LearnerNavGroup[] = [
   {
     id: "main",
     items: [
-      { label: "Home", href: "/account", icon: Home },
-      { label: "Learn", href: "/account/continue", icon: BookOpen, flagKey: "guides" },
+      { label: "Home", href: "/account", icon: "home" },
+      {
+        label: "Learn",
+        href: "/account/continue",
+        icon: "bookOpen",
+        flagKey: "guides",
+      },
       {
         label: "Courses",
         href: "/account/guides",
-        icon: GraduationCap,
+        icon: "graduationCap",
         flagKey: "guides",
       },
-      { label: "AI Tutor", href: "/ask", icon: Bot, flagKey: "ask_mendanize" },
-      { label: "Coding Workspace", href: "/account/workspace", icon: Code2 },
-      { label: "Projects", href: "/account/projects", icon: FolderKanban },
+      {
+        label: "AI Tutor",
+        href: "/ask",
+        icon: "bot",
+        flagKey: "ask_mendanize",
+      },
+      {
+        label: "Coding Workspace",
+        href: "/account/workspace",
+        icon: "code2",
+      },
+      { label: "Projects", href: "/account/projects", icon: "folderKanban" },
       {
         label: "Prompt Library",
         href: "/account/prompts",
-        icon: MessageSquareText,
+        icon: "messageSquareText",
       },
-      { label: "AI Tools", href: "/account/ai-tools", icon: Wrench, flagKey: "ai_tools" },
+      {
+        label: "AI Tools",
+        href: "/account/ai-tools",
+        icon: "wrench",
+        flagKey: "ai_tools",
+      },
       {
         label: "AI Tools Marketplace",
         href: "/account/tools-marketplace",
-        icon: Store,
+        icon: "store",
         badge: "New",
-        soon: true,
       },
-      { label: "Certificates", href: "/account/certificates", icon: Award },
-      { label: "Community", href: "/community", icon: Users },
+      {
+        label: "Certificates",
+        href: "/account/certificates",
+        icon: "award",
+      },
+      { label: "Community", href: "/community", icon: "users" },
       {
         label: "Career Hub",
         href: "/account/career",
-        icon: Briefcase,
-        soon: true,
+        icon: "briefcase",
       },
       {
         label: "Work Marketplace",
         href: "/account/work",
-        icon: BriefcaseBusiness,
+        icon: "briefcaseBusiness",
         badge: "New",
-        soon: true,
       },
       {
         label: "Messages",
         href: "/account/messages",
-        icon: MessageSquare,
+        icon: "messageSquare",
         soon: true,
       },
-      { label: "Notifications", href: "/account/notifications", icon: Bell },
+      { label: "Notifications", href: "/account/notifications", icon: "bell" },
     ],
   },
 ];
@@ -97,7 +158,7 @@ export const LEARNER_SPACES = [
   {
     label: "Browse project templates",
     href: "/account/projects",
-    icon: Folder,
+    icon: "folder" as const satisfies LearnerIconName,
   },
 ] as const;
 
@@ -106,47 +167,45 @@ export const LEARNER_QUICK_ACTIONS = [
     label: "Browse Courses",
     href: "/account/guides",
     description: "Learning paths",
-    icon: GraduationCap,
+    icon: "graduationCap" as const satisfies LearnerIconName,
     flagKey: "guides",
   },
   {
     label: "AI Tutor",
     href: "/ask",
     description: "Ask Mendanize AI",
-    icon: Bot,
+    icon: "bot" as const satisfies LearnerIconName,
     flagKey: "ask_mendanize",
   },
   {
     label: "Coding Workspace",
     href: "/account/workspace",
     description: "Practice in context",
-    icon: Code2,
+    icon: "code2" as const satisfies LearnerIconName,
   },
   {
     label: "Projects",
     href: "/account/projects",
     description: "Build & ship",
-    icon: FolderKanban,
+    icon: "folderKanban" as const satisfies LearnerIconName,
   },
   {
     label: "Community",
     href: "/community",
     description: "Discuss & collaborate",
-    icon: Users,
+    icon: "users" as const satisfies LearnerIconName,
   },
   {
     label: "Work Marketplace",
     href: "/account/work",
-    description: "Coming soon",
-    icon: BriefcaseBusiness,
-    soon: true,
+    description: "Find paid work",
+    icon: "briefcaseBusiness" as const satisfies LearnerIconName,
   },
   {
     label: "AI Tools Marketplace",
     href: "/account/tools-marketplace",
-    description: "Coming soon",
-    icon: Store,
-    soon: true,
+    description: "Buy & sell AI tools",
+    icon: "store" as const satisfies LearnerIconName,
   },
 ] as const;
 

@@ -157,4 +157,12 @@ export function isSuperAdministrator(roleKey: AdminRoleKey) {
   return roleKey === "SUPER_ADMINISTRATOR";
 }
 
+/** MES-037 — Super Administrator only (stricter than requireAdmin). */
+export async function requireSuperAdministrator() {
+  const session = await getAdminSession();
+  if (!session) return null;
+  if (session.admin.roleKey !== "SUPER_ADMINISTRATOR") return null;
+  return session;
+}
+
 export { isAdminRoleKey as isAdminPlus };

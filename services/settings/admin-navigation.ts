@@ -78,6 +78,35 @@ export const SEEDED_ADMIN_NAVIGATION: AdminNavigationConfig = {
           href: "/dashboard/community",
           icon: "message-square",
         },
+        {
+          label: "Marketplace",
+          href: "/dashboard/marketplace",
+          icon: "store",
+        },
+      ],
+    },
+    {
+      id: "bi",
+      label: "Business Intelligence",
+      items: [
+        {
+          label: "Founder Dashboard",
+          href: "/dashboard/bi",
+          icon: "line-chart",
+          roles: ["SUPER_ADMIN"],
+        },
+        {
+          label: "Company Valuation",
+          href: "/dashboard/bi/valuation",
+          icon: "landmark",
+          roles: ["SUPER_ADMIN"],
+        },
+        {
+          label: "Investor Metrics",
+          href: "/dashboard/bi/investor",
+          icon: "trending-up",
+          roles: ["SUPER_ADMIN"],
+        },
       ],
     },
     {

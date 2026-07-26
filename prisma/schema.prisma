@@ -13,7 +13,7 @@ datasource db {
   provider = "postgresql"
 }
 
-/// MES-030 admin RBAC role keys ó extendable via AdminRole rows.
+/// MES-030 admin RBAC role keys ù extendable via AdminRole rows.
 enum AdminRoleKey {
   SUPER_ADMINISTRATOR
   ADMINISTRATOR
@@ -23,7 +23,7 @@ enum AdminRoleKey {
   SUPPORT_MANAGER
 }
 
-/// @deprecated MES-030 ó kept only so the dual-auth migration can read legacy rows.
+/// @deprecated MES-030 ù kept only so the dual-auth migration can read legacy rows.
 /// Remove after scripts/migrate-dual-auth.ts has been run and verified.
 enum UserRole {
   USER
@@ -89,7 +89,7 @@ model PublicUser {
   emailVerified DateTime?
   image         String?
   passwordHash  String?
-  /// MES-035 ó analytics/cookie consent captured on the public site
+  /// MES-035 ù analytics/cookie consent captured on the public site
   cookieConsentAt    DateTime?
   analyticsConsent   Boolean   @default(false)
   marketingConsent   Boolean   @default(false)
@@ -138,6 +138,33 @@ model PublicUser {
   projectComments        ProjectComment[]
   projectBookmarks       ProjectBookmark[]
   communityReports       CommunityReport[]       @relation("CommunityReportReporter")
+  /// MES-039 Professional Growth & Earnings
+  clientFlag             ClientFlag?
+  creatorFlag            CreatorFlag?
+  assessmentAttempts     AssessmentAttempt[]
+  promptLibraryEntries   PromptLibraryEntry[]
+  learnerNotes           LearnerNote[]
+  mentorshipsAsMentor    MentorshipRelationship[] @relation("MentorshipMentor")
+  mentorshipsAsMentee    MentorshipRelationship[] @relation("MentorshipMentee")
+  challengeSubmissions   ChallengeSubmission[]
+  careerProfile          CareerProfile?
+  interviewSessions      InterviewSession[]
+  careerReadinessScores  CareerReadinessScore[]
+  skillGapResults        SkillGapResult[]
+  jobPostings            JobPosting[]
+  jobApplications        JobApplication[]
+  contractsAsClient      Contract[]               @relation("ContractClient")
+  contractsAsWorker      Contract[]               @relation("ContractWorker")
+  clientReviewsGiven     ClientReview[]           @relation("ClientReviewAuthor")
+  clientReviewsReceived  ClientReview[]           @relation("ClientReviewSubject")
+  marketplaceListings    MarketplaceListing[]
+  marketplacePurchases   MarketplacePurchase[]
+  marketplaceSubscriptions MarketplaceSubscriptionInstance[]
+  creatorPayoutAccount   CreatorPayoutAccount?
+  marketplaceReviews     MarketplaceReview[]
+  creatorFollows         CreatorFollower[]        @relation("CreatorFollower")
+  creatorFollowers       CreatorFollower[]        @relation("CreatorFollowed")
+  reputationScore        ReputationScore?
 }
 
 model Admin {
@@ -731,7 +758,7 @@ model ArticleTag {
   @@id([articleId, tagId])
 }
 
-/// Architecture only in MES-008 ó no version-history UI yet.
+/// Architecture only in MES-008 ù no version-history UI yet.
 model ArticleRevision {
   id          String   @id @default(cuid())
   articleId   String
@@ -797,6 +824,8 @@ model Guide {
   certificateTemplates  CertificateTemplate[]
   workspacePresets      WorkspacePreset[]
   showcaseProjects      ShowcaseProject[]
+  assessments           Assessment[]
+  learnerNotes          LearnerNote[]
 
   @@index([status])
   @@index([topicId])
@@ -844,7 +873,7 @@ model GuideLesson {
   @@index([sectionId, sortOrder])
 }
 
-/// Architecture only ó version-history UI not in MES-010.
+/// Architecture only ù version-history UI not in MES-010.
 model GuideRevision {
   id          String   @id @default(cuid())
   guideId     String
@@ -858,7 +887,7 @@ model GuideRevision {
   @@index([guideId])
 }
 
-/// Modeled for MES-022 personalization ó not implemented in MES-010.
+/// Modeled for MES-022 personalization ù not implemented in MES-010.
 model GuideProgress {
   id                 String     @id @default(cuid())
   publicUserId       String
@@ -1689,7 +1718,7 @@ model SearchFilter {
 
 // === MES-018 Recommendations Engine ===
 // UserInterest / SavedContent / LearningHistory: written by Personalization (MES-022),
-// read by Recommendations. Single engine ó no parallel ranking elsewhere.
+// read by Recommendations. Single engine ù no parallel ranking elsewhere.
 
 enum RecommendationEntityKind {
   ARTICLE
@@ -1800,6 +1829,11 @@ enum AskContextType {
   AI_TOOL
   GENERAL
   HOMEPAGE
+  /// MES-039 Career Hub ù Interview Coach + career prompt contexts
+  INTERVIEW
+  CAREER
+  RESUME
+  PROPOSAL
 }
 
 model Conversation {
@@ -2301,7 +2335,7 @@ enum AIGenerationJobStatus {
 model AIGenerationJob {
   id                   String                 @id @default(cuid())
   question             String                 @db.Text
-  /// Anonymized fingerprint of the asker ó never stores PublicUser.id (MES-031)
+  /// Anonymized fingerprint of the asker ù never stores PublicUser.id (MES-031)
   sourceFingerprint    String?
   status               AIGenerationJobStatus  @default(QUEUED)
   articleId            String?
@@ -2441,14 +2475,16 @@ model CertificateTemplate {
 }
 
 model Certificate {
-  id           String              @id @default(cuid())
-  publicUserId String
-  templateId   String
-  guideId      String
-  credentialCode String            @unique
-  issuedAt     DateTime            @default(now())
-  publicUser   PublicUser          @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
-  template     CertificateTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  id                 String              @id @default(cuid())
+  publicUserId       String
+  templateId         String
+  guideId            String
+  credentialCode     String              @unique
+  assessmentAttemptId String?            @unique
+  issuedAt           DateTime            @default(now())
+  publicUser         PublicUser          @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  template           CertificateTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  assessmentAttempt  AssessmentAttempt?  @relation(fields: [assessmentAttemptId], references: [id], onDelete: SetNull)
 
   @@unique([publicUserId, templateId])
   @@index([publicUserId, issuedAt])
@@ -2804,4 +2840,558 @@ model CommunityReport {
   @@index([status, createdAt])
   @@index([contentType, contentId])
   @@index([reporterPublicUserId])
+}
+
+// ??? MES-039 Professional Growth & Earnings ???????????????????????????????????
+
+enum MentorshipStatus {
+  REQUESTED
+  ACTIVE
+  DECLINED
+  ENDED
+}
+
+enum ChallengeStatus {
+  DRAFT
+  OPEN
+  JUDGING
+  CLOSED
+}
+
+enum ChallengeSubmissionStatus {
+  SUBMITTED
+  ACCEPTED
+  REJECTED
+}
+
+enum JobPostingStatus {
+  DRAFT
+  PENDING_REVIEW
+  OPEN
+  FILLED
+  CLOSED
+  REJECTED
+}
+
+enum JobApplicationStatus {
+  SUBMITTED
+  SHORTLISTED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum ContractStatus {
+  ACTIVE
+  COMPLETED
+  DISPUTED
+  CANCELLED
+}
+
+enum MilestoneStatus {
+  PENDING
+  FUNDED
+  RELEASED
+  REFUNDED
+}
+
+enum MarketplaceListingKind {
+  AI_APP
+  AGENT
+  PROMPT_PACK
+  TEMPLATE
+  AUTOMATION
+}
+
+enum MarketplaceListingStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+enum MarketplacePricingModel {
+  ONE_TIME
+  SUBSCRIPTION
+}
+
+enum ValuationConfidence {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Assessment {
+  id            String               @id @default(cuid())
+  guideId       String               @unique
+  title         String
+  passThreshold Int                  @default(70)
+  active        Boolean              @default(true)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  guide         Guide                @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  questions     AssessmentQuestion[]
+  attempts      AssessmentAttempt[]
+}
+
+model AssessmentQuestion {
+  id           String     @id @default(cuid())
+  assessmentId String
+  prompt       String     @db.Text
+  choices      String[]
+  correctIndex Int
+  sortOrder    Int        @default(0)
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@index([assessmentId, sortOrder])
+}
+
+model AssessmentAttempt {
+  id           String      @id @default(cuid())
+  assessmentId String
+  publicUserId String
+  scorePercent Int
+  passed       Boolean
+  answersJson  String      @db.Text
+  createdAt    DateTime    @default(now())
+  assessment   Assessment  @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  publicUser   PublicUser  @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  certificate  Certificate?
+
+  @@index([publicUserId, assessmentId])
+  @@index([assessmentId, createdAt])
+}
+
+model PromptLibraryEntry {
+  id           String     @id @default(cuid())
+  publicUserId String
+  title        String
+  body         String     @db.Text
+  tags         String[]   @default([])
+  folder       String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  publicUser   PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+
+  @@index([publicUserId, updatedAt])
+}
+
+model LearnerNote {
+  id           String     @id @default(cuid())
+  publicUserId String
+  title        String
+  body         String     @db.Text
+  guideId      String?
+  lessonId     String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  publicUser   PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  guide        Guide?     @relation(fields: [guideId], references: [id], onDelete: SetNull)
+
+  @@index([publicUserId, updatedAt])
+  @@index([guideId])
+}
+
+model MentorshipRelationship {
+  id        String           @id @default(cuid())
+  mentorId  String
+  menteeId  String
+  status    MentorshipStatus @default(REQUESTED)
+  note      String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  mentor    PublicUser       @relation("MentorshipMentor", fields: [mentorId], references: [id], onDelete: Cascade)
+  mentee    PublicUser       @relation("MentorshipMentee", fields: [menteeId], references: [id], onDelete: Cascade)
+
+  @@unique([mentorId, menteeId])
+  @@index([menteeId, status])
+  @@index([mentorId, status])
+}
+
+model LeaderboardEntry {
+  id           String   @id @default(cuid())
+  periodKey    String
+  publicUserId String
+  score        Int
+  rank         Int
+  computedAt   DateTime @default(now())
+
+  @@unique([periodKey, publicUserId])
+  @@index([periodKey, rank])
+}
+
+model Challenge {
+  id          String                @id @default(cuid())
+  title       String
+  slug        String                @unique
+  prompt      String                @db.Text
+  category    String?
+  status      ChallengeStatus       @default(DRAFT)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  submissions ChallengeSubmission[]
+
+  @@index([status, endsAt])
+}
+
+model ChallengeSubmission {
+  id           String                    @id @default(cuid())
+  challengeId  String
+  publicUserId String
+  body         String                    @db.Text
+  status       ChallengeSubmissionStatus @default(SUBMITTED)
+  score        Int?
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  challenge    Challenge                 @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  publicUser   PublicUser                @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, publicUserId])
+  @@index([challengeId, status])
+}
+
+model CareerProfile {
+  id                  String          @id @default(cuid())
+  publicUserId        String          @unique
+  headline            String?
+  summary             String?         @db.Text
+  targetRole          String?
+  location            String?
+  skills              String[]        @default([])
+  experienceJson      String?         @db.Text
+  educationJson       String?         @db.Text
+  portfolioProjectIds String[]        @default([])
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  publicUser          PublicUser      @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  resumeVersions      ResumeVersion[]
+}
+
+model ResumeVersion {
+  id              String        @id @default(cuid())
+  careerProfileId String
+  label           String
+  contentMarkdown String        @db.Text
+  createdAt       DateTime      @default(now())
+  careerProfile   CareerProfile @relation(fields: [careerProfileId], references: [id], onDelete: Cascade)
+
+  @@index([careerProfileId, createdAt])
+}
+
+model InterviewSession {
+  id             String     @id @default(cuid())
+  publicUserId   String
+  conversationId String?
+  targetRole     String?
+  notes          String?    @db.Text
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  publicUser     PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+
+  @@index([publicUserId, createdAt])
+}
+
+model CareerReadinessScore {
+  id            String     @id @default(cuid())
+  publicUserId  String
+  score         Int
+  breakdownJson String     @db.Text
+  computedAt    DateTime   @default(now())
+  publicUser    PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+
+  @@index([publicUserId, computedAt])
+}
+
+model SkillGapResult {
+  id           String     @id @default(cuid())
+  publicUserId String
+  targetRole   String
+  gapsJson     String     @db.Text
+  computedAt   DateTime   @default(now())
+  publicUser   PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+
+  @@index([publicUserId, computedAt])
+}
+
+model ClientFlag {
+  id               String     @id @default(cuid())
+  publicUserId     String     @unique
+  grantedByAdminId String?
+  selfServe        Boolean    @default(true)
+  active           Boolean    @default(true)
+  note             String?
+  grantedAt        DateTime   @default(now())
+  revokedAt        DateTime?
+  publicUser       PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+}
+
+model CreatorFlag {
+  id               String     @id @default(cuid())
+  publicUserId     String     @unique
+  grantedByAdminId String?
+  selfServe        Boolean    @default(true)
+  active           Boolean    @default(true)
+  note             String?
+  grantedAt        DateTime   @default(now())
+  revokedAt        DateTime?
+  publicUser       PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+}
+
+model JobPosting {
+  id                String           @id @default(cuid())
+  clientId          String
+  title             String
+  slug              String           @unique
+  description       String           @db.Text
+  budgetCents       Int?
+  currency          String           @default("usd")
+  skills            String[]         @default([])
+  status            JobPostingStatus @default(DRAFT)
+  reviewNote        String?
+  reviewedByAdminId String?
+  publishedAt       DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  client            PublicUser       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  applications      JobApplication[]
+  contracts         Contract[]
+
+  @@index([status, createdAt])
+  @@index([clientId])
+}
+
+model JobApplication {
+  id           String               @id @default(cuid())
+  jobId        String
+  publicUserId String
+  coverLetter  String               @db.Text
+  status       JobApplicationStatus @default(SUBMITTED)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  job          JobPosting           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  publicUser   PublicUser           @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  contract     Contract?
+
+  @@unique([jobId, publicUserId])
+  @@index([publicUserId, createdAt])
+}
+
+model Contract {
+  id            String            @id @default(cuid())
+  jobId         String
+  applicationId String            @unique
+  clientId      String
+  workerId      String
+  status        ContractStatus    @default(ACTIVE)
+  disputeNote   String?           @db.Text
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  completedAt   DateTime?
+  job           JobPosting        @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  application   JobApplication    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  client        PublicUser        @relation("ContractClient", fields: [clientId], references: [id], onDelete: Cascade)
+  worker        PublicUser        @relation("ContractWorker", fields: [workerId], references: [id], onDelete: Cascade)
+  milestones    Milestone[]
+  payments      ContractPayment[]
+  review        ClientReview?
+
+  @@index([clientId, status])
+  @@index([workerId, status])
+  @@index([status])
+}
+
+model Milestone {
+  id          String          @id @default(cuid())
+  contractId  String
+  title       String
+  amountCents Int
+  status      MilestoneStatus @default(PENDING)
+  dueAt       DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  contract    Contract        @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  payment     ContractPayment?
+
+  @@index([contractId, status])
+}
+
+model ContractPayment {
+  id                    String    @id @default(cuid())
+  contractId            String
+  milestoneId           String    @unique
+  amountCents           Int
+  currency              String    @default("usd")
+  /// Stripe Connect PaymentIntent / Transfer refs ó separate from MES-021 Checkout
+  stripePaymentIntentId String?
+  stripeTransferId      String?
+  platformFeeCents      Int       @default(0)
+  status                String    @default("pending")
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  contract              Contract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  milestone             Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+}
+
+model ClientReview {
+  id         String     @id @default(cuid())
+  contractId String     @unique
+  authorId   String
+  subjectId  String
+  rating     Int
+  body       String?    @db.Text
+  createdAt  DateTime   @default(now())
+  contract   Contract   @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  author     PublicUser @relation("ClientReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  subject    PublicUser @relation("ClientReviewSubject", fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@index([subjectId])
+}
+
+model MarketplaceListing {
+  id                String                            @id @default(cuid())
+  creatorId         String
+  title             String
+  slug              String                            @unique
+  description       String                            @db.Text
+  kind              MarketplaceListingKind
+  pricingModel      MarketplacePricingModel           @default(ONE_TIME)
+  priceCents        Int
+  currency          String                            @default("usd")
+  status            MarketplaceListingStatus          @default(DRAFT)
+  reviewNote        String?
+  reviewedByAdminId String?
+  publishedAt       DateTime?
+  createdAt         DateTime                          @default(now())
+  updatedAt         DateTime                          @updatedAt
+  creator           PublicUser                        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  purchases         MarketplacePurchase[]
+  subscriptions     MarketplaceSubscriptionInstance[]
+  reviews           MarketplaceReview[]
+
+  @@index([status, publishedAt])
+  @@index([creatorId])
+  @@index([kind])
+}
+
+model MarketplacePurchase {
+  id                    String             @id @default(cuid())
+  listingId             String
+  buyerId               String
+  amountCents           Int
+  currency              String             @default("usd")
+  platformFeeCents      Int                @default(0)
+  /// Stripe Connect ó not MES-021 subscription Checkout
+  stripePaymentIntentId String?
+  status                String             @default("pending")
+  createdAt             DateTime           @default(now())
+  listing               MarketplaceListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyer                 PublicUser         @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+
+  @@index([buyerId, createdAt])
+  @@index([listingId])
+}
+
+model MarketplaceSubscriptionInstance {
+  id                          String             @id @default(cuid())
+  listingId                   String
+  buyerId                     String
+  /// Stripe Connect subscription id ó separate from MES-021 Subscription
+  stripeConnectSubscriptionId String?
+  status                      String             @default("active")
+  currentPeriodEnd            DateTime?
+  createdAt                   DateTime           @default(now())
+  updatedAt                   DateTime           @updatedAt
+  listing                     MarketplaceListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyer                       PublicUser         @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, buyerId])
+  @@index([buyerId])
+}
+
+model CreatorPayoutAccount {
+  id                     String     @id @default(cuid())
+  publicUserId           String     @unique
+  stripeConnectAccountId String?
+  onboardingComplete     Boolean    @default(false)
+  chargesEnabled         Boolean    @default(false)
+  payoutsEnabled         Boolean    @default(false)
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
+  publicUser             PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+}
+
+model MarketplaceReview {
+  id           String             @id @default(cuid())
+  listingId    String
+  publicUserId String
+  rating       Int
+  body         String?            @db.Text
+  createdAt    DateTime           @default(now())
+  listing      MarketplaceListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  publicUser   PublicUser         @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, publicUserId])
+  @@index([listingId])
+}
+
+model CreatorFollower {
+  id         String     @id @default(cuid())
+  followerId String
+  creatorId  String
+  createdAt  DateTime   @default(now())
+  follower   PublicUser @relation("CreatorFollower", fields: [followerId], references: [id], onDelete: Cascade)
+  creator    PublicUser @relation("CreatorFollowed", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, creatorId])
+  @@index([creatorId])
+}
+
+model ReputationScore {
+  id            String     @id @default(cuid())
+  publicUserId  String     @unique
+  total         Int        @default(0)
+  breakdownJson String     @db.Text @default("{}")
+  computedAt    DateTime   @default(now())
+  publicUser    PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+}
+
+// ??? MES-037 Founder Valuation ????????????????????????????????????????????????
+
+model ValuationSnapshot {
+  id                String              @id @default(cuid())
+  estimatedValue    Float
+  growthPercent     Float?
+  confidenceLevel   ValuationConfidence @default(MEDIUM)
+  notes             String?
+  computedAt        DateTime            @default(now())
+  computedByAdminId String?
+  factors           ValuationFactor[]
+
+  @@index([computedAt])
+}
+
+model ValuationFactor {
+  id          String            @id @default(cuid())
+  snapshotId  String
+  factorName  String
+  factorValue Float
+  snapshot    ValuationSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+
+  @@index([snapshotId])
+}
+
+model GrowthSnapshot {
+  id          String   @id @default(cuid())
+  rangeStart  DateTime
+  rangeEnd    DateTime
+  metricsJson String   @db.Text
+  insightText String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  @@index([rangeEnd])
 }

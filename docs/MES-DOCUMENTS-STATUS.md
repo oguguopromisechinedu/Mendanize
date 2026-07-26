@@ -2,9 +2,9 @@
 
 | Field | Value |
 |-------|-------|
-| **Version** | 1.3.0 |
+| **Version** | 1.4.0 |
 | **Status** | Active |
-| **Last Updated** | 2026-07-23 |
+| **Last Updated** | 2026-07-26 |
 | **Owner** | Mendanize Platform Architecture |
 
 ## Purpose
@@ -19,7 +19,7 @@ Operational status of every MES so agents and contributors know **what to work o
 
 ## Canonical files
 
-`docs/engineering/MES-001.md` … `MES-035.md` + `MES-INDEX.md` (v1.5).
+`docs/engineering/MES-001.md` … `MES-040.md` + `MES-INDEX.md` (v1.8). Empty slots: MES-038, MES-040.
 
 ## Status legend
 
@@ -71,12 +71,24 @@ Operational status of every MES so agents and contributors know **what to work o
 | MES-034 | Backup & Recovery | Complete | [Handoff](./MES-034-COMPLETION.md); [restore runbook](./runbooks/restore.md) |
 | MES-035 | Privacy & Compliance Basics | Complete | [Handoff](./MES-035-COMPLETION.md); consent, export, delete |
 | MES-036 | Community Platform (Phase 1) | Complete | [Handoff](./MES-036-COMPLETION.md); `/community` + `/dashboard/community` |
+| MES-037 | Founder Valuation Dashboard | Complete | [Handoff](./MES-037-COMPLETION.md); Super Admin `/dashboard/bi` |
+| MES-038 | *(empty)* | — | Leave empty until specified |
+| MES-039 | Professional Growth & Earnings | Complete | [Handoff](./MES-039-COMPLETION.md); marketplaces + career hubs |
+| MES-040 | *(empty)* | — | Leave empty until specified |
 
 ## Recommended next work order
 
-1. Apply migration `20260726170000_mes036_community` in each environment (`npx prisma migrate deploy`).
-2. Smoke-test Community home, post discussion as PublicUser, moderation as Admin, and confirm Community Moderator flag does not open `/dashboard/*`.
-3. Leave MES-037–040 empty until specified.
+1. Apply migration `20260726220000_mes039_mes037_growth_valuation` (`npx prisma migrate deploy`).
+2. Smoke-test Work/AI Tools marketplace Admin review gates and Super Admin BI valuation.
+3. Leave MES-038 and MES-040 empty until specified.
+4. Legal/business sign-off before marketplace launch (ToS, tax, disputes) — not an engineering task.
+5. Wait for approval before Coding Workspace execution engine.
+
+## Notes for agents
+
+- Do **not** invent content for empty MES files (038, 040).
+- Do **not** merge Stripe Connect marketplace payments into MES-021 subscription Checkout.
+- Client/Creator/Community Moderator flags never open `/dashboard/*`.
 
 ## Related
 

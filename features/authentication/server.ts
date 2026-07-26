@@ -12,6 +12,7 @@ export {
   getUserProfileFoundation,
   adminHasPermission,
   isSuperAdministrator,
+  requireSuperAdministrator,
   isAdminRole,
   isStaffRole,
   isLearnerRole,
