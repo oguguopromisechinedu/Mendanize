@@ -26,7 +26,12 @@ export default async function AskLayout({
 
   const userId = session.user.id;
   const [shellConfig, billing, notifDash] = await Promise.all([
-    loadLearnerShellConfig(userId),
+    loadLearnerShellConfig(userId).catch(() => ({
+      flags: {} as Record<string, boolean>,
+      navGroups: [],
+      quickActions: [],
+      spaces: [{ label: "Browse project templates", href: "/account/projects" }],
+    })),
     loadBillingDashboard(userId).catch(() => null),
     loadDashboard(userId).catch(() => null),
   ]);

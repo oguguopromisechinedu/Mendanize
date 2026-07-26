@@ -10,13 +10,21 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { routes } from "@/lib/design"
+import { signInWithCredentials } from "../actions/actions"
 import { signInSchema } from "../validators/schema"
 import { AuthShell } from "./auth-shell"
+
+function safeCallbackUrl(raw: string | null): string {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) {
+    return routes.account
+  }
+  return raw
+}
 
 function SignInForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const callbackUrl = searchParams.get("callbackUrl") ?? routes.account
+  const callbackUrl = safeCallbackUrl(searchParams.get("callbackUrl"))
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -36,15 +44,15 @@ function SignInForm() {
     }
 
     setLoading(true)
-    const res = await signIn("credentials", {
+    const res = await signInWithCredentials({
       email: parsed.data.email,
       password: parsed.data.password,
-      redirect: false,
     })
     setLoading(false)
 
-    if (res?.error) {
-      setError("Invalid email or password")
+    if (!res.ok) {
+      setError(res.message)
+      setFieldErrors(res.fieldErrors ?? {})
       return
     }
 

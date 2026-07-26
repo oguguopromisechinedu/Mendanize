@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import type { FeaturedPublishedContent } from "@/services/content/featured-published";
 import type { LearningDashboard } from "@/services/learning";
 import {
+  LEARNER_ICON_MAP,
   LEARNER_JOURNEY_STEPS,
   LEARNER_QUICK_ACTIONS,
 } from "../constants/constants";
@@ -219,7 +220,7 @@ function QuickActions({
     <section>
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
         {actions.map((action) => {
-          const Icon = action.icon;
+          const Icon = LEARNER_ICON_MAP[action.icon];
           const soon = "soon" in action && action.soon;
           return (
             <li key={action.href + action.label}>
