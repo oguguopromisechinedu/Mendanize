@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import {
   AdminPageHeader,
   AdminPanel,
-  AdminActionToolbar,
   AdminDataTable,
   AdminEmptyState,
   StatusBadge,
@@ -19,7 +18,6 @@ import { Textarea } from "@/components/ui/textarea";
 import type { PromptPackRecord } from "@/services/ecosystem";
 import {
   createPromptPackAction,
-  updatePromptPackAction,
   publishPromptPackAction,
   archivePromptPackAction,
   deletePromptPackAction,

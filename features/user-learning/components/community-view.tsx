@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { MessageSquareText, Users } from "lucide-react";
+import { Users } from "lucide-react";
 
 import { AdminPageHeader, AdminPanel, AdminEmptyState } from "@/features/admin-dashboard";
 import { Badge } from "@/components/ui/badge";

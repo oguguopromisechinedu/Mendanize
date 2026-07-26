@@ -43,43 +43,37 @@ import {
   generateGrowthInsights,
 } from "@/services/valuation"
 
-function unauthorized() {
-  return { ok: false as const, message: "Sign in as a learner to continue." }
-}
-
 async function requireLearner() {
   const session = await getPublicSession()
   if (!session?.user?.id) return null
   return session
 }
 
-export async function enableClientFlagAction() {
+/** Form actions must return void for Next.js `<form action={...}>`. */
+
+export async function enableClientFlagAction(): Promise<void> {
   const session = await requireLearner()
-  if (!session) return unauthorized()
+  if (!session) return
   await ensureClientFlag(session.user.id)
   revalidatePath("/account/hiring")
   revalidatePath("/account/work")
-  return { ok: true as const }
 }
 
-export async function enableCreatorFlagAction() {
+export async function enableCreatorFlagAction(): Promise<void> {
   const session = await requireLearner()
-  if (!session) return unauthorized()
+  if (!session) return
   await ensureCreatorFlag(session.user.id)
   revalidatePath("/account/marketplace")
   revalidatePath("/account/tools-marketplace")
-  return { ok: true as const }
 }
 
-export async function createJobAction(formData: FormData) {
+export async function createJobAction(formData: FormData): Promise<void> {
   const session = await requireLearner()
-  if (!session) return unauthorized()
+  if (!session) return
   const title = String(formData.get("title") ?? "").trim()
   const description = String(formData.get("description") ?? "").trim()
   const budget = Number(formData.get("budgetCents") ?? 0)
-  if (!title || !description) {
-    return { ok: false as const, message: "Title and description required." }
-  }
+  if (!title || !description) return
   try {
     await createJobPosting({
       clientId: session.user.id,
@@ -89,23 +83,17 @@ export async function createJobAction(formData: FormData) {
       submitForReview: true,
     })
     revalidatePath("/account/hiring")
-    return { ok: true as const }
-  } catch (e) {
-    return {
-      ok: false as const,
-      message: e instanceof Error ? e.message : "Could not create job",
-    }
+  } catch {
+    /* form action — errors stay server-side */
   }
 }
 
-export async function applyToJobAction(formData: FormData) {
+export async function applyToJobAction(formData: FormData): Promise<void> {
   const session = await requireLearner()
-  if (!session) return unauthorized()
+  if (!session) return
   const jobId = String(formData.get("jobId") ?? "")
   const coverLetter = String(formData.get("coverLetter") ?? "").trim()
-  if (!jobId || !coverLetter) {
-    return { ok: false as const, message: "Cover letter required." }
-  }
+  if (!jobId || !coverLetter) return
   try {
     await applyToJob({
       jobId,
@@ -113,18 +101,14 @@ export async function applyToJobAction(formData: FormData) {
       coverLetter,
     })
     revalidatePath("/account/work")
-    return { ok: true as const }
-  } catch (e) {
-    return {
-      ok: false as const,
-      message: e instanceof Error ? e.message : "Could not apply",
-    }
+  } catch {
+    /* ignore */
   }
 }
 
-export async function acceptApplicationAction(formData: FormData) {
+export async function acceptApplicationAction(formData: FormData): Promise<void> {
   const session = await requireLearner()
-  if (!session) return unauthorized()
+  if (!session) return
   const applicationId = String(formData.get("applicationId") ?? "")
   try {
     await acceptApplication({
@@ -132,44 +116,34 @@ export async function acceptApplicationAction(formData: FormData) {
       clientId: session.user.id,
     })
     revalidatePath("/account/hiring")
-    return { ok: true as const }
-  } catch (e) {
-    return {
-      ok: false as const,
-      message: e instanceof Error ? e.message : "Could not accept",
-    }
+  } catch {
+    /* ignore */
   }
 }
 
-export async function fundMilestoneAction(formData: FormData) {
+export async function fundMilestoneAction(formData: FormData): Promise<void> {
   const session = await requireLearner()
-  if (!session) return unauthorized()
+  if (!session) return
   const milestoneId = String(formData.get("milestoneId") ?? "")
   try {
-    const result = await fundMilestone({
+    await fundMilestone({
       milestoneId,
       clientId: session.user.id,
     })
     revalidatePath("/account/hiring")
-    return { ok: true as const, ...result }
-  } catch (e) {
-    return {
-      ok: false as const,
-      message: e instanceof Error ? e.message : "Could not fund milestone",
-    }
+  } catch {
+    /* ignore */
   }
 }
 
-export async function createListingAction(formData: FormData) {
+export async function createListingAction(formData: FormData): Promise<void> {
   const session = await requireLearner()
-  if (!session) return unauthorized()
+  if (!session) return
   const title = String(formData.get("title") ?? "").trim()
   const description = String(formData.get("description") ?? "").trim()
   const kind = String(formData.get("kind") ?? "PROMPT_PACK") as MarketplaceListingKind
   const priceCents = Number(formData.get("priceCents") ?? 0)
-  if (!title || !description || !Number.isFinite(priceCents)) {
-    return { ok: false as const, message: "Title, description, and price required." }
-  }
+  if (!title || !description || !Number.isFinite(priceCents)) return
   try {
     await createMarketplaceListing({
       creatorId: session.user.id,
@@ -181,93 +155,74 @@ export async function createListingAction(formData: FormData) {
     })
     revalidatePath("/account/marketplace")
     revalidatePath("/account/tools-marketplace")
-    return { ok: true as const }
-  } catch (e) {
-    return {
-      ok: false as const,
-      message: e instanceof Error ? e.message : "Could not create listing",
-    }
+  } catch {
+    /* ignore */
   }
 }
 
-export async function purchaseListingAction(formData: FormData) {
+export async function purchaseListingAction(formData: FormData): Promise<void> {
   const session = await requireLearner()
-  if (!session) return unauthorized()
+  if (!session) return
   const listingId = String(formData.get("listingId") ?? "")
   try {
-    const purchase = await purchaseListing({
+    await purchaseListing({
       listingId,
       buyerId: session.user.id,
     })
     revalidatePath("/account/tools-marketplace")
-    return { ok: true as const, purchaseId: purchase.id, status: purchase.status }
-  } catch (e) {
-    return {
-      ok: false as const,
-      message: e instanceof Error ? e.message : "Could not purchase",
-    }
+  } catch {
+    /* ignore */
   }
 }
 
-export async function connectOnboardingAction() {
+export async function connectOnboardingAction(): Promise<void> {
   const session = await requireLearner()
-  if (!session) return unauthorized()
+  if (!session) return
   try {
     const result = await createConnectOnboardingLink(session.user.id)
     if (result.url) redirect(result.url)
-    return {
-      ok: false as const,
-      message: result.message ?? "Stripe Connect is not configured yet.",
-    }
-  } catch (e) {
-    return {
-      ok: false as const,
-      message: e instanceof Error ? e.message : "Connect onboarding failed",
-    }
+  } catch {
+    /* ignore */
   }
 }
 
-export async function createPromptAction(formData: FormData) {
+export async function createPromptAction(formData: FormData): Promise<void> {
   const session = await requireLearner()
-  if (!session) return unauthorized()
+  if (!session) return
   const title = String(formData.get("title") ?? "").trim()
   const body = String(formData.get("body") ?? "").trim()
-  if (!title || !body) return { ok: false as const, message: "Title and body required." }
+  if (!title || !body) return
   await createPromptEntry({ publicUserId: session.user.id, title, body })
   revalidatePath("/account/prompts")
-  return { ok: true as const }
 }
 
-export async function deletePromptAction(formData: FormData) {
+export async function deletePromptAction(formData: FormData): Promise<void> {
   const session = await requireLearner()
-  if (!session) return unauthorized()
+  if (!session) return
   await deletePromptEntry(String(formData.get("id") ?? ""), session.user.id)
   revalidatePath("/account/prompts")
-  return { ok: true as const }
 }
 
-export async function createNoteAction(formData: FormData) {
+export async function createNoteAction(formData: FormData): Promise<void> {
   const session = await requireLearner()
-  if (!session) return unauthorized()
+  if (!session) return
   const title = String(formData.get("title") ?? "").trim()
   const body = String(formData.get("body") ?? "").trim()
-  if (!title || !body) return { ok: false as const, message: "Title and body required." }
+  if (!title || !body) return
   await createLearnerNote({ publicUserId: session.user.id, title, body })
   revalidatePath("/account/notes")
-  return { ok: true as const }
 }
 
-export async function deleteNoteAction(formData: FormData) {
+export async function deleteNoteAction(formData: FormData): Promise<void> {
   const session = await requireLearner()
-  if (!session) return unauthorized()
+  if (!session) return
   await deleteLearnerNote(String(formData.get("id") ?? ""), session.user.id)
   revalidatePath("/account/notes")
-  return { ok: true as const }
 }
 
-export async function updateCareerAction(formData: FormData) {
+export async function updateCareerAction(formData: FormData): Promise<void> {
   const session = await requireLearner()
-  if (!session) return unauthorized()
+  if (!session) return
   const skillsRaw = String(formData.get("skills") ?? "")
   await updateCareerProfile({
     publicUserId: session.user.id,
@@ -281,32 +236,29 @@ export async function updateCareerAction(formData: FormData) {
       .filter(Boolean),
   })
   revalidatePath("/account/career")
-  return { ok: true as const }
 }
 
-export async function saveResumeAction(formData: FormData) {
+export async function saveResumeAction(formData: FormData): Promise<void> {
   const session = await requireLearner()
-  if (!session) return unauthorized()
+  if (!session) return
   await saveResumeVersion({
     publicUserId: session.user.id,
     label: String(formData.get("label") ?? "Resume") || "Resume",
     contentMarkdown: String(formData.get("contentMarkdown") ?? ""),
   })
   revalidatePath("/account/career")
-  return { ok: true as const }
 }
 
-export async function computeReadinessAction() {
+export async function computeReadinessAction(): Promise<void> {
   const session = await requireLearner()
-  if (!session) return unauthorized()
-  const result = await computeCareerReadiness(session.user.id)
+  if (!session) return
+  await computeCareerReadiness(session.user.id)
   revalidatePath("/account/career")
-  return { ok: true as const, ...result }
 }
 
-export async function startInterviewAction(formData: FormData) {
+export async function startInterviewAction(formData: FormData): Promise<void> {
   const session = await requireLearner()
-  if (!session) return unauthorized()
+  if (!session) return
   const targetRole = String(formData.get("targetRole") ?? "") || undefined
   await startInterviewSession({
     publicUserId: session.user.id,
@@ -318,11 +270,11 @@ export async function startInterviewAction(formData: FormData) {
   redirect(`/ask?${q.toString()}`)
 }
 
-export async function requestMentorshipAction(formData: FormData) {
+export async function requestMentorshipAction(formData: FormData): Promise<void> {
   const session = await requireLearner()
-  if (!session) return unauthorized()
+  if (!session) return
   const mentorId = String(formData.get("mentorId") ?? "")
-  if (!mentorId) return { ok: false as const, message: "Mentor required." }
+  if (!mentorId) return
   try {
     await requestMentorship({
       mentorId,
@@ -331,30 +283,25 @@ export async function requestMentorshipAction(formData: FormData) {
     })
     revalidatePath("/community")
     revalidatePath("/account/career")
-    return { ok: true as const }
-  } catch (e) {
-    return {
-      ok: false as const,
-      message: e instanceof Error ? e.message : "Request failed",
-    }
+  } catch {
+    /* ignore */
   }
 }
 
-export async function respondMentorshipAction(formData: FormData) {
+export async function respondMentorshipAction(formData: FormData): Promise<void> {
   const session = await requireLearner()
-  if (!session) return unauthorized()
+  if (!session) return
   await respondMentorship({
     id: String(formData.get("id") ?? ""),
     mentorId: session.user.id,
     accept: String(formData.get("accept") ?? "") === "1",
   })
   revalidatePath("/account/career")
-  return { ok: true as const }
 }
 
-export async function submitChallengeAction(formData: FormData) {
+export async function submitChallengeAction(formData: FormData): Promise<void> {
   const session = await requireLearner()
-  if (!session) return unauthorized()
+  if (!session) return
   try {
     await submitChallengeEntry({
       challengeId: String(formData.get("challengeId") ?? ""),
@@ -362,52 +309,37 @@ export async function submitChallengeAction(formData: FormData) {
       body: String(formData.get("body") ?? ""),
     })
     revalidatePath("/community")
-    return { ok: true as const }
-  } catch (e) {
-    return {
-      ok: false as const,
-      message: e instanceof Error ? e.message : "Submit failed",
-    }
+  } catch {
+    /* ignore */
   }
 }
 
-export async function submitAssessmentAction(formData: FormData) {
+export async function submitAssessmentAction(formData: FormData): Promise<void> {
   const session = await requireLearner()
-  if (!session) return unauthorized()
+  if (!session) return
   const assessmentId = String(formData.get("assessmentId") ?? "")
   const answersJson = String(formData.get("answers") ?? "[]")
   let answers: number[] = []
   try {
     answers = JSON.parse(answersJson) as number[]
   } catch {
-    return { ok: false as const, message: "Invalid answers." }
+    return
   }
   try {
-    const result = await submitAssessmentAttempt({
+    await submitAssessmentAttempt({
       assessmentId,
       publicUserId: session.user.id,
       answers,
     })
     revalidatePath("/account/certificates")
-    return {
-      ok: true as const,
-      passed: result.passed,
-      scorePercent: result.scorePercent,
-      certificateId: result.certificateId,
-    }
-  } catch (e) {
-    return {
-      ok: false as const,
-      message: e instanceof Error ? e.message : "Attempt failed",
-    }
+  } catch {
+    /* ignore */
   }
 }
 
-export async function adminReviewJobAction(formData: FormData) {
+export async function adminReviewJobAction(formData: FormData): Promise<void> {
   const session = await requireEditor()
-  if (!session?.admin?.id) {
-    return { ok: false as const, message: "Admin required." }
-  }
+  if (!session?.admin?.id) return
   await adminReviewJob({
     jobId: String(formData.get("jobId") ?? ""),
     adminId: session.admin.id,
@@ -416,14 +348,11 @@ export async function adminReviewJobAction(formData: FormData) {
     note: String(formData.get("note") ?? "") || undefined,
   })
   revalidatePath("/dashboard/marketplace")
-  return { ok: true as const }
 }
 
-export async function adminReviewListingAction(formData: FormData) {
+export async function adminReviewListingAction(formData: FormData): Promise<void> {
   const session = await requireEditor()
-  if (!session?.admin?.id) {
-    return { ok: false as const, message: "Admin required." }
-  }
+  if (!session?.admin?.id) return
   await adminReviewListing({
     listingId: String(formData.get("listingId") ?? ""),
     adminId: session.admin.id,
@@ -432,47 +361,36 @@ export async function adminReviewListingAction(formData: FormData) {
     note: String(formData.get("note") ?? "") || undefined,
   })
   revalidatePath("/dashboard/marketplace")
-  return { ok: true as const }
 }
 
-export async function adminRecomputeLeaderboardAction() {
+export async function adminRecomputeLeaderboardAction(): Promise<void> {
   const session = await requireEditor()
-  if (!session?.admin?.id) {
-    return { ok: false as const, message: "Admin required." }
-  }
+  if (!session?.admin?.id) return
   const periodKey = new Date().toISOString().slice(0, 7)
   await recomputeLeaderboard(periodKey)
   revalidatePath("/dashboard/marketplace")
   revalidatePath("/community")
-  return { ok: true as const, periodKey }
 }
 
-export async function computeValuationAction() {
+export async function computeValuationAction(): Promise<void> {
   const session = await requireSuperAdministrator()
-  if (!session?.admin?.id) {
-    return { ok: false as const, message: "Super Administrator required." }
-  }
-  const snapshot = await computeValuation({
+  if (!session?.admin?.id) return
+  await computeValuation({
     adminId: session.admin.id,
     adminEmail: session.admin.email,
   })
   revalidatePath("/dashboard/bi")
   revalidatePath("/dashboard/bi/valuation")
-  return { ok: true as const, snapshot }
 }
 
-export async function generateInsightsAction() {
+export async function generateInsightsAction(): Promise<void> {
   const session = await requireSuperAdministrator()
-  if (!session?.admin?.id) {
-    return { ok: false as const, message: "Super Administrator required." }
-  }
-  const insightText = await generateGrowthInsights({
+  if (!session?.admin?.id) return
+  await generateGrowthInsights({
     adminId: session.admin.id,
     adminEmail: session.admin.email,
   })
   revalidatePath("/dashboard/bi")
-  return { ok: true as const, insightText }
 }
 
-// Keep submit/review helpers exported for pages that call them directly
 export { submitJobForReview, submitListingForReview }

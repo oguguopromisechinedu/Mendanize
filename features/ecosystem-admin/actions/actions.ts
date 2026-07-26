@@ -30,7 +30,6 @@ import type { ActionResult } from "../types/types";
 import {
   promptPackWriteSchema,
   promptPackItemWriteSchema,
-  idSchema,
   projectTemplateWriteSchema,
   certificateTemplateWriteSchema,
   featuredSettingWriteSchema,

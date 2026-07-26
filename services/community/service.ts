@@ -24,10 +24,8 @@ import type {
   ShowcaseProjectDetail,
   ShowcaseProjectSummary,
   StudyGroupDetail,
-  StudyGroupMemberRole,
   StudyGroupSummary,
   TeamDetail,
-  TeamMemberRole,
   TeamProgressStatus,
   TeamSummary,
 } from "./types"

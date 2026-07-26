@@ -27,6 +27,10 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "mendanize/**",
+    // One-off local patch helpers — not part of the app runtime
+    "scripts/_*.js",
+    "scripts/_*.mjs",
+    "scripts/_*.cjs",
   ]),
 ]);
 
