@@ -9,6 +9,7 @@ import ThemeToggle from "@/components/ui/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { LearnerNavGroup } from "../constants/constants";
+import { LEARNER_ICON_MAP } from "../constants/constants";
 import type { LearnerSpaceLink } from "../services/learner-shell-config";
 
 export function LearnerSidebar({
@@ -61,7 +62,7 @@ export function LearnerSidebar({
                     ? pathname === "/account"
                     : pathname === item.href ||
                       pathname.startsWith(`${item.href}/`);
-                const Icon = item.icon;
+                const Icon = LEARNER_ICON_MAP[item.icon];
                 const inner = (
                   <>
                     <Icon className="size-4 shrink-0" aria-hidden />

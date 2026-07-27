@@ -4,21 +4,56 @@ import {
   BookOpen,
   Bot,
   Code2,
+  Folder,
   FolderKanban,
   GraduationCap,
   Home,
   Library,
   MessageSquareText,
   NotebookPen,
-  Wrench,
   Users,
-  Folder,
+  Wrench,
 } from "lucide-react";
+
+/**
+ * Serializable icon keys — required because LearnerShell is a Client Component
+ * and Server layouts cannot pass LucideIcon functions across the RSC boundary.
+ */
+export type LearnerIconName =
+  | "award"
+  | "bookOpen"
+  | "bot"
+  | "code2"
+  | "folder"
+  | "folderKanban"
+  | "graduationCap"
+  | "home"
+  | "library"
+  | "messageSquareText"
+  | "notebookPen"
+  | "users"
+  | "wrench";
+
+export const LEARNER_ICON_MAP: Record<LearnerIconName, LucideIcon> = {
+  award: Award,
+  bookOpen: BookOpen,
+  bot: Bot,
+  code2: Code2,
+  folder: Folder,
+  folderKanban: FolderKanban,
+  graduationCap: GraduationCap,
+  home: Home,
+  library: Library,
+  messageSquareText: MessageSquareText,
+  notebookPen: NotebookPen,
+  users: Users,
+  wrench: Wrench,
+};
 
 export type LearnerNavItem = {
   label: string;
   href: string;
-  icon: LucideIcon;
+  icon: LearnerIconName;
   badge?: string;
   soon?: boolean;
   /** Admin FeatureFlag key — item hidden when Admin disables the flag */
@@ -34,27 +69,26 @@ export type LearnerNavGroup = {
 /**
  * Default learner IA skeleton.
  * Visibility is filtered at runtime by Admin FeatureFlags via loadLearnerShellConfig.
- * Content behind these routes must be Admin-published (guides, tools, articles, templates).
  */
 export const LEARNER_NAV_GROUPS: LearnerNavGroup[] = [
   {
     id: "main",
     items: [
-      { label: "Home", href: "/account", icon: Home },
-      { label: "Learn", href: "/account/continue", icon: BookOpen, flagKey: "guides" },
-      { label: "Courses", href: "/account/guides", icon: GraduationCap, flagKey: "guides" },
-      { label: "AI Tutor", href: "/ask", icon: Bot, flagKey: "ask_mendanize" },
-      { label: "Coding Workspace", href: "/account/workspace", icon: Code2 },
-      { label: "Projects", href: "/account/projects", icon: FolderKanban },
-      { label: "Prompt Library", href: "/account/prompts", icon: MessageSquareText },
-      { label: "Notes", href: "/account/notes", icon: NotebookPen },
-      { label: "AI Tools", href: "/account/ai-tools", icon: Wrench, flagKey: "ai_tools" },
-      { label: "Resources", href: "/account/articles", icon: Library, flagKey: "articles" },
-      { label: "Certificates", href: "/account/certificates", icon: Award },
+      { label: "Home", href: "/account", icon: "home" },
+      { label: "Learn", href: "/account/continue", icon: "bookOpen", flagKey: "guides" },
+      { label: "Courses", href: "/account/guides", icon: "graduationCap", flagKey: "guides" },
+      { label: "AI Tutor", href: "/ask", icon: "bot", flagKey: "ask_mendanize" },
+      { label: "Coding Workspace", href: "/account/workspace", icon: "code2" },
+      { label: "Projects", href: "/account/projects", icon: "folderKanban" },
+      { label: "Prompt Library", href: "/account/prompts", icon: "messageSquareText" },
+      { label: "Notes", href: "/account/notes", icon: "notebookPen" },
+      { label: "AI Tools", href: "/account/ai-tools", icon: "wrench", flagKey: "ai_tools" },
+      { label: "Resources", href: "/account/articles", icon: "library", flagKey: "articles" },
+      { label: "Certificates", href: "/account/certificates", icon: "award" },
       {
         label: "Community",
         href: "/account/community",
-        icon: Users,
+        icon: "users",
         badge: "Soon",
         soon: true,
       },
@@ -62,12 +96,12 @@ export const LEARNER_NAV_GROUPS: LearnerNavGroup[] = [
   },
 ];
 
-/** Fallback only — runtime spaces come from Admin-published project templates the learner started. */
+/** Fallback only — runtime spaces come from Admin-published project templates. */
 export const LEARNER_SPACES = [
   {
     label: "Browse project templates",
     href: "/account/projects",
-    icon: Folder,
+    icon: "folder" as const satisfies LearnerIconName,
   },
 ] as const;
 
@@ -76,39 +110,39 @@ export const LEARNER_QUICK_ACTIONS = [
     label: "Browse Courses",
     href: "/account/guides",
     description: "Admin-published learning paths",
-    icon: GraduationCap,
+    icon: "graduationCap" as const satisfies LearnerIconName,
     flagKey: "guides",
   },
   {
     label: "AI Tutor",
     href: "/ask",
     description: "Powered by Admin AI settings",
-    icon: Bot,
+    icon: "bot" as const satisfies LearnerIconName,
     flagKey: "ask_mendanize",
   },
   {
     label: "Coding Workspace",
     href: "/account/workspace",
     description: "Practice in context",
-    icon: Code2,
+    icon: "code2" as const satisfies LearnerIconName,
   },
   {
     label: "Create Project",
     href: "/account/projects",
     description: "From Admin templates",
-    icon: FolderKanban,
+    icon: "folderKanban" as const satisfies LearnerIconName,
   },
   {
     label: "Prompt Library",
     href: "/account/prompts",
     description: "Admin-published packs",
-    icon: MessageSquareText,
+    icon: "messageSquareText" as const satisfies LearnerIconName,
   },
   {
     label: "Explore Tools",
     href: "/account/ai-tools",
     description: "Admin-published tools",
-    icon: Wrench,
+    icon: "wrench" as const satisfies LearnerIconName,
     flagKey: "ai_tools",
   },
 ] as const;

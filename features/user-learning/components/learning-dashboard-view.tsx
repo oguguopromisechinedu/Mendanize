@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import type { FeaturedPublishedContent } from "@/services/content/featured-published";
 import type { LearningDashboard } from "@/services/learning";
 import type { RecommendationItem } from "@/services/recommendations";
-import { LEARNER_QUICK_ACTIONS } from "../constants/constants";
+import { LEARNER_ICON_MAP, LEARNER_QUICK_ACTIONS } from "../constants/constants";
 import { AiAssistantCard } from "./ai-assistant-card";
 
 export type LearnerDashboardExtras = {
@@ -194,7 +194,7 @@ function QuickActions({
     <section>
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {actions.map((action) => {
-          const Icon = action.icon;
+          const Icon = LEARNER_ICON_MAP[action.icon];
           return (
             <li key={action.href + action.label}>
               <Link
