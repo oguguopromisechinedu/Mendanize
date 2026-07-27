@@ -3,6 +3,8 @@
 export { LearningNav } from "./components/learning-nav";
 export { LearningDashboardView } from "./components/learning-dashboard-view";
 export type { LearnerDashboardExtras } from "./components/learning-dashboard-view";
+export { ProjectsView } from "./components/projects-view";
+export { WorkspaceView } from "./components/workspace-view";
 export { LearnerShell } from "./components/learner-shell";
 export { LearnerComingSoon } from "./components/learner-coming-soon";
 export { AiAssistantCard } from "./components/ai-assistant-card";
@@ -17,10 +19,12 @@ export {
   loadHistory,
   loadInterestsPage,
   loadLearningDashboard,
+  loadLearnerEcosystemExtras,
   loadPreferencesPage,
   loadRecommended,
   loadSaved,
 } from "./services/service";
+export type { LearnerEcosystemSnapshot } from "./services/ecosystem-dashboard";
 export {
   deleteGoalAction,
   saveContentAction,

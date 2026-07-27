@@ -63,7 +63,7 @@ export default async function Page() {
           </li>
         ) : (
           jobs.map((job) => (
-            <li key={job.id} className="border-t border-border/40 pt-6 first:border-0 first:pt-0">
+            <li key={job.id} id={`job-${job.id}`} className="border-t border-border/40 pt-6 first:border-0 first:pt-0">
               <h2 className="text-lg font-medium">{job.title}</h2>
               <p className="mt-1 text-xs text-muted-foreground">
                 {job.clientName ?? "Client"}

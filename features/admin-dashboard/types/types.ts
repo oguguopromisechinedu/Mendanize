@@ -8,7 +8,7 @@ export type DashboardStat = {
   trend?: string;
 };
 
-export type QuickAccessItem = {
+export type OpsShortcutItem = {
   id: string;
   label: string;
   href: string;
@@ -66,12 +66,6 @@ export type AnalyticsChartCard = {
   points: AnalyticsChartPoint[];
 };
 
-export type WorkflowStep = {
-  id: string;
-  label: string;
-  status: "done" | "current" | "upcoming";
-};
-
 export type ProviderStatus = {
   id: string;
   name: string;
@@ -86,16 +80,25 @@ export type SystemMetric = {
   detail: string;
 };
 
+export type NotificationPreview = {
+  id: string;
+  title: string;
+  meta: string;
+  time: string;
+  href?: string;
+};
+
+/** Platform operations center — no content CMS widgets. */
 export type DashboardHomeData = {
   stats: DashboardStat[];
-  quickAccess: QuickAccessItem[];
+  opsShortcuts: OpsShortcutItem[];
   activity: ActivityItem[];
-  recentArticles: RecentArticleRow[];
-  contentOverview: ContentSlice[];
-  topCategories: RankedCategory[];
   analytics: AnalyticsMetric[];
   analyticsCharts: AnalyticsChartCard[];
-  workflow: WorkflowStep[];
   aiStatus: ProviderStatus[];
   system: SystemMetric[];
+  notifications: {
+    unreadCount: number;
+    items: NotificationPreview[];
+  };
 };

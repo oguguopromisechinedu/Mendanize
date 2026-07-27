@@ -1,16 +1,19 @@
 import type { Metadata } from "next";
-import { LearnerComingSoon } from "@/features/user-learning/components/learner-coming-soon";
+import { redirect } from "next/navigation";
+
+import { requirePublicUser } from "@/features/authentication/server";
+import { WorkspaceView } from "@/features/user-learning/components/workspace-view";
+import { listPublishedWorkspacePresets } from "@/services/ecosystem";
 
 export const metadata: Metadata = {
   title: "Coding workspace",
   robots: { index: false },
 };
 
-export default function Page() {
-  return (
-    <LearnerComingSoon
-      title="Coding workspace"
-      description="I’m preparing a focused practice space tied to your guides. Until then, keep learning — I’ll meet you in the AI Tutor."
-    />
-  );
+export default async function Page() {
+  await requirePublicUser();
+
+  const presets = await listPublishedWorkspacePresets();
+
+  return <WorkspaceView presets={presets} />;
 }

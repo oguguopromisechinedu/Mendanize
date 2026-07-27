@@ -1,16 +1,23 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Award,
+  Bell,
   BookOpen,
   Bot,
+  Briefcase,
+  Cloud,
   Code2,
   Folder,
   FolderKanban,
   GraduationCap,
   Home,
   Library,
+  Mail,
   MessageSquareText,
   NotebookPen,
+  Rocket,
+  ShoppingBag,
+  Store,
   Users,
   Wrench,
 } from "lucide-react";
@@ -21,31 +28,45 @@ import {
  */
 export type LearnerIconName =
   | "award"
+  | "bell"
   | "bookOpen"
   | "bot"
+  | "briefcase"
+  | "cloud"
   | "code2"
   | "folder"
   | "folderKanban"
   | "graduationCap"
   | "home"
   | "library"
+  | "mail"
   | "messageSquareText"
   | "notebookPen"
+  | "rocket"
+  | "shoppingBag"
+  | "store"
   | "users"
   | "wrench";
 
 export const LEARNER_ICON_MAP: Record<LearnerIconName, LucideIcon> = {
   award: Award,
+  bell: Bell,
   bookOpen: BookOpen,
   bot: Bot,
+  briefcase: Briefcase,
+  cloud: Cloud,
   code2: Code2,
   folder: Folder,
   folderKanban: FolderKanban,
   graduationCap: GraduationCap,
   home: Home,
   library: Library,
+  mail: Mail,
   messageSquareText: MessageSquareText,
   notebookPen: NotebookPen,
+  rocket: Rocket,
+  shoppingBag: ShoppingBag,
+  store: Store,
   users: Users,
   wrench: Wrench,
 };
@@ -81,17 +102,16 @@ export const LEARNER_NAV_GROUPS: LearnerNavGroup[] = [
       { label: "Coding Workspace", href: "/account/workspace", icon: "code2" },
       { label: "Projects", href: "/account/projects", icon: "folderKanban" },
       { label: "Prompt Library", href: "/account/prompts", icon: "messageSquareText" },
-      { label: "Notes", href: "/account/notes", icon: "notebookPen" },
       { label: "AI Tools", href: "/account/ai-tools", icon: "wrench", flagKey: "ai_tools" },
-      { label: "Resources", href: "/account/articles", icon: "library", flagKey: "articles" },
+      { label: "AI Tools Marketplace", href: "/account/tools-marketplace", icon: "store", badge: "New" },
       { label: "Certificates", href: "/account/certificates", icon: "award" },
-      {
-        label: "Community",
-        href: "/account/community",
-        icon: "users",
-        badge: "Soon",
-        soon: true,
-      },
+      { label: "Portfolio", href: "/account/portfolio", icon: "library" },
+      { label: "Mendanize Cloud", href: "/account/cloud", icon: "cloud" },
+      { label: "Community", href: "/account/community", icon: "users" },
+      { label: "Career Hub", href: "/account/career", icon: "rocket" },
+      { label: "Work Marketplace", href: "/account/work", icon: "briefcase", badge: "New" },
+      { label: "Messages", href: "/account/messages", icon: "mail" },
+      { label: "Notifications", href: "/account/notifications", icon: "bell" },
     ],
   },
 ];
@@ -109,41 +129,46 @@ export const LEARNER_QUICK_ACTIONS = [
   {
     label: "Browse Courses",
     href: "/account/guides",
-    description: "Admin-published learning paths",
+    description: "Explore topics",
     icon: "graduationCap" as const satisfies LearnerIconName,
     flagKey: "guides",
   },
   {
     label: "AI Tutor",
     href: "/ask",
-    description: "Powered by Admin AI settings",
+    description: "Ask anything",
     icon: "bot" as const satisfies LearnerIconName,
     flagKey: "ask_mendanize",
   },
   {
     label: "Coding Workspace",
     href: "/account/workspace",
-    description: "Practice in context",
+    description: "Build & code",
     icon: "code2" as const satisfies LearnerIconName,
   },
   {
-    label: "Create Project",
+    label: "Projects",
     href: "/account/projects",
-    description: "From Admin templates",
+    description: "Build portfolio",
     icon: "folderKanban" as const satisfies LearnerIconName,
   },
   {
-    label: "Prompt Library",
-    href: "/account/prompts",
-    description: "Admin-published packs",
-    icon: "messageSquareText" as const satisfies LearnerIconName,
+    label: "Community",
+    href: "/community",
+    description: "Connect & learn",
+    icon: "users" as const satisfies LearnerIconName,
   },
   {
-    label: "Explore Tools",
-    href: "/account/ai-tools",
-    description: "Admin-published tools",
-    icon: "wrench" as const satisfies LearnerIconName,
-    flagKey: "ai_tools",
+    label: "Work Marketplace",
+    href: "/account/work",
+    description: "Find work",
+    icon: "briefcase" as const satisfies LearnerIconName,
+  },
+  {
+    label: "AI Tools Marketplace",
+    href: "/account/tools-marketplace",
+    description: "Discover & sell tools",
+    icon: "store" as const satisfies LearnerIconName,
   },
 ] as const;
 

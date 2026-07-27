@@ -1,106 +1,51 @@
 import Link from "next/link"
 import {
+  Activity,
   BarChart3,
-  BookOpen,
-  FileText,
-  FolderPlus,
-  Hash,
-  Home,
-  ImageIcon,
-  Menu,
+  Bell,
+  Cpu,
+  CreditCard,
+  LineChart,
   Sparkles,
-  Upload,
-  Video,
 } from "lucide-react"
 
 import type { DashboardHomeData } from "../types/types"
 import { AdminPanel } from "./admin-primitives"
-import { AdminDataTable, AdminStatCard } from "./admin-table"
+import { AdminStatCard } from "./admin-table"
 import { DashboardAnalyticsCharts } from "./dashboard-analytics-charts"
 import { DashboardRightRail } from "./dashboard-right-rail"
-import { StatusBadge } from "./status-badge"
 
-const QUICK_ICONS: Record<string, typeof FileText> = {
-  qa1: FileText,
-  qa2: BookOpen,
-  qa3: FolderPlus,
-  qa4: Hash,
-  qa5: Upload,
-  qa6: FileText,
-  qa7: Menu,
-  qa8: Home,
-  qa9: ImageIcon,
-  qa10: Video,
-  qa11: Sparkles,
-  qa12: BarChart3,
-}
-
-function DonutOverview({
-  slices,
-}: {
-  slices: DashboardHomeData["contentOverview"]
-}) {
-  const total = slices.reduce((sum, s) => sum + s.value, 0) || 1
-  const ends = slices.reduce<number[]>((acc, s) => {
-    const prev = acc.length > 0 ? acc[acc.length - 1]! : 0
-    return [...acc, prev + (s.value / total) * 100]
-  }, [])
-  const gradient = slices
-    .map((s, i) => {
-      const start = i === 0 ? 0 : ends[i - 1]!
-      return `${s.color} ${start}% ${ends[i]}%`
-    })
-    .join(", ")
-
-  return (
-    <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-      <div
-        className="size-32 shrink-0 rounded-full"
-        style={{
-          background: `conic-gradient(${gradient})`,
-          mask: "radial-gradient(circle, transparent 48%, #000 50%)",
-          WebkitMask: "radial-gradient(circle, transparent 48%, #000 50%)",
-        }}
-        aria-hidden
-      />
-      <ul className="w-full space-y-2">
-        {slices.map((s) => (
-          <li key={s.id} className="flex items-center justify-between text-sm">
-            <span className="inline-flex items-center gap-2 text-muted-foreground">
-              <span
-                className="size-2.5 rounded-full"
-                style={{ backgroundColor: s.color }}
-              />
-              {s.label}
-            </span>
-            <span className="font-medium text-foreground">{s.value}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
-
-function SeoScoreRing({ score }: { score: number }) {
-  const tone =
-    score >= 80
-      ? "border-emerald-500/50 text-emerald-500"
-      : score >= 60
-        ? "border-amber-500/50 text-amber-500"
-        : "border-red-400/50 text-red-400"
-  return (
-    <span
-      className={`inline-flex size-8 items-center justify-center rounded-full border-2 text-xs font-semibold ${tone}`}
-    >
-      {score}
-    </span>
-  )
+const OPS_ICONS: Record<string, typeof BarChart3> = {
+  ops1: BarChart3,
+  ops2: Bell,
+  ops3: Activity,
+  ops4: Activity,
+  ops5: Cpu,
+  ops6: CreditCard,
+  ops7: LineChart,
 }
 
 export function DashboardHomeView({ data }: { data: DashboardHomeData }) {
   return (
     <div className="flex gap-6">
       <div className="min-w-0 flex-1 space-y-6">
+        <div>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+            Platform operations
+          </h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            Health, analytics, notifications, and business metrics. Publishing
+            lives under{" "}
+            <Link
+              href="/dashboard/post"
+              className="font-medium text-primary hover:underline"
+            >
+              Post
+            </Link>
+            .
+          </p>
+        </div>
+
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
           {data.stats.map((stat) => (
             <AdminStatCard
@@ -113,10 +58,13 @@ export function DashboardHomeView({ data }: { data: DashboardHomeData }) {
           ))}
         </div>
 
-        <AdminPanel title="Quick Access" description="Jump to common tasks">
+        <AdminPanel
+          title="Ops shortcuts"
+          description="Jump to platform operations — not content publishing"
+        >
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {data.quickAccess.map((item) => {
-              const Icon = QUICK_ICONS[item.id] ?? Sparkles
+            {data.opsShortcuts.map((item) => {
+              const Icon = OPS_ICONS[item.id] ?? Sparkles
               return (
                 <Link
                   key={item.id}
@@ -142,105 +90,122 @@ export function DashboardHomeView({ data }: { data: DashboardHomeData }) {
 
         <div className="grid gap-6 lg:grid-cols-2">
           <AdminPanel title="Recent Activity">
-            <ul className="space-y-3">
-              {data.activity.map((item) => (
-                <li
-                  key={item.id}
-                  className="flex items-start justify-between gap-3 border-b border-border/60 pb-3 last:border-0 last:pb-0"
-                >
-                  <div>
-                    <p className="text-sm text-foreground">{item.title}</p>
-                    <p className="text-xs text-muted-foreground">{item.meta}</p>
-                  </div>
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {item.time}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </AdminPanel>
-
-          <AdminPanel title="Content Overview">
-            <DonutOverview slices={data.contentOverview} />
-          </AdminPanel>
-        </div>
-
-        <AdminPanel title="Recent Articles">
-          <AdminDataTable
-            headers={["Title", "Status", "Author", "SEO", "Views", "Date"]}
-          >
-            {data.recentArticles.map((row) => (
-              <tr key={row.id} className="hover:bg-hover/50">
-                <td className="px-3 py-2.5 font-medium text-foreground">
-                  {row.href ? (
-                    <Link
-                      href={row.href}
-                      className="hover:text-primary hover:underline"
-                    >
-                      {row.title}
-                    </Link>
-                  ) : (
-                    row.title
-                  )}
-                </td>
-                <td className="px-3 py-2.5">
-                  <StatusBadge status={row.status} />
-                </td>
-                <td className="px-3 py-2.5 text-muted-foreground">
-                  {row.author}
-                </td>
-                <td className="px-3 py-2.5">
-                  <SeoScoreRing score={row.seoScore} />
-                </td>
-                <td className="px-3 py-2.5 text-muted-foreground">
-                  {row.views}
-                </td>
-                <td className="px-3 py-2.5 text-muted-foreground">
-                  {row.date}
-                </td>
-              </tr>
-            ))}
-          </AdminDataTable>
-        </AdminPanel>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          <AdminPanel title="Top Categories">
-            <ol className="space-y-2">
-              {data.topCategories.map((cat, i) => {
-                const max = data.topCategories[0]?.count ?? 1
-                const pct = Math.round((cat.count / max) * 100)
-                return (
-                  <li key={cat.id} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        <span className="mr-2 font-medium text-primary">
-                          {i + 1}.
-                        </span>
-                        {cat.name}
-                      </span>
-                      <span className="font-medium text-foreground">
-                        {cat.count}
-                      </span>
+            {data.activity.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Platform activity will appear here as admins publish, upload, and
+                manage users.
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {data.activity.map((item) => (
+                  <li
+                    key={item.id}
+                    className="flex items-start justify-between gap-3 border-b border-border/60 pb-3 last:border-0 last:pb-0"
+                  >
+                    <div>
+                      <p className="text-sm text-foreground">{item.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.meta}
+                      </p>
                     </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-primary/60"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {item.time}
+                    </span>
                   </li>
-                )
-              })}
-            </ol>
+                ))}
+              </ul>
+            )}
           </AdminPanel>
 
           <AdminPanel
-            title="Analytics Overview"
-            description="Last 7 days — full reports in Analytics"
+            title="Notifications"
+            description={
+              data.notifications.unreadCount > 0
+                ? `${data.notifications.unreadCount} unread`
+                : "All caught up"
+            }
+            action={
+              <Link
+                href="/dashboard/notifications"
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                Open center
+              </Link>
+            }
           >
-            <DashboardAnalyticsCharts charts={data.analyticsCharts} />
+            {data.notifications.items.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No recent notifications.
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {data.notifications.items.map((item) => (
+                  <li key={item.id}>
+                    <Link
+                      href={item.href || "/dashboard/notifications"}
+                      className="flex items-start justify-between gap-3 rounded-lg transition hover:bg-hover"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm text-foreground">
+                          {item.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.meta}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {item.time}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </AdminPanel>
         </div>
+
+        <AdminPanel
+          title="Analytics Overview"
+          description="Last 7 days — full reports in Analytics"
+          action={
+            <Link
+              href="/dashboard/analytics"
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              View Analytics
+            </Link>
+          }
+        >
+          <DashboardAnalyticsCharts charts={data.analyticsCharts} />
+        </AdminPanel>
+
+        <AdminPanel
+          title="Business metrics"
+          description="Snapshot KPIs from analytics"
+          action={
+            <Link
+              href="/dashboard/bi"
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              Founder Dashboard
+            </Link>
+          }
+        >
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {data.analytics.map((metric) => (
+              <div
+                key={metric.id}
+                className="rounded-xl border border-border bg-background/40 px-4 py-3"
+              >
+                <p className="text-xs text-muted-foreground">{metric.label}</p>
+                <p className="mt-1 text-lg font-semibold text-foreground">
+                  {metric.value}
+                </p>
+                <p className="text-xs text-muted-foreground">{metric.delta}</p>
+              </div>
+            ))}
+          </div>
+        </AdminPanel>
       </div>
 
       <DashboardRightRail data={data} />

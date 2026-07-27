@@ -49,3 +49,8 @@ export async function loadPreferencesPage(userId: string) {
   ]);
   return { preferences, goals, taxonomy };
 }
+
+export {
+  loadLearnerEcosystemExtras,
+  type LearnerEcosystemSnapshot,
+} from "./ecosystem-dashboard";

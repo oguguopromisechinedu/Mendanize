@@ -8,14 +8,11 @@ import {
 import { getProviderStatuses } from "@/services/ai";
 import {
   computeAverageSeoScore,
-  loadContentOverview,
-  loadLiveStats,
+  loadNotificationPreview,
+  loadOpsStats,
   loadRecentActivity,
-  loadRecentArticles,
   loadSystemMetrics,
-  loadTopCategories,
 } from "./live-data";
-import { loadPublishingWorkflowSteps } from "@/services/admin/workflow";
 
 const PROVIDER_LABELS: Record<string, string> = {
   openai: "OpenAI",
@@ -78,27 +75,15 @@ export function invalidateDashboardHome(): void {
 async function computeDashboardHome(): Promise<DashboardHomeData> {
   const home = structuredClone(SEEDED_DASHBOARD_HOME);
 
-  const [
-    providers,
-    slice,
-    avgSeo,
-    contentOverview,
-    recentArticles,
-    topCategories,
-    activity,
-    system,
-    workflow,
-  ] = await Promise.all([
-    safeSource("providers", () => getProviderStatuses()),
-    safeSource("analyticsSlice", () => getDashboardAnalyticsSlice()),
-    safeSource("avgSeoScore", () => computeAverageSeoScore()),
-    safeSource("contentOverview", () => loadContentOverview()),
-    safeSource("recentArticles", () => loadRecentArticles()),
-    safeSource("topCategories", () => loadTopCategories()),
-    safeSource("recentActivity", () => loadRecentActivity()),
-    safeSource("systemMetrics", () => loadSystemMetrics()),
-    safeSource("workflow", () => loadPublishingWorkflowSteps()),
-  ]);
+  const [providers, slice, avgSeo, activity, system, notifications] =
+    await Promise.all([
+      safeSource("providers", () => getProviderStatuses()),
+      safeSource("analyticsSlice", () => getDashboardAnalyticsSlice()),
+      safeSource("avgSeoScore", () => computeAverageSeoScore()),
+      safeSource("recentActivity", () => loadRecentActivity()),
+      safeSource("systemMetrics", () => loadSystemMetrics()),
+      safeSource("notifications", () => loadNotificationPreview()),
+    ]);
 
   if (providers) {
     home.aiStatus = providers.map((p) => ({
@@ -109,27 +94,30 @@ async function computeDashboardHome(): Promise<DashboardHomeData> {
     }));
   }
 
-  const visitorsLabel = slice?.visitors ?? "0";
+  if (notifications) {
+    home.notifications = notifications;
+  }
 
-  const liveStats = await safeSource("liveStats", () =>
-    loadLiveStats(visitorsLabel),
+  const visitorsLabel = slice?.visitors ?? "0";
+  const pageViewsLabel = slice?.pageViews ?? "0";
+  const aiConnected = home.aiStatus.filter((p) => p.connected).length;
+  const aiTotal = home.aiStatus.length;
+
+  const opsStats = await safeSource("opsStats", () =>
+    loadOpsStats({
+      visitorsLabel,
+      pageViewsLabel,
+      aiConnected,
+      aiTotal,
+      unreadNotifications: home.notifications.unreadCount,
+    }),
   );
-  if (liveStats) {
-    home.stats = mergeStats(home.stats, liveStats);
+  if (opsStats) {
+    home.stats = mergeStats(home.stats, opsStats);
   } else if (slice) {
     home.stats = mergeStats(home.stats, [
       { id: "visitors", value: slice.visitors, hint: "from Analytics" },
-    ]);
-  }
-
-  if (avgSeo != null) {
-    home.stats = mergeStats(home.stats, [
-      {
-        id: "seo",
-        value: String(avgSeo),
-        hint: "avg of recent articles",
-        trend: "live",
-      },
+      { id: "pageViews", value: slice.pageViews, hint: "from Analytics" },
     ]);
   }
 
@@ -146,12 +134,8 @@ async function computeDashboardHome(): Promise<DashboardHomeData> {
     home.analyticsCharts = charts;
   }
 
-  if (contentOverview) home.contentOverview = contentOverview;
-  home.recentArticles = recentArticles ?? [];
-  home.topCategories = topCategories ?? [];
   home.activity = activity ?? [];
   if (system) home.system = system;
-  if (workflow) home.workflow = workflow;
 
   return home;
 }

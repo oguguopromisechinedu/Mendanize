@@ -19,7 +19,7 @@ Operational status of every MES so agents and contributors know **what to work o
 
 ## Canonical files
 
-`docs/engineering/MES-001.md` … `MES-040.md` + `MES-INDEX.md` (v1.8). Empty slots: MES-038, MES-040.
+`docs/engineering/MES-001.md` … `MES-040.md` + `MES-INDEX.md` (v1.8). Empty slot: MES-040.
 
 ## Status legend
 
@@ -72,7 +72,7 @@ Operational status of every MES so agents and contributors know **what to work o
 | MES-035 | Privacy & Compliance Basics | Complete | [Handoff](./MES-035-COMPLETION.md); consent, export, delete |
 | MES-036 | Community Platform (Phase 1) | Complete | [Handoff](./MES-036-COMPLETION.md); `/community` + `/dashboard/community` |
 | MES-037 | Founder Valuation Dashboard | Complete | [Handoff](./MES-037-COMPLETION.md); Super Admin `/dashboard/bi` |
-| MES-038 | *(empty)* | — | Leave empty until specified |
+| MES-038 | Learner Ecosystem (Complete Dashboard) | Partial | [Spec](./engineering/MES-038.md); dashboard wired to marketplace/career services; portfolio, cloud, projects, workspace, messages pages |
 | MES-039 | Professional Growth & Earnings | Complete | [Handoff](./MES-039-COMPLETION.md); marketplaces + career hubs |
 | MES-040 | *(empty)* | — | Leave empty until specified |
 
@@ -80,13 +80,12 @@ Operational status of every MES so agents and contributors know **what to work o
 
 1. Apply migration `20260726220000_mes039_mes037_growth_valuation` (`npx prisma migrate deploy`).
 2. Smoke-test Work/AI Tools marketplace Admin review gates and Super Admin BI valuation.
-3. Leave MES-038 and MES-040 empty until specified.
-4. Legal/business sign-off before marketplace launch (ToS, tax, disputes) — not an engineering task.
-5. Wait for approval before Coding Workspace execution engine.
+3. Continue MES-038: coding workspace execution engine, peer DMs, marketplace ratings — see [MES-038](./engineering/MES-038.md).
+4. Leave MES-040 empty until specified.
 
 ## Notes for agents
 
-- Do **not** invent content for empty MES files (038, 040).
+- Do **not** invent content for empty MES file MES-040.
 - Do **not** merge Stripe Connect marketplace payments into MES-021 subscription Checkout.
 - Client/Creator/Community Moderator flags never open `/dashboard/*`.
 

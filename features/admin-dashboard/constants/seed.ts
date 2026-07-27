@@ -1,44 +1,75 @@
 import type { DashboardHomeData } from "../types/types";
 
-/** Empty dashboard shell — live loaders fill real counts; never invent KPIs. */
+/** Empty ops dashboard shell — live loaders fill real counts; never invent KPIs. */
 export const SEEDED_DASHBOARD_HOME: DashboardHomeData = {
   stats: [
-    { id: "articles", label: "Articles", value: "0", trend: "—" },
-    { id: "images", label: "Images", value: "0", trend: "—" },
-    { id: "videos", label: "Videos", value: "0", trend: "—" },
-    { id: "guides", label: "Learn Guides", value: "0", trend: "—" },
     { id: "visitors", label: "Total Visitors", value: "0", trend: "—" },
+    { id: "pageViews", label: "Page Views", value: "0", trend: "—" },
+    { id: "subscribers", label: "Subscribers", value: "0", trend: "—" },
     {
-      id: "seo",
-      label: "Avg SEO Score",
+      id: "notifications",
+      label: "Unread Notifications",
+      value: "0",
+      trend: "—",
+    },
+    {
+      id: "aiProviders",
+      label: "AI Providers Connected",
+      value: "0",
+      trend: "—",
+    },
+    {
+      id: "storage",
+      label: "Storage Usage",
       value: "—",
-      trend: "From recent articles",
+      trend: "From media library",
     },
   ],
-  quickAccess: [
-    { id: "qa1", label: "Create Article", href: "/dashboard/articles/new", description: "Start a new draft" },
-    { id: "qa2", label: "Create Guide", href: "/dashboard/guides/new", description: "New learning path" },
-    { id: "qa3", label: "Add Category", href: "/dashboard/categories/new", description: "Organize content" },
-    { id: "qa4", label: "Add Topic", href: "/dashboard/topics/new", description: "Topic graph" },
-    { id: "qa5", label: "Upload Media", href: "/dashboard/media/upload", description: "Images & assets" },
-    { id: "qa6", label: "Create Page", href: "/dashboard/pages", description: "Static page" },
-    { id: "qa7", label: "Navbar Manager", href: "/dashboard/navigation", description: "Site navigation" },
-    { id: "qa8", label: "Homepage Builder", href: "/dashboard/homepage", description: "Public homepage" },
-    { id: "qa9", label: "AI Image Generator", href: "/dashboard/ai-studio/image", description: "OpenAI images" },
-    { id: "qa10", label: "AI Video Generator", href: "/dashboard/ai-studio/video", description: "Short-form video" },
-    { id: "qa11", label: "AI Article Draft", href: "/dashboard/ai-studio/article", description: "Claude-assisted" },
-    { id: "qa12", label: "View Analytics", href: "/dashboard/analytics", description: "Traffic & SEO" },
+  opsShortcuts: [
+    {
+      id: "ops1",
+      label: "Analytics",
+      href: "/dashboard/analytics",
+      description: "Traffic & engagement",
+    },
+    {
+      id: "ops2",
+      label: "Notifications",
+      href: "/dashboard/notifications",
+      description: "Platform alerts",
+    },
+    {
+      id: "ops3",
+      label: "Activity Log",
+      href: "/dashboard/activity-log",
+      description: "Admin audit trail",
+    },
+    {
+      id: "ops4",
+      label: "System Logs",
+      href: "/dashboard/system-logs",
+      description: "Runtime & errors",
+    },
+    {
+      id: "ops5",
+      label: "AI & Integrations",
+      href: "/dashboard/integrations",
+      description: "Provider connections",
+    },
+    {
+      id: "ops6",
+      label: "Billing overview",
+      href: "/dashboard/billing-overview",
+      description: "Plans & revenue",
+    },
+    {
+      id: "ops7",
+      label: "Founder Dashboard",
+      href: "/dashboard/bi",
+      description: "Business intelligence",
+    },
   ],
   activity: [],
-  recentArticles: [],
-  contentOverview: [
-    { id: "c1", label: "Articles", value: 0, color: "#8B5CF6" },
-    { id: "c2", label: "Guides", value: 0, color: "#6366F1" },
-    { id: "c3", label: "Tools", value: 0, color: "#22D3EE" },
-    { id: "c4", label: "Videos", value: 0, color: "#A855F7" },
-    { id: "c5", label: "Images", value: 0, color: "#EC4899" },
-  ],
-  topCategories: [],
   analytics: [
     { id: "an1", label: "Visitors", value: "0", delta: "—" },
     { id: "an2", label: "Page Views", value: "0", delta: "—" },
@@ -91,18 +122,14 @@ export const SEEDED_DASHBOARD_HOME: DashboardHomeData = {
       points: [],
     },
   ],
-  workflow: [
-    { id: "w1", label: "Topic", status: "upcoming" },
-    { id: "w2", label: "Draft", status: "upcoming" },
-    { id: "w3", label: "Media", status: "upcoming" },
-    { id: "w4", label: "SEO", status: "upcoming" },
-    { id: "w5", label: "Review", status: "upcoming" },
-    { id: "w6", label: "Publish", status: "upcoming" },
-  ],
   aiStatus: [],
   system: [
     { id: "s1", label: "Storage Usage", value: "—", detail: "No media yet" },
     { id: "s2", label: "Bandwidth Usage", value: "—", detail: "Not tracked" },
     { id: "s3", label: "AI Credits Remaining", value: "—", detail: "Not tracked" },
   ],
+  notifications: {
+    unreadCount: 0,
+    items: [],
+  },
 };

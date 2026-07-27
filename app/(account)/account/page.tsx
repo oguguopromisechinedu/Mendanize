@@ -6,6 +6,7 @@ import { loadCenter } from "@/features/notifications/services/service";
 import {
   LearningDashboardView,
   loadLearningDashboard,
+  loadLearnerEcosystemExtras,
 } from "@/features/user-learning";
 import { loadLearnerShellConfig } from "@/features/user-learning/services/learner-shell-config";
 
@@ -18,7 +19,7 @@ export default async function Page() {
   const session = await requirePublicUser();
   const userId = session!.user.id;
 
-  const [data, billing, notifications, shell] = await Promise.all([
+  const [data, billing, notifications, shell, ecosystem] = await Promise.all([
     loadLearningDashboard(userId, session!.user.name),
     loadBillingDashboard(userId).catch(() => null),
     loadCenter(userId, { pageSize: 5 }).catch(() => null),
@@ -27,6 +28,11 @@ export default async function Page() {
       navGroups: [],
       quickActions: [],
       spaces: [{ label: "Browse project templates", href: "/account/projects" }],
+    })),
+    loadLearnerEcosystemExtras(userId).catch(() => ({
+      openJobs: [],
+      marketplaceListings: [],
+      careerReadiness: { score: 0, gaps: [] },
     })),
   ]);
 
@@ -44,6 +50,7 @@ export default async function Page() {
           link: n.link,
         })),
         quickActions: shell.quickActions,
+        ecosystem,
       }}
     />
   );

@@ -957,6 +957,23 @@ export async function listShowcaseProjects(input?: {
   return { total, items: rows.map(mapProject) }
 }
 
+export async function listShowcaseProjectsForUser(
+  publicUserId: string,
+): Promise<ShowcaseProjectSummary[]> {
+  if (!isDatabaseConfigured()) return []
+  const rows = await db().showcaseProject.findMany({
+    where: { publicUserId, hidden: false },
+    orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
+    include: {
+      publicUser: { select: { id: true, name: true } },
+      team: { select: { id: true, name: true, slug: true } },
+      guide: { select: { id: true, title: true, slug: true } },
+      _count: { select: { likes: true, comments: true } },
+    },
+  })
+  return rows.map(mapProject)
+}
+
 export async function getShowcaseProject(
   slug: string,
 ): Promise<ShowcaseProjectDetail | null> {

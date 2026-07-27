@@ -13,7 +13,7 @@ datasource db {
   provider = "postgresql"
 }
 
-/// MES-030 admin RBAC role keys ù extendable via AdminRole rows.
+/// MES-030 admin RBAC role keys ÔøΩ extendable via AdminRole rows.
 enum AdminRoleKey {
   SUPER_ADMINISTRATOR
   ADMINISTRATOR
@@ -23,7 +23,7 @@ enum AdminRoleKey {
   SUPPORT_MANAGER
 }
 
-/// @deprecated MES-030 ù kept only so the dual-auth migration can read legacy rows.
+/// @deprecated MES-030 ÔøΩ kept only so the dual-auth migration can read legacy rows.
 /// Remove after scripts/migrate-dual-auth.ts has been run and verified.
 enum UserRole {
   USER
@@ -89,7 +89,7 @@ model PublicUser {
   emailVerified DateTime?
   image         String?
   passwordHash  String?
-  /// MES-035 ù analytics/cookie consent captured on the public site
+  /// MES-035 ÔøΩ analytics/cookie consent captured on the public site
   cookieConsentAt    DateTime?
   analyticsConsent   Boolean   @default(false)
   marketingConsent   Boolean   @default(false)
@@ -758,7 +758,7 @@ model ArticleTag {
   @@id([articleId, tagId])
 }
 
-/// Architecture only in MES-008 ù no version-history UI yet.
+/// Architecture only in MES-008 ÔøΩ no version-history UI yet.
 model ArticleRevision {
   id          String   @id @default(cuid())
   articleId   String
@@ -873,7 +873,7 @@ model GuideLesson {
   @@index([sectionId, sortOrder])
 }
 
-/// Architecture only ù version-history UI not in MES-010.
+/// Architecture only ÔøΩ version-history UI not in MES-010.
 model GuideRevision {
   id          String   @id @default(cuid())
   guideId     String
@@ -887,7 +887,7 @@ model GuideRevision {
   @@index([guideId])
 }
 
-/// Modeled for MES-022 personalization ù not implemented in MES-010.
+/// Modeled for MES-022 personalization ÔøΩ not implemented in MES-010.
 model GuideProgress {
   id                 String     @id @default(cuid())
   publicUserId       String
@@ -1718,7 +1718,7 @@ model SearchFilter {
 
 // === MES-018 Recommendations Engine ===
 // UserInterest / SavedContent / LearningHistory: written by Personalization (MES-022),
-// read by Recommendations. Single engine ù no parallel ranking elsewhere.
+// read by Recommendations. Single engine ÔøΩ no parallel ranking elsewhere.
 
 enum RecommendationEntityKind {
   ARTICLE
@@ -1829,7 +1829,7 @@ enum AskContextType {
   AI_TOOL
   GENERAL
   HOMEPAGE
-  /// MES-039 Career Hub ù Interview Coach + career prompt contexts
+  /// MES-039 Career Hub ÔøΩ Interview Coach + career prompt contexts
   INTERVIEW
   CAREER
   RESUME
@@ -2335,7 +2335,7 @@ enum AIGenerationJobStatus {
 model AIGenerationJob {
   id                   String                 @id @default(cuid())
   question             String                 @db.Text
-  /// Anonymized fingerprint of the asker ù never stores PublicUser.id (MES-031)
+  /// Anonymized fingerprint of the asker ÔøΩ never stores PublicUser.id (MES-031)
   sourceFingerprint    String?
   status               AIGenerationJobStatus  @default(QUEUED)
   articleId            String?
@@ -2800,7 +2800,7 @@ model CommunityProfile {
   bio          String?    @db.Text
   skills       String[]   @default([])
   reputation   Int        @default(0)
-  /// Placeholder until certificate system is real ù do not fabricate display numbers
+  /// Placeholder until certificate system is real ÔøΩ do not fabricate display numbers
   certificatesPlaceholder Boolean @default(true)
   /// Placeholder until MES-010 progress tracking is real
   guidesCompletedPlaceholder Boolean @default(true)
@@ -3224,7 +3224,7 @@ model ContractPayment {
   milestoneId           String    @unique
   amountCents           Int
   currency              String    @default("usd")
-  /// Stripe Connect PaymentIntent / Transfer refs ó separate from MES-021 Checkout
+  /// Stripe Connect PaymentIntent / Transfer refs ÔøΩ separate from MES-021 Checkout
   stripePaymentIntentId String?
   stripeTransferId      String?
   platformFeeCents      Int       @default(0)
@@ -3285,7 +3285,7 @@ model MarketplacePurchase {
   amountCents           Int
   currency              String             @default("usd")
   platformFeeCents      Int                @default(0)
-  /// Stripe Connect ó not MES-021 subscription Checkout
+  /// Stripe Connect ÔøΩ not MES-021 subscription Checkout
   stripePaymentIntentId String?
   status                String             @default("pending")
   createdAt             DateTime           @default(now())
@@ -3300,7 +3300,7 @@ model MarketplaceSubscriptionInstance {
   id                          String             @id @default(cuid())
   listingId                   String
   buyerId                     String
-  /// Stripe Connect subscription id ó separate from MES-021 Subscription
+  /// Stripe Connect subscription id ÔøΩ separate from MES-021 Subscription
   stripeConnectSubscriptionId String?
   status                      String             @default("active")
   currentPeriodEnd            DateTime?

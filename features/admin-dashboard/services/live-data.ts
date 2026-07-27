@@ -4,6 +4,7 @@ import type {
   ActivityItem,
   ContentSlice,
   DashboardStat,
+  NotificationPreview,
   RankedCategory,
   RecentArticleRow,
   SystemMetric,
@@ -174,6 +175,86 @@ export async function loadContentOverview(): Promise<ContentSlice[] | null> {
   ];
 }
 
+export async function loadOpsStats(input: {
+  visitorsLabel: string;
+  pageViewsLabel: string;
+  aiConnected: number;
+  aiTotal: number;
+  unreadNotifications: number;
+}): Promise<Partial<DashboardStat>[]> {
+  if (!isDatabaseConfigured()) {
+    return [
+      { id: "visitors", value: input.visitorsLabel, hint: "from Analytics" },
+      { id: "pageViews", value: input.pageViewsLabel, hint: "from Analytics" },
+      {
+        id: "aiProviders",
+        value: `${input.aiConnected}/${input.aiTotal}`,
+        hint: "configured providers",
+      },
+      {
+        id: "notifications",
+        value: String(input.unreadNotifications),
+        hint: "unread",
+      },
+    ];
+  }
+
+  const db = getPrisma();
+  const { weekAgo, twoWeeksAgo } = weekRanges();
+
+  const [subscribers, recentSubs, priorSubs, mediaAgg] = await Promise.all([
+    db.subscriber.count({ where: { status: "active" } }).catch(() =>
+      db.subscriber.count(),
+    ),
+    db.subscriber.count({ where: { createdAt: { gte: weekAgo } } }),
+    db.subscriber.count({
+      where: { createdAt: { gte: twoWeeksAgo, lt: weekAgo } },
+    }),
+    db.mediaAsset.aggregate({ _sum: { sizeBytes: true } }),
+  ]);
+
+  const storageBytes = mediaAgg._sum.sizeBytes ?? 0;
+  const storagePct = Math.min(
+    99,
+    Math.round((storageBytes / STORAGE_QUOTA_BYTES) * 100),
+  );
+
+  return [
+    {
+      id: "visitors",
+      value: input.visitorsLabel,
+      hint: "from Analytics",
+    },
+    {
+      id: "pageViews",
+      value: input.pageViewsLabel,
+      hint: "from Analytics",
+    },
+    {
+      id: "subscribers",
+      value: String(subscribers),
+      hint: "live",
+      trend: formatTrend(recentSubs, priorSubs),
+    },
+    {
+      id: "notifications",
+      value: String(input.unreadNotifications),
+      hint: "unread platform-wide",
+    },
+    {
+      id: "aiProviders",
+      value: `${input.aiConnected}/${input.aiTotal}`,
+      hint: "configured providers",
+    },
+    {
+      id: "storage",
+      value: storageBytes > 0 ? `${storagePct}%` : "—",
+      hint: storageBytes > 0 ? formatBytes(storageBytes) : "No media yet",
+    },
+  ];
+}
+
+/** @deprecated Content CMS stats — kept for any legacy callers; prefer loadOpsStats. */
 export async function loadLiveStats(
   visitorsLabel: string,
 ): Promise<Partial<DashboardStat>[]> {
@@ -234,7 +315,6 @@ export async function loadLiveStats(
     }),
   ]);
 
-  // Always return live counts — zeros are honest; never fall back to demo KPIs.
   return [
     {
       id: "articles",
@@ -310,4 +390,42 @@ export async function computeAverageSeoScore(): Promise<number | null> {
     0,
   );
   return Math.round(total / result.items.length);
+}
+
+export async function loadNotificationPreview(): Promise<{
+  unreadCount: number;
+  items: NotificationPreview[];
+}> {
+  if (!isDatabaseConfigured()) {
+    return { unreadCount: 0, items: [] };
+  }
+
+  const db = getPrisma();
+  const [unreadCount, rows] = await Promise.all([
+    db.notification.count({ where: { read: false, archived: false } }),
+    db.notification.findMany({
+      where: { archived: false },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        read: true,
+        createdAt: true,
+        link: true,
+      },
+    }),
+  ]);
+
+  return {
+    unreadCount,
+    items: rows.map((n) => ({
+      id: n.id,
+      title: n.title,
+      meta: n.read ? String(n.type) : `Unread · ${n.type}`,
+      time: formatRelativeTime(n.createdAt),
+      href: n.link || "/dashboard/notifications",
+    })),
+  };
 }
