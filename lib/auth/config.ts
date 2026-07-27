@@ -18,6 +18,7 @@ export const adminAuthRoutes = [
   "/dashboard/login",
   "/dashboard/forgot-password",
   "/dashboard/reset-password",
+  "/dashboard/accept-invite",
 ] as const;
 
 export const publicAuthRoutes = [

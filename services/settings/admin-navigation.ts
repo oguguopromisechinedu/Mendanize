@@ -121,7 +121,12 @@ export const SEEDED_ADMIN_NAVIGATION: AdminNavigationConfig = {
       id: "users",
       label: "Users & Management",
       items: [
-        { label: "Users & Roles", href: "/dashboard/users", icon: "shield" },
+        {
+          label: "Users & Roles",
+          href: "/dashboard/users",
+          icon: "shield",
+          roles: ["SUPER_ADMIN", "ADMIN"],
+        },
         { label: "Workflow", href: "/dashboard/workflow", icon: "git-branch" },
         { label: "Activity Log", href: "/dashboard/activity-log", icon: "activity" },
         {
@@ -149,8 +154,36 @@ export const SEEDED_ADMIN_NAVIGATION: AdminNavigationConfig = {
   ],
 };
 
-export async function getAdminNavigationConfig(): Promise<AdminNavigationConfig> {
-  return structuredClone(SEEDED_ADMIN_NAVIGATION);
+type NavRoleGate = NonNullable<AdminNavItem["roles"]>[number];
+
+function navRoleForAdmin(roleKey: string): NavRoleGate | null {
+  if (roleKey === "SUPER_ADMINISTRATOR") return "SUPER_ADMIN";
+  if (roleKey === "ADMINISTRATOR") return "ADMIN";
+  return null;
+}
+
+function canSeeNavItem(item: AdminNavItem, roleKey: string) {
+  if (!item.roles?.length) return true;
+  const mapped = navRoleForAdmin(roleKey);
+  if (!mapped) return false;
+  return item.roles.includes(mapped);
+}
+
+export async function getAdminNavigationConfig(
+  roleKey?: string,
+): Promise<AdminNavigationConfig> {
+  const config = structuredClone(SEEDED_ADMIN_NAVIGATION);
+  if (!roleKey) return config;
+
+  return {
+    ...config,
+    groups: config.groups
+      .map((group) => ({
+        ...group,
+        items: group.items.filter((item) => canSeeNavItem(item, roleKey)),
+      }))
+      .filter((group) => group.items.length > 0),
+  };
 }
 
 export function getSeededAdminNavigation(): AdminNavigationConfig {

@@ -27,6 +27,48 @@ export const adminPasswordSchema = z.object({
   password: z.string().min(8).max(128),
 })
 
+export const adminCreateSchema = z.object({
+  email: z.string().email().max(320),
+  name: z.string().max(120).optional().nullable(),
+  password: z.string().min(8).max(128),
+  role: z.enum([
+    "SUPER_ADMINISTRATOR",
+    "ADMINISTRATOR",
+    "EDITOR",
+    "CONTENT_MANAGER",
+    "ANALYTICS_MANAGER",
+    "SUPPORT_MANAGER",
+  ]),
+})
+
+export const staffInviteSchema = z.object({
+  email: z.string().email().max(320),
+  name: z.string().max(120).optional().nullable(),
+  role: z.enum([
+    "SUPER_ADMINISTRATOR",
+    "ADMINISTRATOR",
+    "EDITOR",
+    "CONTENT_MANAGER",
+    "ANALYTICS_MANAGER",
+    "SUPPORT_MANAGER",
+  ]),
+  sendEmail: z.boolean().optional(),
+})
+
+export const staffInviteAcceptSchema = z.object({
+  token: z.string().min(16),
+  password: z.string().min(8).max(128),
+  name: z.string().max(120).optional().nullable(),
+})
+
+export const staffIdSchema = z.object({
+  id: z.string().min(1),
+})
+
+export const invitationIdSchema = z.object({
+  invitationId: z.string().min(1),
+})
+
 export const subscriberWriteSchema = z.object({
   email: z.string().email(),
   name: z.string().max(120).optional().nullable(),

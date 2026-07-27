@@ -177,22 +177,25 @@ model Admin {
   totpSecret    String?
   totpEnabled   Boolean   @default(false)
   active        Boolean   @default(true)
+  lastLoginAt   DateTime?
   roleId        String
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  role                   AdminRole                 @relation(fields: [roleId], references: [id], onDelete: Restrict)
-  sessions               AdminSession[]
-  posts                  Post[]
-  articles               Article[]
-  articleRevisions       ArticleRevision[]
-  guides                 Guide[]
-  guideRevisions         GuideRevision[]
-  aiGenerations          AIGeneration[]
-  notifications          Notification[]
-  authorizationLogs      AuthorizationLog[]
-  communityModeratorGrants CommunityModeratorFlag[] @relation("CommunityModeratorGrantedBy")
-  communityReportResolutions CommunityReport[]     @relation("CommunityReportResolver")
+  role                     AdminRole                 @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  sessions                 AdminSession[]
+  posts                    Post[]
+  articles                 Article[]
+  articleRevisions         ArticleRevision[]
+  guides                   Guide[]
+  guideRevisions           GuideRevision[]
+  aiGenerations            AIGeneration[]
+  notifications            Notification[]
+  authorizationLogs        AuthorizationLog[]
+  communityModeratorGrants CommunityModeratorFlag[]  @relation("CommunityModeratorGrantedBy")
+  communityReportResolutions CommunityReport[]       @relation("CommunityReportResolver")
+  invitationsSent          AdminInvitation[]         @relation("AdminInvitationInviter")
+  invitationAccepted       AdminInvitation?          @relation("AdminInvitationAccepted")
 }
 
 model AdminRole {
@@ -205,6 +208,28 @@ model AdminRole {
 
   admins      Admin[]
   permissions RolePermission[]
+  invitations AdminInvitation[]
+}
+
+model AdminInvitation {
+  id               String       @id @default(cuid())
+  email            String
+  name             String?
+  roleId           String
+  token            String       @unique
+  expiresAt        DateTime
+  invitedByAdminId String
+  acceptedAt       DateTime?
+  adminId          String?      @unique
+  createdAt        DateTime     @default(now())
+
+  role      AdminRole @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  invitedBy Admin     @relation("AdminInvitationInviter", fields: [invitedByAdminId], references: [id], onDelete: Restrict)
+  admin     Admin?    @relation("AdminInvitationAccepted", fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+  @@index([expiresAt])
+  @@index([acceptedAt])
 }
 
 model Permission {

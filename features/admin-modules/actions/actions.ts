@@ -2,12 +2,14 @@
 
 import { revalidatePath } from "next/cache"
 import type { AdminRoleKey } from "@prisma/client"
+import { z } from "zod"
 
-import { requireEditor, requirePermission, PERMISSIONS } from "@/features/authentication/server"
+import { requireEditor, requirePermission, requireSuperAdministrator, PERMISSIONS } from "@/features/authentication/server"
 import {
   advanceWorkflowItem,
   bulkUpdateCommentStatus,
   createKnowledgeArticle,
+  createAdminUser,
   createNewsletterCampaign,
   createPage,
   createRedirectFromBrokenLink,
@@ -21,9 +23,11 @@ import {
   deleteTags,
   mergeTags,
   recordAudit,
+  removeAdminUser,
   runAutomationJob,
   runBrokenLinkScan,
   sendNewsletterCampaign,
+  setAdminActive,
   setAdminPassword,
   setAutomationJobEnabled,
   updateBrokenLinkStatus,
@@ -34,6 +38,12 @@ import {
   updateTag,
   updateUserRole,
 } from "@/services/admin"
+import {
+  acceptStaffInvitation,
+  cancelStaffInvitation,
+  createStaffInvitation,
+  resendStaffInvitation,
+} from "@/services/admin/invitations"
 import type { ActionResult } from "../types/types"
 import {
   automationToggleSchema,
@@ -49,6 +59,11 @@ import {
   tagWriteSchema,
   userRoleSchema,
   adminPasswordSchema,
+  adminCreateSchema,
+  staffInviteSchema,
+  staffInviteAcceptSchema,
+  staffIdSchema,
+  invitationIdSchema,
   workflowAdvanceSchema,
 } from "../validators/schema"
 
@@ -168,6 +183,206 @@ export async function updateUserRoleAction(
     )
     revalidate("/dashboard/users")
     return { ok: true, message: `Role updated to ${user.role}` }
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "Failed" }
+  }
+}
+
+export async function createAdminAction(
+  input: unknown
+): Promise<ActionResult> {
+  const session = await requireSuperAdministrator()
+  if (!session) {
+    return { ok: false, message: "Only the founder can directly create staff accounts" }
+  }
+  const parsed = adminCreateSchema.safeParse(input)
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: "Check email, password (min 8 characters), and role",
+      fieldErrors: parsed.error.flatten().fieldErrors as Record<
+        string,
+        string[]
+      >,
+    }
+  }
+  if (
+    parsed.data.role === "SUPER_ADMINISTRATOR" &&
+    session.admin?.roleKey !== "SUPER_ADMINISTRATOR"
+  ) {
+    return {
+      ok: false,
+      message: "Only a Super Administrator can create another Super Administrator",
+    }
+  }
+  try {
+    const user = await createAdminUser({
+      email: parsed.data.email,
+      name: parsed.data.name,
+      password: parsed.data.password,
+      role: parsed.data.role as AdminRoleKey,
+      actorId: session.admin?.id,
+    })
+    await audit(
+      session,
+      "create",
+      "user",
+      `Created admin ${user.email} (${user.role})`,
+      user.id
+    )
+    revalidate("/dashboard/users")
+    return { ok: true, message: `Admin ${user.email} created` }
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "Failed" }
+  }
+}
+
+export async function inviteStaffAction(
+  input: unknown
+): Promise<ActionResult> {
+  const session = await requireSuperAdministrator()
+  if (!session?.admin?.id) {
+    return { ok: false, message: "Only the founder can invite staff" }
+  }
+  const parsed = staffInviteSchema.safeParse(input)
+  if (!parsed.success) {
+    return { ok: false, message: "Valid email and role are required" }
+  }
+  if (
+    parsed.data.role === "SUPER_ADMINISTRATOR" &&
+    session.admin.roleKey !== "SUPER_ADMINISTRATOR"
+  ) {
+    return {
+      ok: false,
+      message: "Only a Super Administrator can invite another Super Administrator",
+    }
+  }
+  try {
+    const result = await createStaffInvitation({
+      email: parsed.data.email,
+      name: parsed.data.name,
+      role: parsed.data.role as AdminRoleKey,
+      invitedByAdminId: session.admin.id,
+      inviterName: session.admin.name,
+      sendEmail: parsed.data.sendEmail ?? true,
+    })
+    await audit(
+      session,
+      "invite",
+      "user",
+      `Invited ${parsed.data.email} as ${parsed.data.role}`,
+    )
+    revalidate("/dashboard/users")
+    const suffix = result.emailSent
+      ? "Invitation email sent."
+      : result.emailError
+        ? `Invitation created but email failed: ${result.emailError}`
+        : "Invitation created."
+    return { ok: true, message: suffix }
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "Failed" }
+  }
+}
+
+export async function resendStaffInviteAction(
+  input: unknown
+): Promise<ActionResult> {
+  const session = await requireSuperAdministrator()
+  if (!session?.admin?.id) {
+    return { ok: false, message: "Only the founder can resend invitations" }
+  }
+  const parsed = invitationIdSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, message: "Invalid invitation" }
+  try {
+    const result = await resendStaffInvitation({
+      invitationId: parsed.data.invitationId,
+      inviterName: session.admin.name,
+    })
+    revalidate("/dashboard/users")
+    return {
+      ok: true,
+      message: result.emailSent
+        ? "Invitation resent"
+        : `Invitation updated but email failed: ${result.emailError}`,
+    }
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "Failed" }
+  }
+}
+
+export async function cancelStaffInviteAction(
+  input: unknown
+): Promise<ActionResult> {
+  const session = await requireSuperAdministrator()
+  if (!session) return { ok: false, message: "Only the founder can cancel invitations" }
+  const parsed = invitationIdSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, message: "Invalid invitation" }
+  try {
+    await cancelStaffInvitation(parsed.data.invitationId)
+    revalidate("/dashboard/users")
+    return { ok: true, message: "Invitation cancelled" }
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "Failed" }
+  }
+}
+
+export async function setAdminActiveAction(
+  input: unknown
+): Promise<ActionResult> {
+  const session = await requireSuperAdministrator()
+  if (!session) {
+    return { ok: false, message: "Only the founder can change staff status" }
+  }
+  const parsed = staffIdSchema
+    .extend({ active: z.boolean() })
+    .safeParse(input)
+  if (!parsed.success) return { ok: false, message: "Invalid request" }
+  try {
+    const user = await setAdminActive(
+      parsed.data.id,
+      parsed.data.active,
+      session.admin?.id,
+    )
+    revalidate("/dashboard/users")
+    return {
+      ok: true,
+      message: `${user.email} is now ${parsed.data.active ? "active" : "deactivated"}`,
+    }
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "Failed" }
+  }
+}
+
+export async function removeAdminUserAction(
+  input: unknown
+): Promise<ActionResult> {
+  const session = await requireSuperAdministrator()
+  if (!session) return { ok: false, message: "Only the founder can remove staff" }
+  const parsed = staffIdSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, message: "Invalid user" }
+  try {
+    await removeAdminUser(parsed.data.id, session.admin?.id)
+    revalidate("/dashboard/users")
+    return { ok: true, message: "Staff member removed" }
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "Failed" }
+  }
+}
+
+export async function acceptStaffInviteAction(
+  input: unknown
+): Promise<ActionResult> {
+  const parsed = staffInviteAcceptSchema.safeParse(input)
+  if (!parsed.success) {
+    return { ok: false, message: "Password must be at least 8 characters" }
+  }
+  try {
+    await acceptStaffInvitation({
+      token: parsed.data.token,
+      password: parsed.data.password,
+      name: parsed.data.name,
+    })
+    return { ok: true, message: "Account created — you can sign in now" }
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "Failed" }
   }

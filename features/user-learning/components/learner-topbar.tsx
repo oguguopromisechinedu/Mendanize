@@ -5,7 +5,6 @@ import { Bell, Menu, Search, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 
 export type LearnerTopBarUser = {
   name?: string | null;
@@ -67,22 +66,42 @@ export function LearnerTopBar({
         </kbd>
       </form>
 
-      <div className="ml-auto flex items-center gap-2 sm:gap-3">
-        <Button
-          asChild
-          size="sm"
-          className={cn(
-            "hidden rounded-full sm:inline-flex",
-            isFree &&
-              "bg-gradient-to-r from-primary to-amber-500 text-primary-foreground shadow-glow hover:opacity-95",
-          )}
-          variant={isFree ? "default" : "outline"}
-        >
-          <Link href="/account/billing">
-            <Sparkles className="size-3.5" aria-hidden />
-            {isFree ? "Go Premium" : planName}
-          </Link>
-        </Button>
+      <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
+        {isFree ? (
+          <>
+            <Button
+              asChild
+              size="icon-sm"
+              className="rounded-full bg-gradient-to-r from-primary to-amber-500 text-primary-foreground shadow-glow hover:opacity-95 sm:hidden"
+            >
+              <Link href="/account/billing" aria-label="Go Premium">
+                <Sparkles className="size-4" aria-hidden />
+              </Link>
+            </Button>
+            <Button
+              asChild
+              size="sm"
+              className="hidden rounded-full bg-gradient-to-r from-primary to-amber-500 text-primary-foreground shadow-glow hover:opacity-95 sm:inline-flex"
+            >
+              <Link href="/account/billing" className="gap-1.5">
+                <Sparkles className="size-3.5 shrink-0" aria-hidden />
+                <span className="hidden md:inline">Go Premium</span>
+                <span className="md:hidden">Premium</span>
+              </Link>
+            </Button>
+          </>
+        ) : (
+          <Button
+            asChild
+            size="sm"
+            variant="outline"
+            className="hidden max-w-[7.5rem] truncate rounded-full sm:inline-flex"
+          >
+            <Link href="/account/billing" title={planName}>
+              {planName}
+            </Link>
+          </Button>
+        )}
 
         <Button
           asChild
@@ -107,7 +126,7 @@ export function LearnerTopBar({
 
         <Link
           href="/account/preferences"
-          className="flex items-center gap-2.5 rounded-full border border-border bg-card/70 py-1 pl-1 pr-3 transition hover:border-primary/35 hover:bg-hover"
+          className="flex min-w-0 max-w-[9.5rem] items-center gap-2 rounded-full border border-border bg-card/70 py-1 pl-1 pr-2 transition hover:border-primary/35 hover:bg-hover sm:gap-2.5 sm:pr-3"
         >
           <span className="flex size-8 items-center justify-center overflow-hidden rounded-full bg-primary/20 text-xs font-semibold text-primary">
             {user.image ? (

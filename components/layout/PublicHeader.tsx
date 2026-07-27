@@ -192,18 +192,25 @@ export function PublicHeader({
           ))}
         </nav>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex min-w-0 shrink-0 items-center gap-1 sm:gap-1.5">
           <SearchModal />
           <Button
             asChild
             variant="ghost"
             size="sm"
-            className="hidden rounded-lg sm:inline-flex"
+            className="hidden !whitespace-normal rounded-lg px-2.5 md:inline-flex"
           >
             <Link href={signInHref}>Sign in</Link>
           </Button>
-          <Button asChild size="sm" className="hidden rounded-lg sm:inline-flex">
-            <Link href={routes.signUp}>Create account</Link>
+          <Button
+            asChild
+            size="sm"
+            className="hidden !whitespace-normal rounded-lg px-2.5 sm:inline-flex"
+          >
+            <Link href={routes.signUp}>
+              <span className="hidden lg:inline">Create account</span>
+              <span className="lg:hidden">Sign up</span>
+            </Link>
           </Button>
 
           <Sheet>

@@ -23,9 +23,15 @@ export type UserAdminRecord = {
   name: string | null
   email: string
   role: AdminRoleKey
+  roleLabel: string
+  active: boolean
+  status: "ACTIVE" | "INVITED" | "DEACTIVATED"
   emailVerified: string | null
   createdAt: string
   updatedAt: string
+  lastLoginAt: string | null
+  permissions: string[]
+  invitationId?: string | null
   plan: string | null
 }
 

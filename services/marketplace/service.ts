@@ -692,47 +692,54 @@ export async function listDisputedContracts(): Promise<ContractRecord[]> {
 }
 
 export async function getMarketplaceMetrics(): Promise<MarketplaceMetrics> {
+  const empty: MarketplaceMetrics = {
+    openJobs: 0,
+    pendingJobReviews: 0,
+    completedContracts: 0,
+    activeClients: 0,
+    approvedListings: 0,
+    pendingListingReviews: 0,
+    purchasesCompleted: 0,
+    activeCreators: 0,
+  }
+
   if (!isDatabaseConfigured()) {
+    return empty
+  }
+
+  const { safeDbQuery } = await import("@/lib/db/safe-query")
+
+  return safeDbQuery("marketplace.metrics", empty, async () => {
+    const [
+      openJobs,
+      pendingJobReviews,
+      completedContracts,
+      activeClients,
+      approvedListings,
+      pendingListingReviews,
+      purchasesCompleted,
+      activeCreators,
+    ] = await Promise.all([
+      db().jobPosting.count({ where: { status: "OPEN" } }),
+      db().jobPosting.count({ where: { status: "PENDING_REVIEW" } }),
+      db().contract.count({ where: { status: "COMPLETED" } }),
+      db().clientFlag.count({ where: { active: true } }),
+      db().marketplaceListing.count({ where: { status: "APPROVED" } }),
+      db().marketplaceListing.count({ where: { status: "PENDING_REVIEW" } }),
+      db().marketplacePurchase.count({
+        where: { status: { in: ["succeeded", "completed", "paid"] } },
+      }),
+      db().creatorFlag.count({ where: { active: true } }),
+    ])
     return {
-      openJobs: 0,
-      pendingJobReviews: 0,
-      completedContracts: 0,
-      activeClients: 0,
-      approvedListings: 0,
-      pendingListingReviews: 0,
-      purchasesCompleted: 0,
-      activeCreators: 0,
+      openJobs,
+      pendingJobReviews,
+      completedContracts,
+      activeClients,
+      approvedListings,
+      pendingListingReviews,
+      purchasesCompleted,
+      activeCreators,
     }
-  }
-  const [
-    openJobs,
-    pendingJobReviews,
-    completedContracts,
-    activeClients,
-    approvedListings,
-    pendingListingReviews,
-    purchasesCompleted,
-    activeCreators,
-  ] = await Promise.all([
-    db().jobPosting.count({ where: { status: "OPEN" } }),
-    db().jobPosting.count({ where: { status: "PENDING_REVIEW" } }),
-    db().contract.count({ where: { status: "COMPLETED" } }),
-    db().clientFlag.count({ where: { active: true } }),
-    db().marketplaceListing.count({ where: { status: "APPROVED" } }),
-    db().marketplaceListing.count({ where: { status: "PENDING_REVIEW" } }),
-    db().marketplacePurchase.count({
-      where: { status: { in: ["succeeded", "completed", "paid"] } },
-    }),
-    db().creatorFlag.count({ where: { active: true } }),
-  ])
-  return {
-    openJobs,
-    pendingJobReviews,
-    completedContracts,
-    activeClients,
-    approvedListings,
-    pendingListingReviews,
-    purchasesCompleted,
-    activeCreators,
-  }
+  })
 }

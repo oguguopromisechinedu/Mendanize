@@ -2,11 +2,9 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
+import { FounderSchemaBanner } from "@/features/admin-dashboard/components/founder-schema-banner"
 import { requireSuperAdministrator } from "@/features/authentication/server"
-import {
-  collectPlatformMetrics,
-  getLatestValuation,
-} from "@/services/valuation"
+import { loadFounderDashboardPayload } from "@/services/valuation"
 
 export const metadata: Metadata = {
   title: "Investor view",
@@ -17,10 +15,8 @@ export default async function Page() {
   const session = await requireSuperAdministrator()
   if (!session?.admin?.id) redirect("/dashboard/login")
 
-  const [metrics, latest] = await Promise.all([
-    collectPlatformMetrics(),
-    getLatestValuation(),
-  ])
+  const { metrics, latest, schemaReady, schemaMessage } =
+    await loadFounderDashboardPayload()
 
   return (
     <div className="space-y-8">
@@ -39,6 +35,10 @@ export default async function Page() {
           work.
         </p>
       </div>
+
+      {!schemaReady && schemaMessage ? (
+        <FounderSchemaBanner message={schemaMessage} />
+      ) : null}
 
       <dl className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-border/60 px-4 py-3">

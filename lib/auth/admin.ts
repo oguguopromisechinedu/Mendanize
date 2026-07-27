@@ -166,6 +166,10 @@ export const {
           summary: `Admin signed in: ${user.email}`,
           ipAddress: await getRequestIpAddress(),
         });
+        await getPrisma().admin.update({
+          where: { id: user.id },
+          data: { lastLoginAt: new Date() },
+        });
       } catch {
         /* audit must not block sign-in */
       }

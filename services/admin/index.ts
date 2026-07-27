@@ -1,6 +1,7 @@
 export * from "./types"
 export * from "./tags"
 export * from "./users"
+export * from "./invitations"
 export * from "./subscribers"
 export * from "./audit"
 export * from "./application-logs"

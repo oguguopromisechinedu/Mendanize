@@ -78,29 +78,32 @@ export function HeroAskBar({ content }: { content: AskContent }) {
 
   return (
     <div className="mt-8 space-y-3">
-      <div className="flex items-center gap-2 rounded-2xl border border-border bg-card/80 p-2 shadow-glow backdrop-blur-sm">
-        <div className="ml-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <Bot className="size-4" aria-hidden />
+      <div className="flex flex-col gap-2 rounded-2xl border border-border bg-card/80 p-2 shadow-glow backdrop-blur-sm sm:flex-row sm:items-center">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <div className="ml-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <Bot className="size-4" aria-hidden />
+          </div>
+          <Input
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") ask()
+            }}
+            placeholder={content.placeholder}
+            aria-label="Ask Mendanize AI"
+            className="min-w-0 flex-1 border-0 bg-transparent text-base shadow-none focus-visible:ring-0"
+          />
         </div>
-        <Input
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") ask()
-          }}
-          placeholder={content.placeholder}
-          aria-label="Ask Mendanize AI"
-          className="border-0 bg-transparent text-base shadow-none focus-visible:ring-0"
-        />
         <Button
           type="button"
-          size="icon"
-          className="shrink-0 rounded-xl"
+          size="default"
+          className="h-10 w-full shrink-0 gap-2 rounded-xl sm:size-9 sm:w-auto sm:gap-0"
           disabled={pending || !question.trim()}
           onClick={() => ask()}
           aria-label="Submit question"
         >
           <ArrowRight className="size-4" />
+          <span className="sm:hidden">Ask</span>
         </Button>
       </div>
 

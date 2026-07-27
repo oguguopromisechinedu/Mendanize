@@ -793,7 +793,7 @@ export async function getLearningDashboard(input: {
   return {
     userName: input.userName ?? null,
     stats,
-    continueLearning: continueLearning.slice(0, 3),
+    continueLearning: continueLearning.slice(0, 4),
     recentlyViewed,
     savedPreview: savedPreview.slice(0, 4),
     recommendations,

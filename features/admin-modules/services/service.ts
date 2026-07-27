@@ -12,6 +12,7 @@ import {
   listUsersAdmin,
   listWorkflowQueue,
 } from "@/services/admin"
+import { listAdminRolesWithPermissions } from "@/services/admin/invitations"
 
 export async function loadTags(params?: { query?: string }) {
   return listTagsAdminDetailed({ ...params, pageSize: 100 })
@@ -20,9 +21,14 @@ export async function loadTags(params?: { query?: string }) {
 export async function loadUsers(params?: {
   query?: string
   role?: string
+  status?: "ACTIVE" | "INVITED" | "DEACTIVATED" | "ALL"
   staffOnly?: boolean
 }) {
   return listUsersAdmin({ ...params, pageSize: 100 })
+}
+
+export async function loadStaffRoles() {
+  return listAdminRolesWithPermissions()
 }
 
 export async function loadSubscribers(params?: {

@@ -2,18 +2,14 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
+import { FounderSchemaBanner } from "@/features/admin-dashboard/components/founder-schema-banner"
 import { requireSuperAdministrator } from "@/features/authentication/server"
 import {
   computeValuationAction,
   generateInsightsAction,
 } from "@/features/growth"
-import {
-  collectPlatformMetrics,
-  getLatestValuation,
-  listValuationHistory,
-} from "@/services/valuation"
+import { loadFounderDashboardPayload } from "@/services/valuation"
 import { Button } from "@/components/ui/button"
-import { getPrisma, isDatabaseConfigured } from "@/lib/db/prisma"
 
 export const metadata: Metadata = {
   title: "Business Intelligence",
@@ -24,20 +20,8 @@ export default async function Page() {
   const session = await requireSuperAdministrator()
   if (!session?.admin?.id) redirect("/dashboard/login")
 
-  const [metrics, latest, history] = await Promise.all([
-    collectPlatformMetrics(),
-    getLatestValuation(),
-    listValuationHistory(12),
-  ])
-
-  let insightText: string | null = null
-  if (isDatabaseConfigured()) {
-    const growth = await getPrisma().growthSnapshot.findFirst({
-      where: { insightText: { not: null } },
-      orderBy: { createdAt: "desc" },
-    })
-    insightText = growth?.insightText ?? null
-  }
+  const { metrics, latest, history, insightText, schemaReady, schemaMessage } =
+    await loadFounderDashboardPayload()
 
   const metricCards = [
     { label: "Total users", value: metrics.totalUsers },
@@ -82,6 +66,10 @@ export default async function Page() {
         </div>
       </div>
 
+      {!schemaReady && schemaMessage ? (
+        <FounderSchemaBanner message={schemaMessage} />
+      ) : null}
+
       <section className="rounded-2xl border border-border/60 bg-gradient-to-br from-zinc-950 to-zinc-900 px-6 py-8 text-zinc-50">
         <p className="text-xs uppercase tracking-[0.18em] text-zinc-400">
           Estimated value · confidence {latest?.confidenceLevel ?? "—"}
@@ -101,16 +89,26 @@ export default async function Page() {
         </p>
         <p className="mt-4 max-w-xl text-xs text-amber-200/90">
           {latest?.notes ??
-            "Run a calculation to store a factor-separated historical snapshot."}
+            (schemaReady
+              ? "Run a calculation to store a factor-separated historical snapshot."
+              : "Valuation snapshots require the MES-037 migration before they can be stored.")}
         </p>
         <div className="mt-6 flex flex-wrap gap-2">
           <form action={computeValuationAction}>
-            <Button type="submit" className="rounded-xl bg-[var(--brand-amber,#E8940C)] text-zinc-950 hover:bg-amber-400">
+            <Button
+              type="submit"
+              className="rounded-xl bg-[var(--brand-amber,#E8940C)] text-zinc-950 hover:bg-amber-400"
+              disabled={!schemaReady}
+            >
               Recalculate valuation
             </Button>
           </form>
           <form action={generateInsightsAction}>
-            <Button type="submit" variant="outline" className="rounded-xl border-zinc-600 bg-transparent text-zinc-100">
+            <Button
+              type="submit"
+              variant="outline"
+              className="rounded-xl border-zinc-600 bg-transparent text-zinc-100"
+            >
               Generate AI insights
             </Button>
           </form>
@@ -145,7 +143,11 @@ export default async function Page() {
         <h2 className="text-lg font-medium">Valuation history</h2>
         <ul className="space-y-2 text-sm text-muted-foreground">
           {history.length === 0 ? (
-            <li>No snapshots yet.</li>
+            <li>
+              {schemaReady
+                ? "No snapshots yet."
+                : "No snapshots — valuation tables are not migrated yet."}
+            </li>
           ) : (
             history.map((h) => (
               <li key={h.id}>

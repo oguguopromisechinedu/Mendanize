@@ -31,7 +31,18 @@ export default async function Page() {
     })),
     loadLearnerEcosystemExtras(userId).catch(() => ({
       openJobs: [],
+      recentProjects: [],
       marketplaceListings: [],
+      marketplaceOverview: {
+        activeProjects: 0,
+        activeProjectsTrend: "No active contracts yet",
+        openJobs: 0,
+        openJobsTrend: "Check back soon",
+        totalEarnedCents: 0,
+        totalEarnedTrend: "Complete projects to earn",
+        proposalCount: 0,
+        shortlistedCount: 0,
+      },
       careerReadiness: { score: 0, gaps: [] },
     })),
   ]);

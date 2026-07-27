@@ -2,11 +2,13 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
+import { FounderSchemaBanner } from "@/features/admin-dashboard/components/founder-schema-banner"
 import { requireSuperAdministrator } from "@/features/authentication/server"
 import { computeValuationAction } from "@/features/growth"
 import {
   getLatestValuation,
   listValuationHistory,
+  probeFounderDashboardSchema,
 } from "@/services/valuation"
 import { Button } from "@/components/ui/button"
 
@@ -19,7 +21,8 @@ export default async function Page() {
   const session = await requireSuperAdministrator()
   if (!session?.admin?.id) redirect("/dashboard/login")
 
-  const [latest, history] = await Promise.all([
+  const [{ schemaReady, schemaMessage }, latest, history] = await Promise.all([
+    probeFounderDashboardSchema(),
     getLatestValuation(),
     listValuationHistory(50),
   ])
@@ -41,6 +44,10 @@ export default async function Page() {
         </p>
       </div>
 
+      {!schemaReady && schemaMessage ? (
+        <FounderSchemaBanner message={schemaMessage} />
+      ) : null}
+
       <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 px-6 py-8">
         <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
           Confidence: {latest?.confidenceLevel ?? "—"}
@@ -51,7 +58,7 @@ export default async function Page() {
             : "—"}
         </p>
         <form action={computeValuationAction} className="mt-6">
-          <Button type="submit" className="rounded-xl">
+          <Button type="submit" className="rounded-xl" disabled={!schemaReady}>
             Refresh calculation
           </Button>
         </form>
@@ -77,12 +84,20 @@ export default async function Page() {
       <section>
         <h2 className="text-lg font-medium">History</h2>
         <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-          {history.map((h) => (
-            <li key={h.id}>
-              {new Date(h.computedAt).toLocaleString()} · $
-              {Math.round(h.estimatedValue).toLocaleString()}
+          {history.length === 0 ? (
+            <li>
+              {schemaReady
+                ? "No valuation snapshots yet."
+                : "History unavailable until valuation tables are migrated."}
             </li>
-          ))}
+          ) : (
+            history.map((h) => (
+              <li key={h.id}>
+                {new Date(h.computedAt).toLocaleString()} · $
+                {Math.round(h.estimatedValue).toLocaleString()}
+              </li>
+            ))
+          )}
         </ul>
       </section>
     </div>

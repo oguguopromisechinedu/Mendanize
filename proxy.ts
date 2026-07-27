@@ -20,6 +20,7 @@ export default async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const requestId = requestIdFromHeaders(req.headers);
   const requestHeaders = withRequestIdHeaders(req.headers, requestId);
+  requestHeaders.set("x-pathname", pathname);
 
   const next = () =>
     NextResponse.next({
