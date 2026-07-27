@@ -33,11 +33,11 @@ export function FinalCtaSection({
           <p className="mx-auto mt-4 max-w-2xl type-body-lg text-muted-foreground">
             {content.description}
           </p>
-          <div className="mt-6 flex w-full flex-col gap-2 sm:mt-8 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-center sm:gap-3">
-            <Button asChild size="lg" className="w-full sm:w-auto">
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Button asChild size="lg">
               <Link href={content.primaryCta.href}>{content.primaryCta.label}</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
+            <Button asChild size="lg" variant="outline">
               <Link href={content.secondaryCta.href}>
                 {content.secondaryCta.label}
               </Link>

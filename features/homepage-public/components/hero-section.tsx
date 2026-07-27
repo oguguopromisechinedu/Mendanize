@@ -104,13 +104,13 @@ export function HeroSection({
             <HeroAskBar content={ask} />
           ) : null}
 
-          <div className="mt-5 flex w-full flex-col gap-2 sm:mt-6 sm:w-auto sm:flex-row sm:flex-wrap sm:gap-2.5">
-            <Button asChild size="lg" className="w-full rounded-xl shadow-glow sm:w-auto">
+          <div className="mt-6 flex flex-wrap gap-2.5">
+            <Button asChild size="lg" className="rounded-xl shadow-glow">
               <Link href={content.primaryCta.href}>
                 {content.primaryCta.label}
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="w-full rounded-xl sm:w-auto">
+            <Button asChild size="lg" variant="outline" className="rounded-xl">
               <Link href={content.secondaryCta.href}>
                 {content.secondaryCta.label}
               </Link>

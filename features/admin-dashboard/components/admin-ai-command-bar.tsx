@@ -6,18 +6,15 @@ import { ArrowRight, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import {
-  ADMIN_COMMAND_SUGGESTIONS,
-  resolveAdminIntent,
-} from "../utils/admin-intent"
+import { resolveAdminIntent } from "../utils/admin-intent"
 
 export function AdminAiCommandBar({ className }: { className?: string }) {
   const router = useRouter()
   const [query, setQuery] = useState("")
   const [pending, startTransition] = useTransition()
 
-  function submit(text?: string) {
-    const next = (text ?? query).trim()
+  function submit() {
+    const next = query.trim()
     if (!next) return
 
     const intent = resolveAdminIntent(next)
@@ -63,22 +60,6 @@ export function AdminAiCommandBar({ className }: { className?: string }) {
         Can generate articles/images or help organize articles, categories,
         homepage, SEO, media, and publishing.
       </p>
-      <div className="flex flex-wrap gap-2">
-        {ADMIN_COMMAND_SUGGESTIONS.map((s) => (
-          <button
-            key={s.label}
-            type="button"
-            className="rounded-full border border-border bg-surface/60 px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-            onClick={() => {
-              setQuery(s.draft)
-              submit(s.draft)
-            }}
-            disabled={pending}
-          >
-            {s.label}
-          </button>
-        ))}
-      </div>
     </div>
   )
 }

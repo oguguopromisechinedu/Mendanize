@@ -23,24 +23,24 @@ function ArticleThumb({ item }: { item: ArticleItem }) {
   return (
     <Link
       href={item.href}
-      className="group flex gap-2 rounded-lg border border-transparent p-1.5 transition-colors hover:border-border hover:bg-surface/60 sm:gap-3 sm:rounded-xl sm:p-2"
+      className="group flex gap-3 rounded-xl border border-transparent p-2 transition-colors hover:border-border hover:bg-surface/60"
     >
-      <div className="relative size-11 shrink-0 overflow-hidden rounded-lg border border-border bg-gradient-to-br from-primary/30 via-accent/20 to-cyan-500/20 sm:size-[54px] sm:rounded-[10px]">
+      <div className="relative size-[54px] shrink-0 overflow-hidden rounded-[10px] border border-border bg-gradient-to-br from-primary/30 via-accent/20 to-cyan-500/20">
         {item.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={item.imageUrl} alt="" className="size-full object-cover" />
         ) : (
-          <div className="flex size-full items-center justify-center text-[10px] font-bold text-primary sm:text-xs">
+          <div className="flex size-full items-center justify-center text-xs font-bold text-primary">
             {item.category.slice(0, 2).toUpperCase()}
           </div>
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="line-clamp-2 font-display text-xs font-semibold leading-snug text-foreground group-hover:text-primary sm:text-sm">
+        <p className="line-clamp-2 font-display text-sm font-semibold leading-snug text-foreground group-hover:text-primary">
           {item.title}
         </p>
-        <p className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground sm:mt-1 sm:gap-1.5 sm:text-[11px]">
-          <Calendar className="size-2.5 sm:size-3" aria-hidden />
+        <p className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <Calendar className="size-3" aria-hidden />
           {item.date} · {item.readingTime}
         </p>
       </div>
@@ -178,9 +178,9 @@ export function LatestNewsletterSection({
         description="Stay current with the newest guides and insights."
         titleOverride={titleOverride}
       />
-      <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr] lg:gap-12">
+      <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:gap-12">
         <div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {visible.map((item) => (
               <ArticleThumb key={item.id} item={item} />
             ))}

@@ -5,11 +5,7 @@ export type AskContextTypeValue =
   | "GUIDE"
   | "AI_TOOL"
   | "GENERAL"
-  | "HOMEPAGE"
-  | "INTERVIEW"
-  | "CAREER"
-  | "RESUME"
-  | "PROPOSAL";
+  | "HOMEPAGE";
 
 /** public = learner-facing site; admin = CMS / dashboard assistant */
 export type AskSurfaceValue = "public" | "admin";

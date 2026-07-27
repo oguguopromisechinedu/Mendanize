@@ -1,12 +1,5 @@
 import Link from "next/link";
-import {
-  BookOpen,
-  BriefcaseBusiness,
-  Flame,
-  Store,
-  Users,
-  Wrench,
-} from "lucide-react";
+import { BookOpen, Flame, Sparkles, Wrench } from "lucide-react";
 
 import {
   MendanizeRobot,
@@ -18,11 +11,8 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import type { FeaturedPublishedContent } from "@/services/content/featured-published";
 import type { LearningDashboard } from "@/services/learning";
-import {
-  LEARNER_ICON_MAP,
-  LEARNER_JOURNEY_STEPS,
-  LEARNER_QUICK_ACTIONS,
-} from "../constants/constants";
+import type { RecommendationItem } from "@/services/recommendations";
+import { LEARNER_QUICK_ACTIONS } from "../constants/constants";
 import { AiAssistantCard } from "./ai-assistant-card";
 
 export type LearnerDashboardExtras = {
@@ -79,17 +69,9 @@ export function LearningDashboardView({
   const goalMinutes = Math.min(60, 15 + data.stats.continueCount * 10);
   const goalTarget = 60;
   const goalPercent = Math.min(100, Math.round((goalMinutes / goalTarget) * 100));
-  const weekBars =
-    data.stats.weeklyActivity?.length === 7
-      ? data.stats.weeklyActivity.map((v) => Math.min(100, Math.max(12, v)))
-      : [42, 58, 35, 72, 55, 88, Math.max(40, goalPercent)].map(
-          (v, i) => Math.min(100, v + ((streak + i) % 3) * 4),
-        );
-
-  const tools = data.featuredFromHomepage.tools ?? [];
-  const recommendedTools = data.recommendations
-    .filter((r) => r.entityType === "ai_tool")
-    .slice(0, 4);
+  const weekBars = [42, 58, 35, 72, 55, 88, Math.max(40, goalPercent)].map(
+    (v, i) => Math.min(100, v + ((streak + i) % 3) * 4),
+  );
 
   return (
     <div className="mx-auto grid max-w-[92rem] gap-6 xl:grid-cols-[minmax(0,1fr)_19.5rem]">
@@ -97,14 +79,8 @@ export function LearningDashboardView({
         <WelcomeHero firstName={first} />
         <QuickActions actions={quickActions} />
         <ContinueLearningSection cards={data.continueLearning} />
-        <div className="grid gap-4 lg:grid-cols-2">
-          <WorkMarketplaceSoon />
-          <AiToolsMarketplacePanel
-            tools={tools}
-            recommended={recommendedTools}
-          />
-        </div>
-        <YourJourneyStrip />
+        <FeaturedFromHomepageSection featured={data.featuredFromHomepage} />
+        <RecommendedSection items={data.recommendations} />
       </div>
 
       <aside className="space-y-4 xl:sticky xl:top-20 xl:self-start">
@@ -114,16 +90,14 @@ export function LearningDashboardView({
           target={goalTarget}
           weekBars={weekBars}
         />
+        <AiAssistantCard userName={data.userName} />
         <StreakCard days={streak} />
-        <CareerReadinessSoon />
+        <SubscriptionStatus planName={planName} />
         <RecentActivity
           history={data.recentlyViewed}
           notifications={extras?.recentNotifications ?? []}
           continueCards={data.continueLearning}
         />
-        <CommunityHighlights />
-        <SubscriptionStatus planName={planName} />
-        <AiAssistantCard userName={data.userName} />
       </aside>
     </div>
   );
@@ -149,8 +123,8 @@ function WelcomeHero({ firstName }: { firstName: string }) {
             👋
           </span>
         </h1>
-        <p className="mt-2 max-w-2xl text-sm font-medium text-foreground/80 sm:text-base">
-          Learn. Build. Collaborate. Earn.
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
+          Your AI-powered learning journey continues here.
         </p>
       </div>
 
@@ -164,11 +138,11 @@ function WelcomeHero({ firstName }: { firstName: string }) {
               </span>
             </div>
             <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-foreground sm:text-2xl">
-              Your AI-powered journey starts here.
+              What do you want to learn today?
             </h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Courses, projects, community, and career growth — shaped by what
-              you learn next.
+              Get personalized recommendations powered by AI — guides, practice,
+              and next steps shaped to your goals.
             </p>
           </div>
           <div className="mt-5 flex flex-wrap gap-3">
@@ -192,7 +166,7 @@ function WelcomeHero({ firstName }: { firstName: string }) {
               className="h-40 w-36 drop-shadow-[0_12px_40px_rgba(232,148,12,0.35)] sm:h-48 sm:w-44"
             />
             <div className="mt-2 flex flex-wrap justify-center gap-2">
-              {["Learn", "Build", "Earn"].map((label) => (
+              {["Reading", "Code", "Video"].map((label) => (
                 <span
                   key={label}
                   className="rounded-full border border-border bg-card/80 px-2.5 py-1 text-[10px] font-medium text-muted-foreground backdrop-blur"
@@ -218,10 +192,9 @@ function QuickActions({
 }) {
   return (
     <section>
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {actions.map((action) => {
-          const Icon = LEARNER_ICON_MAP[action.icon];
-          const soon = "soon" in action && action.soon;
+          const Icon = action.icon;
           return (
             <li key={action.href + action.label}>
               <Link
@@ -232,15 +205,8 @@ function QuickActions({
                   <Icon className="size-4" aria-hidden />
                 </span>
                 <span className="min-w-0">
-                  <span className="flex items-center gap-1.5">
-                    <span className="block truncate text-sm font-semibold text-foreground">
-                      {action.label}
-                    </span>
-                    {soon ? (
-                      <span className="rounded bg-primary/15 px-1 text-[9px] font-bold uppercase text-primary">
-                        New
-                      </span>
-                    ) : null}
+                  <span className="block truncate text-sm font-semibold text-foreground">
+                    {action.label}
                   </span>
                   <span className="block truncate text-[11px] text-muted-foreground">
                     {action.description}
@@ -330,146 +296,195 @@ function ContinueLearningSection({
   );
 }
 
-function WorkMarketplaceSoon() {
+function FeaturedFromHomepageSection({
+  featured,
+}: {
+  featured: FeaturedPublishedContent;
+}) {
+  if (!featured.available) return null;
+
+  const cards: Array<{
+    key: string;
+    href: string;
+    title: string;
+    description: string;
+    badge: string;
+    meta: string;
+    kind: "path" | "article" | "tool";
+    imageUrl?: string | null;
+  }> = [
+    ...featured.paths.map((p) => ({
+      key: `path-${p.id}`,
+      href: p.href,
+      title: p.title,
+      description: p.description,
+      badge: "Course",
+      meta: [p.difficulty, p.duration, p.lessons ? `${p.lessons} lessons` : ""]
+        .filter(Boolean)
+        .join(" · "),
+      kind: "path" as const,
+    })),
+    ...featured.articles.map((a) => ({
+      key: `article-${a.id}`,
+      href: a.href,
+      title: a.title,
+      description: a.description,
+      badge: a.category || "Article",
+      meta: a.readingTime,
+      kind: "article" as const,
+      imageUrl: a.imageUrl,
+    })),
+    ...featured.tools.map((t) => ({
+      key: `tool-${t.id}`,
+      href: t.href,
+      title: t.name,
+      description: t.description,
+      badge: t.category || "Tool",
+      meta: "AI tool",
+      kind: "tool" as const,
+    })),
+  ].slice(0, 8);
+
+  if (cards.length === 0) return null;
+
   return (
-    <section className="rounded-2xl border border-border bg-card/90 p-4">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold text-foreground">
-          Work Marketplace
-        </h2>
-        <Badge variant="outline">Soon</Badge>
-      </div>
-      <p className="text-sm text-muted-foreground">
-        Freelance and job listings will appear here once the marketplace ships.
-        No placeholder jobs.
-      </p>
-      <div className="mt-4 flex items-center gap-3 rounded-xl border border-dashed border-border bg-surface/40 p-4">
-        <span className="flex size-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
-          <BriefcaseBusiness className="size-5" aria-hidden />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-foreground">Coming soon</p>
-          <p className="text-xs text-muted-foreground">
-            Full-time · Part-time · Freelance filters
+    <section className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-foreground">
+            Featured on Mendanize
+          </h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Curated from the published homepage — same Admin-selected content.
           </p>
         </div>
-        <Button asChild size="sm" variant="outline" className="rounded-xl">
-          <Link href="/account/work">Open</Link>
+        <Button asChild size="sm" variant="ghost" className="text-primary">
+          <Link href="/account/guides">Browse all</Link>
         </Button>
       </div>
+
+      <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {cards.map((card, index) => (
+          <li key={card.key}>
+            <Link
+              href={card.href}
+              className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition hover:border-primary/40 hover:shadow-glow"
+            >
+              {card.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={card.imageUrl}
+                  alt=""
+                  className="aspect-[16/10] w-full object-cover transition duration-[var(--motion-base)] group-hover:scale-[1.02]"
+                />
+              ) : (
+                <div
+                  className={cn(
+                    "flex aspect-[16/10] items-center justify-center bg-gradient-to-br",
+                    ACCENT_RING[index % ACCENT_RING.length],
+                  )}
+                >
+                  {card.kind === "tool" ? (
+                    <Wrench className="size-8 text-primary/80" aria-hidden />
+                  ) : card.kind === "path" ? (
+                    <BookOpen className="size-8 text-primary/80" aria-hidden />
+                  ) : (
+                    <Sparkles className="size-8 text-primary/80" aria-hidden />
+                  )}
+                </div>
+              )}
+              <div className="flex flex-1 flex-col gap-2 p-3.5">
+                <Badge variant="outline" className="w-fit">
+                  {card.badge}
+                </Badge>
+                <h3 className="line-clamp-2 text-sm font-semibold text-foreground">
+                  {card.title}
+                </h3>
+                {card.description ? (
+                  <p className="line-clamp-2 text-[11px] text-muted-foreground">
+                    {card.description}
+                  </p>
+                ) : null}
+                {card.meta ? (
+                  <p className="mt-auto pt-1 text-[11px] font-medium text-muted-foreground">
+                    {card.meta}
+                  </p>
+                ) : null}
+              </div>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
 
-function AiToolsMarketplacePanel({
-  tools,
-  recommended,
-}: {
-  tools: FeaturedPublishedContent["tools"];
-  recommended: LearningDashboard["recommendations"];
-}) {
-  const list =
-    tools.length > 0
-      ? tools.slice(0, 4).map((t) => ({
-          id: t.id,
-          title: t.name,
-          description: t.description,
-          href: t.href,
-          meta: t.category || "AI tool",
-        }))
-      : recommended.map((r) => ({
-          id: r.entityId,
-          title: r.title,
-          description: r.reason ?? "",
-          href: r.href,
-          meta: "Recommended",
-        }));
-
+function RecommendedSection({ items }: { items: RecommendationItem[] }) {
   return (
-    <section className="rounded-2xl border border-border bg-card/90 p-4">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold text-foreground">
-          AI Tools
+    <section className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-foreground">
+          Recommended for You
         </h2>
-        <div className="flex items-center gap-2">
-          <Button asChild size="sm" variant="ghost" className="h-7 text-xs text-primary">
-            <Link href="/account/ai-tools">Browse</Link>
-          </Button>
-          <Button asChild size="sm" variant="outline" className="h-7 rounded-lg text-xs">
-            <Link href="/account/tools-marketplace">
-              <Store className="size-3.5" aria-hidden />
-              Marketplace
-            </Link>
-          </Button>
-        </div>
+        <Button asChild size="sm" variant="ghost" className="text-primary">
+          <Link href="/account/recommended">See more</Link>
+        </Button>
       </div>
-      {list.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Published AI tools will show here. Marketplace selling is coming soon.
-        </p>
+
+      {items.length === 0 ? (
+        <EmptyPanel
+          title="Recommendations will appear here"
+          body="Set a few interests and I’ll tailor courses, guides, and tools."
+          href="/account/interests"
+          cta="Pick interests"
+          variant="tip"
+        />
       ) : (
-        <ul className="space-y-2">
-          {list.map((t) => (
-            <li key={t.id}>
+        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {items.slice(0, 4).map((item, index) => (
+            <li key={`${item.entityType}-${item.entityId}`}>
               <Link
-                href={t.href}
-                className="flex items-start gap-3 rounded-xl border border-transparent px-2 py-2 transition hover:border-border hover:bg-hover"
+                href={item.href}
+                className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition hover:border-primary/40 hover:shadow-glow"
               >
-                <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
-                  <Wrench className="size-4" aria-hidden />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-foreground">
-                    {t.title}
-                  </span>
-                  <span className="line-clamp-1 text-xs text-muted-foreground">
-                    {t.description || t.meta}
-                  </span>
-                </span>
+                {item.thumbnail ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.thumbnail}
+                    alt=""
+                    className="aspect-[16/10] w-full object-cover transition duration-[var(--motion-base)] group-hover:scale-[1.02]"
+                  />
+                ) : (
+                  <div
+                    className={cn(
+                      "flex aspect-[16/10] items-center justify-center bg-gradient-to-br",
+                      ACCENT_RING[index % ACCENT_RING.length],
+                    )}
+                  >
+                    <MendanizeRobot
+                      variant="mark"
+                      className="h-16 w-14 opacity-90"
+                    />
+                  </div>
+                )}
+                <div className="flex flex-1 flex-col gap-2 p-3.5">
+                  <Badge variant="outline" className="w-fit">
+                    {TYPE_LABEL[item.entityType] ?? item.entityType}
+                  </Badge>
+                  <h3 className="line-clamp-2 text-sm font-semibold text-foreground">
+                    {item.title}
+                  </h3>
+                  {item.reason ? (
+                    <p className="line-clamp-2 text-[11px] text-muted-foreground">
+                      {item.reason}
+                    </p>
+                  ) : null}
+                </div>
               </Link>
             </li>
           ))}
         </ul>
       )}
-      <p className="mt-3 text-[11px] text-muted-foreground">
-        Top-rated marketplace listings and “Sell your tool” land with the
-        marketplace launch — not fabricated here.
-      </p>
-    </section>
-  );
-}
-
-function YourJourneyStrip() {
-  return (
-    <section className="rounded-2xl border border-border bg-card/80 p-5 sm:p-6">
-      <div className="mb-5">
-        <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-foreground">
-          Your Journey
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          A complete path to learn, build, earn and grow.
-        </p>
-      </div>
-      <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {LEARNER_JOURNEY_STEPS.map((step) => (
-          <li key={step.step}>
-            <Link
-              href={step.href}
-              className="group flex h-full flex-col rounded-2xl border border-border bg-background/60 p-3.5 transition hover:border-primary/40 hover:shadow-glow"
-            >
-              <span className="mb-3 flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-amber-500 text-sm font-bold text-primary-foreground shadow-glow">
-                {step.step}
-              </span>
-              <span className="text-sm font-semibold text-foreground group-hover:text-primary">
-                {step.title}
-              </span>
-              <span className="mt-1 text-[11px] leading-snug text-muted-foreground">
-                {step.description}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ol>
     </section>
   );
 }
@@ -526,7 +541,7 @@ function DailyGoalCard({
 }
 
 function StreakCard({ days }: { days: number }) {
-  const active = Math.min(7, Math.max(days > 0 ? days : 0, 0));
+  const active = Math.min(7, Math.max(1, days));
   return (
     <section className="rounded-2xl border border-border bg-card/90 p-4">
       <div className="flex items-center justify-between">
@@ -550,79 +565,8 @@ function StreakCard({ days }: { days: number }) {
         ))}
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
-        Keep a steady learning rhythm — streaks use your real activity.
+        Best streak: {Math.max(days, 7)} days — keep showing up.
       </p>
-    </section>
-  );
-}
-
-function CareerReadinessSoon() {
-  return (
-    <section className="rounded-2xl border border-border bg-card/90 p-4">
-      <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">
-          Career Readiness
-        </h3>
-        <Badge variant="outline">Soon</Badge>
-      </div>
-      <p className="text-xs text-muted-foreground">
-        A real readiness score lands with Career Hub — no fabricated %.
-      </p>
-      <ul className="mt-3 space-y-1.5 text-xs text-muted-foreground">
-        <li>• Complete more projects</li>
-        <li>• Earn certificates from guides</li>
-        <li>• Build your community profile</li>
-      </ul>
-      <Button asChild size="sm" variant="outline" className="mt-3 w-full rounded-xl">
-        <Link href="/account/career">View Career Hub</Link>
-      </Button>
-    </section>
-  );
-}
-
-function CommunityHighlights() {
-  return (
-    <section className="rounded-2xl border border-border bg-card/90 p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">
-          Community Highlights
-        </h3>
-        <Users className="size-4 text-primary" aria-hidden />
-      </div>
-      <ul className="space-y-2 text-sm">
-        <li>
-          <Link
-            href="/community/discussions"
-            className="text-foreground hover:text-primary"
-          >
-            Ask the Community
-          </Link>
-        </li>
-        <li>
-          <Link
-            href="/community/groups"
-            className="text-foreground hover:text-primary"
-          >
-            Study Groups
-          </Link>
-        </li>
-        <li>
-          <Link
-            href="/community/projects"
-            className="text-foreground hover:text-primary"
-          >
-            Project Showcase
-          </Link>
-        </li>
-        <li>
-          <Link
-            href="/community/guidelines"
-            className="text-muted-foreground hover:text-primary"
-          >
-            Guidelines
-          </Link>
-        </li>
-      </ul>
     </section>
   );
 }
@@ -667,7 +611,7 @@ function RecentActivity({
   const fallback = continueCards.slice(0, 3).map((c, i) => ({
     id: `c-${c.id}`,
     title: `Continued “${c.title}”`,
-    meta: i === 0 ? "Recently" : "Earlier",
+    meta: i === 0 ? "2h ago" : i === 1 ? "5h ago" : "Yesterday",
     href: c.href,
   }));
 

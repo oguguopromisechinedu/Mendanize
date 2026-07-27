@@ -11,6 +11,8 @@ import { getPrisma, isDatabaseConfigured } from "@/lib/db/prisma";
 import { getRecommendations } from "@/services/recommendations";
 import {
   adminActionsForQuery,
+  buildAdminActionMarkdown,
+  resolveAdminIntent,
 } from "@/features/admin-dashboard/utils/admin-intent";
 import type {
   AskConversationRecord,
@@ -267,15 +269,6 @@ function buildSystemPrompt(input: {
     "Never mention admin dashboards, CMS workflows, API keys, or staff-only routes.",
     "Never invent access to billing or admin controls — learners manage billing only at /account/billing.",
     "If the learner needs platform configuration, tell them an administrator controls AI providers and content publishing.",
-    input.contextType === "INTERVIEW"
-      ? "Interview coach mode: run a realistic mock interview with one question at a time, then brief feedback."
-      : null,
-    input.contextType === "CAREER" || input.contextType === "RESUME"
-      ? "Career coach mode: focus on resume, role readiness, and concrete next learning steps."
-      : null,
-    input.contextType === "PROPOSAL"
-      ? "Proposal coach mode: help draft clear freelance proposals without inventing client facts."
-      : null,
     `Context type: ${input.contextType}.`,
     `Current page / topic: ${title}.`,
     excerpt ? `Context excerpt:\n${excerpt.slice(0, 2000)}` : null,

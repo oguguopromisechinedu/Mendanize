@@ -118,7 +118,7 @@ function MobileNavTree({
   depth?: number
 }) {
   return (
-    <ul className={cn("flex flex-col gap-0.5", depth > 0 && "ml-2 border-l border-border pl-2.5")}>
+    <ul className={cn("flex flex-col gap-1", depth > 0 && "ml-3 border-l border-border pl-3")}>
       {links.map((link) => {
         const active = isActivePath(pathname, link.href)
         const children = link.children?.filter(Boolean) ?? []
@@ -131,7 +131,7 @@ function MobileNavTree({
                   target={link.openInNewTab ? "_blank" : undefined}
                   rel={link.openInNewTab ? "noopener noreferrer" : undefined}
                   className={cn(
-                    "flex min-h-10 items-center rounded-lg px-2.5 py-2 text-sm font-medium transition-colors",
+                    "flex items-center rounded-lg px-3 py-3 text-sm font-medium transition-colors",
                     active
                       ? "bg-primary/15 text-primary"
                       : "text-foreground hover:bg-hover"
@@ -142,7 +142,7 @@ function MobileNavTree({
                 </Link>
               </SheetClose>
             ) : (
-              <p className="px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 <LinkLabel link={link} />
               </p>
             )}
@@ -168,19 +168,19 @@ export function PublicHeader({
 
   return (
     <header className="sticky top-0 z-[var(--z-sticky)] border-b border-border bg-header/95 backdrop-blur-xl">
-      <div className="container-app flex h-14 items-center justify-between gap-2 sm:h-16 sm:gap-4">
+      <div className="container-app flex h-16 items-center justify-between gap-4">
         <Link
           href={brandHref}
-          className="inline-flex min-w-0 items-center gap-2 font-display text-sm font-bold text-foreground sm:gap-2.5 sm:text-base"
+          className="inline-flex items-center gap-2.5 font-display text-base font-bold text-foreground"
         >
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground sm:size-8 sm:text-sm">
+          <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
             M
           </span>
-          <span className="truncate">{brandName}</span>
+          {brandName}
         </Link>
 
         <nav
-          className="hidden items-center gap-5 lg:flex xl:gap-6"
+          className="hidden items-center gap-6 lg:flex"
           aria-label="Primary"
         >
           {primary.map((link) => (
@@ -218,20 +218,20 @@ export function PublicHeader({
                 <MenuIcon className="size-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-full max-w-[18rem] p-4 sm:max-w-xs sm:p-6">
+            <SheetContent side="right" className="w-full max-w-xs p-6">
               <SheetTitle className="sr-only">Site navigation</SheetTitle>
               <SheetDescription className="sr-only">
                 Browse Mendanize sections and links.
               </SheetDescription>
-              <div className="mb-5 flex items-center justify-between gap-2 sm:mb-8">
+              <div className="mb-8 flex items-center justify-between">
                 <Link
                   href={brandHref}
-                  className="inline-flex min-w-0 items-center gap-2 font-display text-sm font-bold sm:gap-2.5 sm:text-base"
+                  className="inline-flex items-center gap-2.5 font-display text-base font-bold"
                 >
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground sm:size-8 sm:text-sm">
+                  <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
                     M
                   </span>
-                  <span className="truncate">{brandName}</span>
+                  {brandName}
                 </Link>
                 <SheetClose asChild>
                   <Button type="button" variant="ghost" size="icon" aria-label="Close menu">
@@ -242,7 +242,7 @@ export function PublicHeader({
               <nav aria-label="Mobile primary">
                 <MobileNavTree links={mobileLinks} pathname={pathname} />
               </nav>
-              <div className="mt-5 space-y-2 border-t border-border pt-4 sm:mt-8 sm:pt-6">
+              <div className="mt-8 space-y-2 border-t border-border pt-6">
                 <SheetClose asChild>
                   <Button asChild variant="outline" className="w-full rounded-lg">
                     <Link href={signInHref}>Sign in</Link>

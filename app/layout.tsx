@@ -4,7 +4,6 @@ import { Bricolage_Grotesque, Instrument_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { AnalyticsBeacon } from "@/components/analytics/analytics-beacon";
 import { DesignTokensStyle } from "@/components/layout/DesignTokensStyle";
-import SessionProvider from "@/components/providers/SessionProvider";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -46,14 +45,12 @@ export default function RootLayout({
         <DesignTokensStyle />
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
-        <SessionProvider>
-          {children}
-          <Toaster />
-          <Suspense fallback={null}>
-            <AnalyticsBeacon />
-          </Suspense>
-          <Analytics />
-        </SessionProvider>
+        {children}
+        <Toaster />
+        <Suspense fallback={null}>
+          <AnalyticsBeacon />
+        </Suspense>
+        <Analytics />
       </body>
     </html>
   );

@@ -122,16 +122,16 @@ export function ArticlesSection({
         {/* Swipeable snap track — native touch scrolling on all devices */}
         <div
           ref={trackRef}
-          className="-mx-1 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3.5"
+          className="-mx-1 flex snap-x snap-mandatory gap-3.5 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {items.map((item, i) => (
             <Link
               key={item.id}
               href={item.href}
-              className="group flex w-[min(68vw,176px)] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-border bg-card transition-all duration-[var(--motion-base)] hover:-translate-y-1 hover:border-primary/30 hover:shadow-glow sm:w-[240px] lg:w-[calc((100%-2.625rem)/4)]"
+              className="group flex w-[210px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-border bg-card transition-all duration-[var(--motion-base)] hover:-translate-y-1 hover:border-primary/30 hover:shadow-glow sm:w-[240px] lg:w-[calc((100%-2.625rem)/4)]"
             >
               <div
-                className={`relative flex h-[112px] items-center justify-center bg-gradient-to-br sm:h-[136px] ${THUMB_GRADIENTS[i % THUMB_GRADIENTS.length]}`}
+                className={`relative flex h-[136px] items-center justify-center bg-gradient-to-br ${THUMB_GRADIENTS[i % THUMB_GRADIENTS.length]}`}
               >
                 {item.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -150,14 +150,14 @@ export function ArticlesSection({
                 </Badge>
               </div>
 
-              <div className="flex flex-1 flex-col px-2.5 py-2.5 sm:px-3.5 sm:py-3">
-                <h3 className="line-clamp-2 font-display text-sm font-semibold leading-5 text-foreground group-hover:text-primary sm:text-base sm:leading-6">
+              <div className="flex flex-1 flex-col px-3.5 py-3">
+                <h3 className="line-clamp-2 font-display text-base font-semibold leading-6 text-foreground group-hover:text-primary">
                   {item.title}
                 </h3>
-                <p className="mt-1 line-clamp-2 flex-1 text-xs leading-4 text-muted-foreground sm:mt-1.5 sm:text-sm sm:leading-5">
+                <p className="mt-1.5 line-clamp-2 flex-1 text-sm leading-5 text-muted-foreground">
                   {item.description}
                 </p>
-                <p className="mt-1.5 flex items-center gap-1 text-[11px] text-muted-foreground sm:mt-2 sm:gap-1.5 sm:text-xs">
+                <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Clock className="size-3" aria-hidden />
                   {item.date} · {item.readingTime}
                 </p>

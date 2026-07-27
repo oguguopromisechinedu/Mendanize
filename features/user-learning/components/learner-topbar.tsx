@@ -58,7 +58,7 @@ export function LearnerTopBar({
         />
         <Input
           name="q"
-          placeholder="Search for courses, jobs, tools, people, topics…"
+          placeholder="Search for courses, tools, topics…"
           className="h-10 rounded-full border-border bg-surface/80 pl-10 pr-16"
           aria-label="Search"
         />

@@ -5,11 +5,7 @@ export type SearchEntityType =
   | "guide"
   | "ai_tool"
   | "category"
-  | "topic"
-  | "discussion"
-  | "study_group"
-  | "team"
-  | "showcase_project";
+  | "topic";
 
 export type SearchDifficulty = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
 

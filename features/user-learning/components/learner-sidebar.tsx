@@ -2,16 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Crown, ExternalLink, Folder, HelpCircle, Plus, Settings2 } from "lucide-react";
+import { Crown, ExternalLink, Folder, Settings2 } from "lucide-react";
 
 import Logo from "@/components/brand/Logo";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  LEARNER_ICON_MAP,
-  type LearnerNavGroup,
-} from "../constants/constants";
+import type { LearnerNavGroup } from "../constants/constants";
 import type { LearnerSpaceLink } from "../services/learner-shell-config";
 
 export function LearnerSidebar({
@@ -64,7 +61,39 @@ export function LearnerSidebar({
                     ? pathname === "/account"
                     : pathname === item.href ||
                       pathname.startsWith(`${item.href}/`);
-                const Icon = LEARNER_ICON_MAP[item.icon];
+                const Icon = item.icon;
+                const inner = (
+                  <>
+                    <Icon className="size-4 shrink-0" aria-hidden />
+                    {!collapsed ? (
+                      <>
+                        <span className="flex-1 truncate">{item.label}</span>
+                        {item.badge ? (
+                          <span className="rounded-md bg-primary/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                            {item.badge}
+                          </span>
+                        ) : null}
+                      </>
+                    ) : null}
+                  </>
+                );
+
+                if (item.soon) {
+                  return (
+                    <li key={item.href}>
+                      <span
+                        className={cn(
+                          "flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2 text-sm text-muted-foreground/60",
+                          collapsed && "justify-center px-2",
+                        )}
+                        title="Coming soon"
+                      >
+                        {inner}
+                      </span>
+                    </li>
+                  );
+                }
+
                 return (
                   <li key={item.href}>
                     <Link
@@ -74,34 +103,12 @@ export function LearnerSidebar({
                         "flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition duration-[var(--motion-base)]",
                         collapsed && "justify-center px-2",
                         active
-                          ? "bg-gradient-to-r from-primary to-amber-500 text-primary-foreground shadow-glow"
+                          ? "bg-primary text-primary-foreground shadow-glow"
                           : "text-muted-foreground hover:bg-hover hover:text-foreground",
                       )}
                       aria-current={active ? "page" : undefined}
-                      title={item.soon ? `${item.label} (coming soon)` : item.label}
                     >
-                      <Icon className="size-4 shrink-0" aria-hidden />
-                      {!collapsed ? (
-                        <>
-                          <span className="flex-1 truncate">{item.label}</span>
-                          {item.badge ? (
-                            <span
-                              className={cn(
-                                "rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-                                active
-                                  ? "bg-primary-foreground/20 text-primary-foreground"
-                                  : "bg-primary/20 text-primary",
-                              )}
-                            >
-                              {item.badge}
-                            </span>
-                          ) : item.soon ? (
-                            <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                              Soon
-                            </span>
-                          ) : null}
-                        </>
-                      ) : null}
+                      {inner}
                     </Link>
                   </li>
                 );
@@ -123,24 +130,11 @@ export function LearnerSidebar({
                     onClick={onNavigate}
                     className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-muted-foreground transition hover:bg-hover hover:text-foreground"
                   >
-                    <Folder
-                      className="size-4 shrink-0 text-primary/80"
-                      aria-hidden
-                    />
+                    <Folder className="size-4 shrink-0 text-primary/80" aria-hidden />
                     <span className="truncate">{space.label}</span>
                   </Link>
                 </li>
               ))}
-              <li>
-                <Link
-                  href="/account/projects"
-                  onClick={onNavigate}
-                  className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-primary transition hover:bg-primary/10"
-                >
-                  <Plus className="size-4 shrink-0" aria-hidden />
-                  <span>Add Space</span>
-                </Link>
-              </li>
             </ul>
           </div>
         ) : null}
@@ -155,8 +149,8 @@ export function LearnerSidebar({
             </div>
             <p className="mb-3 text-xs leading-relaxed text-muted-foreground">
               {isFree
-                ? "Unlock more learning time, projects, and AI usage."
-                : "Your plan is managed from billing settings."}
+                ? "Plans and limits are managed by administrators via Billing."
+                : "Your plan is managed from Admin billing configuration."}
             </p>
             <Button asChild size="sm" className="w-full rounded-xl">
               <Link href="/account/billing" onClick={onNavigate}>
@@ -182,6 +176,7 @@ export function LearnerSidebar({
             collapsed ? "flex-col" : "justify-between px-1",
           )}
         >
+          <ThemeToggle />
           <Link
             href="/account/preferences"
             onClick={onNavigate}
@@ -189,15 +184,6 @@ export function LearnerSidebar({
             aria-label="Settings"
           >
             <Settings2 className="size-4" />
-          </Link>
-          <ThemeToggle />
-          <Link
-            href="/contact"
-            onClick={onNavigate}
-            className="inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-hover hover:text-foreground"
-            aria-label="Help"
-          >
-            <HelpCircle className="size-4" />
           </Link>
           {!collapsed ? (
             <Link
@@ -207,7 +193,7 @@ export function LearnerSidebar({
               title="Leave account and open the public homepage"
             >
               <ExternalLink className="size-3.5 shrink-0" aria-hidden />
-              Site
+              Visit public site
             </Link>
           ) : (
             <Link
