@@ -24,7 +24,7 @@ export function TestimonialsSection({
         titleOverride={titleOverride}
         description="Placeholder quotes — prepared for database integration later."
       />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-3">
         {items.map((item) => (
           <Card key={item.id}>
             <CardHeader>
