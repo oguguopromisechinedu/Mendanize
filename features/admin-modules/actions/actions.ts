@@ -4,6 +4,12 @@ import { revalidatePath } from "next/cache"
 import type { AdminRoleKey } from "@prisma/client"
 import { z } from "zod"
 
+import {
+  requireEditor,
+  requirePermission,
+  requireSuperAdministrator,
+  PERMISSIONS,
+} from "@/features/authentication/server"
 import { invalidateHomepageStatistics } from "@/lib/cache/content"
 import {
   advanceWorkflowItem,
