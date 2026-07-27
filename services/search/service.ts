@@ -35,6 +35,10 @@ const TYPE_LABELS: Record<SearchEntityType, string> = {
   ai_tool: "AI Tools",
   category: "Categories",
   topic: "Topics",
+  discussion: "Discussions",
+  study_group: "Study Groups",
+  team: "Teams",
+  showcase_project: "Projects",
 };
 
 const TYPE_ORDER: SearchEntityType[] = [
@@ -43,6 +47,10 @@ const TYPE_ORDER: SearchEntityType[] = [
   "ai_tool",
   "category",
   "topic",
+  "discussion",
+  "study_group",
+  "team",
+  "showcase_project",
 ];
 
 const FALLBACK_SUGGESTIONS = [
@@ -162,7 +170,18 @@ function hrefFor(
   slug: string,
   scope: ContentScope = "public",
 ): string {
-  return contentHref(type, slug, { scope });
+  switch (type) {
+    case "discussion":
+      return `/community/discussions/${slug}`
+    case "study_group":
+      return `/community/groups/${slug}`
+    case "team":
+      return `/community/teams/${slug}`
+    case "showcase_project":
+      return `/community/projects/${slug}`
+    default:
+      return contentHref(type, slug, { scope })
+  }
 }
 
 function enabledTypes(
@@ -175,6 +194,13 @@ function enabledTypes(
   if (config.includeTools) allowed.push("ai_tool");
   if (config.includeCategories) allowed.push("category");
   if (config.includeTopics) allowed.push("topic");
+  // MES-036 — community UGC always searchable via Search Service
+  allowed.push(
+    "discussion",
+    "study_group",
+    "team",
+    "showcase_project",
+  );
   if (!requested?.length) return allowed;
   return allowed.filter((t) => requested.includes(t));
 }
@@ -754,6 +780,41 @@ export async function search(params: SearchParams): Promise<SearchResult> {
         categoryName: t.category?.name ?? null,
         updatedAt: t.updatedAt.toISOString(),
         featured: t.featured,
+      });
+    }
+  }
+
+  // MES-036 — Community content indexed through Search Service
+  const communityTypesWanted = (
+    [
+      "discussion",
+      "study_group",
+      "team",
+      "showcase_project",
+    ] as SearchEntityType[]
+  ).filter((t) => types.includes(t));
+  if (communityTypesWanted.length > 0) {
+    const { searchCommunity } = await import("@/services/community");
+    const communityHits = await searchCommunity(query);
+    for (const h of communityHits) {
+      const type: SearchEntityType | null =
+        h.type === "discussion"
+          ? "discussion"
+          : h.type === "group"
+            ? "study_group"
+            : h.type === "team"
+              ? "team"
+              : h.type === "project"
+                ? "showcase_project"
+                : null;
+      if (!type || !communityTypesWanted.includes(type)) continue;
+      hits.push({
+        type,
+        id: h.id,
+        slug: h.href.split("/").pop() ?? h.id,
+        href: h.href,
+        title: h.title,
+        excerpt: h.excerpt ?? null,
       });
     }
   }

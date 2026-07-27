@@ -76,6 +76,14 @@ export async function requireAdmin() {
   return session;
 }
 
+/** Authenticated Admin with SUPER_ADMINISTRATOR role only. */
+export async function requireSuperAdministrator() {
+  const session = await getAdminSession();
+  if (!session) return null;
+  if (session.admin.roleKey !== "SUPER_ADMINISTRATOR") return null;
+  return session;
+}
+
 /** Admin with dashboard.access (or any staff role). */
 export async function requireEditor() {
   const session = await getAdminSession();
