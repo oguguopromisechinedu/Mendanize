@@ -5,6 +5,7 @@ import { revalidatePath, revalidateTag } from "next/cache"
 
 export const CONTENT_CACHE_TAGS = {
   homepage: "content:homepage",
+  homepageStatistics: "content:homepage-statistics",
   navigation: "content:navigation",
   articles: "content:articles",
   guides: "content:guides",
@@ -23,6 +24,7 @@ export function invalidatePublicContent(opts?: {
   revalidateTag(CONTENT_CACHE_TAGS.guides, "max")
   revalidateTag(CONTENT_CACHE_TAGS.tools, "max")
   revalidateTag(CONTENT_CACHE_TAGS.homepage, "max")
+  revalidateTag(CONTENT_CACHE_TAGS.homepageStatistics, "max")
 
   revalidatePath("/")
   revalidatePath("/articles")
@@ -45,4 +47,10 @@ export function invalidatePublicContent(opts?: {
     revalidatePath(`/ai-tools/${opts.toolSlug}`)
     revalidatePath(`/tools/${opts.toolSlug}`)
   }
+}
+
+/** Subscriber / learner totals shown on the public homepage. */
+export function invalidateHomepageStatistics() {
+  revalidateTag(CONTENT_CACHE_TAGS.homepageStatistics, "max")
+  revalidatePath("/")
 }

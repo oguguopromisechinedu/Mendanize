@@ -51,8 +51,13 @@ export const toolWriteSchema = z.object({
     .union([z.string().url(), z.literal("")])
     .optional()
     .nullable(),
+  documentationUrl: z
+    .union([z.string().url(), z.literal("")])
+    .optional()
+    .nullable(),
   developer: z.string().max(120).optional().nullable(),
   platforms: z.array(z.string()).optional(),
+  aiCapabilities: z.array(z.string()).optional(),
   availability: toolAvailabilitySchema.optional(),
   pricing: toolPricingSchema.optional(),
   difficulty: toolDifficultySchema.optional(),
@@ -66,6 +71,8 @@ export const toolWriteSchema = z.object({
     .optional()
     .nullable(),
   featured: z.boolean().optional(),
+  verified: z.boolean().optional(),
+  source: z.enum(["OFFICIAL", "THIRD_PARTY", "BUILT_ON_MENDANIZE"]).optional(),
   status: toolStatusSchema.optional(),
   publishedAt: z.string().optional().nullable(),
   seoTitle: z.string().max(70).optional().nullable(),

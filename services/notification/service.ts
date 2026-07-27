@@ -29,8 +29,14 @@ import type {
   NotificationTemplateRecord,
   NotificationTypeValue,
 } from "./types";
+import {
+  resolveNotificationLink,
+  type NotificationAudience,
+} from "./links";
 
 export type * from "./types";
+export { resolveNotificationLink, isAdminNotificationLink } from "./links";
+export type { NotificationAudience } from "./links";
 
 const KEY = "main";
 
@@ -189,24 +195,28 @@ function interpolate(
   });
 }
 
-function mapInApp(row: {
-  id: string;
-  publicUserId: string | null;
-  type: NotificationType;
-  priority: NotificationPriority;
-  status: NotificationStatus;
-  title: string;
-  preview: string | null;
-  body: string | null;
-  read: boolean;
-  archived: boolean;
-  link: string | null;
-  templateKey: string | null;
-  createdAt: Date;
-}): InAppNotification {
+function mapInApp(
+  row: {
+    id: string;
+    publicUserId: string | null;
+    adminId?: string | null;
+    type: NotificationType;
+    priority: NotificationPriority;
+    status: NotificationStatus;
+    title: string;
+    preview: string | null;
+    body: string | null;
+    read: boolean;
+    archived: boolean;
+    link: string | null;
+    templateKey: string | null;
+    createdAt: Date;
+  },
+  audience: NotificationAudience = "public",
+): InAppNotification {
   return {
     id: row.id,
-    userId: row.publicUserId ?? "",
+    userId: row.adminId ?? row.publicUserId ?? "",
     type: row.type as NotificationTypeValue,
     priority: row.priority,
     status: row.status,
@@ -215,7 +225,7 @@ function mapInApp(row: {
     body: row.body,
     read: row.read,
     archived: row.archived,
-    link: row.link,
+    link: resolveNotificationLink(row.link, audience),
     templateKey: row.templateKey,
     createdAt: row.createdAt.toISOString(),
   };
@@ -512,8 +522,12 @@ export async function dispatch(
   }
 
   // in_app
-  if (!params.userId) {
-    throw new ValidationError("userId is required for in-app notifications.");
+  const isAdminRecipient = Boolean(params.adminId);
+  const recipientId = params.adminId ?? params.userId;
+  if (!recipientId) {
+    throw new ValidationError(
+      "userId or adminId is required for in-app notifications.",
+    );
   }
   if (!delivery.inAppEnabled) {
     throw new ValidationError("In-app delivery channel is disabled.");
@@ -546,6 +560,8 @@ export async function dispatch(
         ? String(params.payload.body ?? "")
         : null;
   const preview = body ? body.slice(0, 140) : null;
+  const audience: NotificationAudience = isAdminRecipient ? "admin" : "public";
+  const link = resolveNotificationLink(params.link, audience);
 
   if (!isDatabaseConfigured()) {
     return {
@@ -557,42 +573,45 @@ export async function dispatch(
     };
   }
 
-  const prefs = await getNotificationPreferences(params.userId);
-  const blocked =
-    (type === NotificationType.LEARNING && !prefs.learningUpdates) ||
-    (type === NotificationType.AI && !prefs.aiUpdates) ||
-    (type === NotificationType.SECURITY && !prefs.securityAlerts) ||
-    (type === NotificationType.ANNOUNCEMENT && !prefs.announcements);
-  if (blocked) {
-    const log = await db().communicationLog.create({
-      data: {
-        publicUserId: params.userId,
+  if (!isAdminRecipient) {
+    const prefs = await getNotificationPreferences(recipientId);
+    const blocked =
+      (type === NotificationType.LEARNING && !prefs.learningUpdates) ||
+      (type === NotificationType.AI && !prefs.aiUpdates) ||
+      (type === NotificationType.SECURITY && !prefs.securityAlerts) ||
+      (type === NotificationType.ANNOUNCEMENT && !prefs.announcements);
+    if (blocked) {
+      const log = await db().communicationLog.create({
+        data: {
+          publicUserId: recipientId,
+          channel: "in_app",
+          templateKey: params.template,
+          subject: title,
+          status: "skipped",
+          detail: "Blocked by user notification preferences",
+        },
+      });
+      return {
+        id: log.id,
         channel: "in_app",
-        templateKey: params.template,
-        subject: title,
-        status: "skipped",
-        detail: "Blocked by user notification preferences",
-      },
-    });
-    return {
-      id: log.id,
-      channel: "in_app",
-      template: params.template,
-      status: "failed",
-      createdAt: now,
-    };
+        template: params.template,
+        status: "failed",
+        createdAt: now,
+      };
+    }
   }
 
   const row = await db().notification.create({
     data: {
-      publicUserId: params.userId,
+      publicUserId: isAdminRecipient ? null : recipientId,
+      adminId: isAdminRecipient ? recipientId : null,
       type,
       priority,
       status: NotificationStatus.UNREAD,
       title,
       preview,
       body,
-      link: params.link ?? null,
+      link,
       templateKey: params.template,
       read: false,
       archived: false,
@@ -600,7 +619,7 @@ export async function dispatch(
   });
   await db().communicationLog.create({
     data: {
-      publicUserId: params.userId,
+      publicUserId: isAdminRecipient ? null : recipientId,
       channel: "in_app",
       templateKey: params.template,
       subject: title,
@@ -615,6 +634,37 @@ export async function dispatch(
     status: "sent",
     createdAt: row.createdAt.toISOString(),
   };
+}
+
+/**
+ * Fan-out in-app notification to all active Admins with dashboard-safe links.
+ */
+export async function notifyStaff(
+  params: Omit<DispatchNotificationParams, "userId" | "adminId" | "channel"> & {
+    channel?: "in_app";
+  },
+): Promise<number> {
+  if (!isDatabaseConfigured()) return 0;
+  const admins = await db().admin.findMany({
+    where: { active: true },
+    select: { id: true },
+    take: 100,
+  });
+  let sent = 0;
+  for (const admin of admins) {
+    try {
+      await dispatch({
+        ...params,
+        channel: "in_app",
+        adminId: admin.id,
+        link: params.link ?? "/dashboard/notifications/center",
+      });
+      sent += 1;
+    } catch (error) {
+      console.warn("[notification] notifyStaff failed for admin", admin.id, error);
+    }
+  }
+  return sent;
 }
 
 export async function listForUser(
@@ -670,7 +720,7 @@ export async function listForUser(
   ]);
 
   return {
-    items: rows.map(mapInApp),
+    items: rows.map((row) => mapInApp(row, "public")),
     total,
     page,
     pageSize,
@@ -735,7 +785,7 @@ export async function listNotificationsForAdmin(
   ]);
 
   return {
-    items: rows.map(mapInApp),
+    items: rows.map((row) => mapInApp(row, "admin")),
     total,
     page,
     pageSize,
@@ -931,6 +981,7 @@ export async function listCommunicationLogs(input?: {
 
 export async function getNotificationsDashboard(
   userId?: string,
+  opts?: { domain?: "public" | "admin" },
 ): Promise<NotificationsDashboard> {
   await ensureSeeded();
   if (!isDatabaseConfigured()) {
@@ -945,20 +996,26 @@ export async function getNotificationsDashboard(
   }
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
+  const isAdmin = opts?.domain === "admin";
+  const recipientWhere = userId
+    ? isAdmin
+      ? { adminId: userId }
+      : { publicUserId: userId }
+    : {};
   const [unreadCount, totalCount, archivedCount, announcementCount, emailQueuedToday] =
     await Promise.all([
       userId
         ? db().notification.count({
-            where: { publicUserId: userId, read: false, archived: false },
+            where: { ...recipientWhere, read: false, archived: false },
           })
         : db().notification.count({
             where: { read: false, archived: false },
           }),
       userId
-        ? db().notification.count({ where: { publicUserId: userId } })
+        ? db().notification.count({ where: recipientWhere })
         : db().notification.count(),
       userId
-        ? db().notification.count({ where: { publicUserId: userId, archived: true } })
+        ? db().notification.count({ where: { ...recipientWhere, archived: true } })
         : db().notification.count({ where: { archived: true } }),
       db().announcement.count({ where: { active: true } }),
       db().communicationLog.count({

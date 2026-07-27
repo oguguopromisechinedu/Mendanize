@@ -29,11 +29,17 @@ export type MarketplaceListingStatus =
   | "REJECTED"
   | "ARCHIVED"
 
+export type MarketplaceListingSource =
+  | "OFFICIAL"
+  | "THIRD_PARTY"
+  | "BUILT_ON_MENDANIZE"
+
 export type MarketplacePricingModel = "ONE_TIME" | "SUBSCRIPTION"
 
 export type JobPostingRecord = {
   id: string
   clientId: string
+  organizationId: string | null
   title: string
   slug: string
   description: string
@@ -45,6 +51,7 @@ export type JobPostingRecord = {
   publishedAt: string | null
   createdAt: string
   clientName?: string | null
+  organizationName?: string | null
 }
 
 export type JobApplicationRecord = {
@@ -74,6 +81,7 @@ export type MarketplaceListingRecord = {
   slug: string
   description: string
   kind: MarketplaceListingKind
+  source: MarketplaceListingSource
   pricingModel: MarketplacePricingModel
   priceCents: number
   currency: string

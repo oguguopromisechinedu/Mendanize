@@ -25,6 +25,10 @@ function revalidateTools() {
   revalidatePath("/dashboard/ai-tools/drafts")
   revalidatePath("/dashboard/ai-tools/published")
   revalidatePath("/dashboard/ai-tools/archived")
+  revalidatePath("/dashboard/marketplace")
+  revalidatePath("/dashboard/marketplace/tools")
+  revalidatePath("/account/tools-marketplace")
+  revalidatePath("/ai-tools")
   invalidatePublicContent()
 }
 
@@ -52,6 +56,7 @@ export async function createToolAction(
       ...data,
       slug: data.slug || undefined,
       websiteUrl: data.websiteUrl || null,
+      documentationUrl: data.documentationUrl || null,
       demoVideoUrl: data.demoVideoUrl || null,
       canonicalUrl: data.canonicalUrl || null,
     })
@@ -91,6 +96,7 @@ export async function updateToolAction(
       ...data,
       slug: data.slug || undefined,
       websiteUrl: data.websiteUrl || null,
+      documentationUrl: data.documentationUrl || null,
       demoVideoUrl: data.demoVideoUrl || null,
       canonicalUrl: data.canonicalUrl || null,
     })

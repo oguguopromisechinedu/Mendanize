@@ -7,7 +7,14 @@ import {
   connectOnboardingAction,
   createListingAction,
 } from "@/features/growth"
-import { listListingsForCreator } from "@/services/marketplace"
+import {
+  OnboardingBanner,
+  resolveCreatorNotice,
+} from "@/features/growth/components/onboarding-banner"
+import {
+  ensureCreatorFlag,
+  listListingsForCreator,
+} from "@/services/marketplace"
 import { Button } from "@/components/ui/button"
 
 export const metadata: Metadata = {
@@ -15,14 +22,27 @@ export const metadata: Metadata = {
   robots: { index: false },
 }
 
-export default async function Page() {
-  const session = await requirePublicUser()
-  if (!session?.user?.id) redirect(`/sign-in?callbackUrl=${encodeURIComponent("/account/marketplace")}`)
+type PageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}
 
+export default async function Page({ searchParams }: PageProps) {
+  const session = await requirePublicUser()
+  if (!session?.user?.id) {
+    redirect(`/sign-in?callbackUrl=${encodeURIComponent("/account/marketplace")}`)
+  }
+
+  const params = await searchParams
+  await ensureCreatorFlag(session.user.id)
   const listings = await listListingsForCreator(session.user.id)
+  const notice = resolveCreatorNotice({
+    onboarded: params.onboarded,
+    error: params.error,
+  })
 
   return (
     <div className="mx-auto max-w-3xl space-y-10 px-4 py-8">
+      {notice ? <OnboardingBanner notice={notice} /> : null}
       <div>
         <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold">
           Creator dashboard
@@ -31,12 +51,12 @@ export default async function Page() {
           Listings require Admin approval before they are purchasable. Creator
           flag never grants Admin access.
         </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button asChild variant="outline" className="rounded-xl">
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <Button asChild variant="outline" className="w-full rounded-xl sm:w-auto">
             <Link href="/account/tools-marketplace">Browse marketplace</Link>
           </Button>
           <form action={connectOnboardingAction}>
-            <Button type="submit" variant="outline" className="rounded-xl">
+            <Button type="submit" variant="outline" className="w-full rounded-xl sm:w-auto">
               Stripe Connect onboarding
             </Button>
           </form>
@@ -69,6 +89,14 @@ export default async function Page() {
           <option value="TEMPLATE">Template</option>
           <option value="AUTOMATION">Automation</option>
         </select>
+        <select
+          name="source"
+          className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+          defaultValue="BUILT_ON_MENDANIZE"
+        >
+          <option value="BUILT_ON_MENDANIZE">Built on Mendanize</option>
+          <option value="THIRD_PARTY">Third-party</option>
+        </select>
         <input
           name="priceCents"
           type="number"
@@ -93,7 +121,8 @@ export default async function Page() {
               <h3 className="font-medium">{listing.title}</h3>
               <p className="text-xs text-muted-foreground">
                 {listing.status}
-                {listing.reviewNote ? ` · ${listing.reviewNote}` : ""} · $
+                {listing.reviewNote ? ` · ${listing.reviewNote}` : ""} ·{" "}
+                {listing.source.replaceAll("_", " ")} · $
                 {(listing.priceCents / 100).toFixed(2)}
               </p>
             </div>

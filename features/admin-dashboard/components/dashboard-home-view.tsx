@@ -126,7 +126,7 @@ export function DashboardHomeView({ data }: { data: DashboardHomeData }) {
             }
             action={
               <Link
-                href="/dashboard/notifications"
+                href="/dashboard/notifications/center"
                 className="text-xs font-medium text-primary hover:underline"
               >
                 Open center
@@ -142,7 +142,11 @@ export function DashboardHomeView({ data }: { data: DashboardHomeData }) {
                 {data.notifications.items.map((item) => (
                   <li key={item.id}>
                     <Link
-                      href={item.href || "/dashboard/notifications"}
+                      href={
+                        item.href?.startsWith("/dashboard")
+                          ? item.href
+                          : "/dashboard/notifications/center"
+                      }
                       className="flex items-start justify-between gap-3 rounded-lg transition hover:bg-hover"
                     >
                       <div className="min-w-0">

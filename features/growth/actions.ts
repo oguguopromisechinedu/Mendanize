@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import { isRedirectError } from "next/dist/client/components/redirect-error"
 import {
   getPublicSession,
   requireEditor,
@@ -21,8 +22,18 @@ import {
   purchaseListing,
   submitJobForReview,
   submitListingForReview,
+  adminSetListingSource,
   type MarketplaceListingKind,
+  type MarketplaceListingSource,
 } from "@/services/marketplace"
+import {
+  addOrganizationMember,
+  createOrganization,
+  reviewOrganization,
+  submitOrganizationForVerification,
+  updateOrganization,
+} from "@/services/organization"
+import type { OrganizationType } from "@prisma/client"
 import {
   computeCareerReadiness,
   createLearnerNote,
@@ -51,20 +62,61 @@ async function requireLearner() {
 
 /** Form actions must return void for Next.js `<form action={...}>`. */
 
+/**
+ * Employer onboarding: company registration if no org, else hiring dashboard.
+ * Never throws to the generic error page for expected journey states.
+ */
 export async function enableClientFlagAction(): Promise<void> {
   const session = await requireLearner()
-  if (!session) return
-  await ensureClientFlag(session.user.id)
+  if (!session) {
+    redirect(`/sign-in?callbackUrl=${encodeURIComponent("/account/work")}`)
+  }
+
+  const { getOrganizationForUser } = await import("@/services/organization")
+  const org = await getOrganizationForUser(session.user.id)
+
+  if (!org) {
+    redirect("/account/company?intent=employer")
+  }
+
+  try {
+    await ensureClientFlag(session.user.id)
+  } catch (error) {
+    console.error("[growth] enableClientFlagAction", error)
+    redirect("/account/hiring?error=client-setup")
+  }
+
   revalidatePath("/account/hiring")
   revalidatePath("/account/work")
+  revalidatePath("/account/company")
+  redirect("/account/hiring?onboarded=1")
 }
 
+/**
+ * Creator onboarding: enable creator capability and open creator dashboard.
+ */
 export async function enableCreatorFlagAction(): Promise<void> {
   const session = await requireLearner()
-  if (!session) return
-  await ensureCreatorFlag(session.user.id)
+  if (!session) {
+    redirect(
+      `/sign-in?callbackUrl=${encodeURIComponent("/account/tools-marketplace")}`,
+    )
+  }
+
+  try {
+    const flag = await ensureCreatorFlag(session.user.id)
+    if (!flag) {
+      redirect("/account/marketplace?error=creator-setup")
+    }
+  } catch (error) {
+    if (isRedirectError(error)) throw error
+    console.error("[growth] enableCreatorFlagAction", error)
+    redirect("/account/marketplace?error=creator-setup")
+  }
+
   revalidatePath("/account/marketplace")
   revalidatePath("/account/tools-marketplace")
+  redirect("/account/marketplace?onboarded=1")
 }
 
 export async function createJobAction(formData: FormData): Promise<void> {
@@ -73,6 +125,7 @@ export async function createJobAction(formData: FormData): Promise<void> {
   const title = String(formData.get("title") ?? "").trim()
   const description = String(formData.get("description") ?? "").trim()
   const budget = Number(formData.get("budgetCents") ?? 0)
+  const organizationId = String(formData.get("organizationId") ?? "").trim() || null
   if (!title || !description) return
   try {
     await createJobPosting({
@@ -80,9 +133,11 @@ export async function createJobAction(formData: FormData): Promise<void> {
       title,
       description,
       budgetCents: Number.isFinite(budget) && budget > 0 ? budget : null,
+      organizationId,
       submitForReview: true,
     })
     revalidatePath("/account/hiring")
+    revalidatePath("/account/company")
   } catch {
     /* form action — errors stay server-side */
   }
@@ -142,6 +197,10 @@ export async function createListingAction(formData: FormData): Promise<void> {
   const title = String(formData.get("title") ?? "").trim()
   const description = String(formData.get("description") ?? "").trim()
   const kind = String(formData.get("kind") ?? "PROMPT_PACK") as MarketplaceListingKind
+  const sourceRaw = String(formData.get("source") ?? "BUILT_ON_MENDANIZE")
+  const source = (
+    sourceRaw === "THIRD_PARTY" ? "THIRD_PARTY" : "BUILT_ON_MENDANIZE"
+  ) as MarketplaceListingSource
   const priceCents = Number(formData.get("priceCents") ?? 0)
   if (!title || !description || !Number.isFinite(priceCents)) return
   try {
@@ -150,6 +209,7 @@ export async function createListingAction(formData: FormData): Promise<void> {
       title,
       description,
       kind,
+      source,
       priceCents: Math.round(priceCents),
       submitForReview: true,
     })
@@ -391,6 +451,133 @@ export async function generateInsightsAction(): Promise<void> {
     adminEmail: session.admin.email,
   })
   revalidatePath("/dashboard/bi")
+}
+
+/** MES-040 — Company / Organization */
+
+export async function createOrganizationAction(formData: FormData): Promise<void> {
+  const session = await requireLearner()
+  if (!session) {
+    redirect(`/sign-in?callbackUrl=${encodeURIComponent("/account/company")}`)
+  }
+  const name = String(formData.get("name") ?? "").trim()
+  if (!name) {
+    redirect("/account/company?intent=employer&error=validation")
+  }
+  try {
+    await createOrganization({
+      ownerPublicUserId: session.user.id,
+      name,
+      type: (String(formData.get("type") ?? "COMPANY") as OrganizationType) || "COMPANY",
+      description: String(formData.get("description") ?? "").trim() || null,
+      website: String(formData.get("website") ?? "").trim() || null,
+      industry: String(formData.get("industry") ?? "").trim() || null,
+      size: String(formData.get("size") ?? "").trim() || null,
+      location: String(formData.get("location") ?? "").trim() || null,
+    })
+    revalidatePath("/account/company")
+    revalidatePath("/account/hiring")
+    revalidatePath("/account/work")
+    redirect("/account/hiring?onboarded=1")
+  } catch (error) {
+    if (isRedirectError(error)) throw error
+    console.error("[growth] createOrganizationAction", error)
+    redirect("/account/company?intent=employer&error=create")
+  }
+}
+
+export async function updateOrganizationAction(formData: FormData): Promise<void> {
+  const session = await requireLearner()
+  if (!session) return
+  const organizationId = String(formData.get("organizationId") ?? "")
+  if (!organizationId) return
+  try {
+    await updateOrganization(organizationId, session.user.id, {
+      name: String(formData.get("name") ?? "").trim() || undefined,
+      description: String(formData.get("description") ?? "").trim() || null,
+      website: String(formData.get("website") ?? "").trim() || null,
+      industry: String(formData.get("industry") ?? "").trim() || null,
+      size: String(formData.get("size") ?? "").trim() || null,
+      location: String(formData.get("location") ?? "").trim() || null,
+      type: (String(formData.get("type") ?? "") as OrganizationType) || undefined,
+    })
+    revalidatePath("/account/company")
+    redirect("/account/company?saved=1")
+  } catch (error) {
+    if (isRedirectError(error)) throw error
+    console.error("[growth] updateOrganizationAction", error)
+    redirect("/account/company?error=create")
+  }
+}
+
+export async function submitOrganizationVerificationAction(
+  formData: FormData,
+): Promise<void> {
+  const session = await requireLearner()
+  if (!session) return
+  const organizationId = String(formData.get("organizationId") ?? "")
+  if (!organizationId) return
+  try {
+    await submitOrganizationForVerification(organizationId, session.user.id)
+    revalidatePath("/account/company")
+    redirect("/account/company?verified=1")
+  } catch (error) {
+    if (isRedirectError(error)) throw error
+    console.error("[growth] submitOrganizationVerificationAction", error)
+    redirect("/account/company?error=create")
+  }
+}
+
+export async function addOrganizationMemberAction(formData: FormData): Promise<void> {
+  const session = await requireLearner()
+  if (!session) return
+  const organizationId = String(formData.get("organizationId") ?? "")
+  const email = String(formData.get("email") ?? "").trim()
+  if (!organizationId || !email) return
+  try {
+    await addOrganizationMember({
+      organizationId,
+      actorId: session.user.id,
+      email,
+      role: "MEMBER",
+    })
+    revalidatePath("/account/company")
+    redirect("/account/company?member=1")
+  } catch (error) {
+    if (isRedirectError(error)) throw error
+    console.error("[growth] addOrganizationMemberAction", error)
+    redirect("/account/company?member=0")
+  }
+}
+
+export async function adminReviewOrganizationAction(
+  formData: FormData,
+): Promise<void> {
+  const session = await requireEditor()
+  if (!session?.admin?.id) return
+  await reviewOrganization({
+    organizationId: String(formData.get("organizationId") ?? ""),
+    adminId: session.admin.id,
+    approve: String(formData.get("approve") ?? "") === "1",
+    note: String(formData.get("note") ?? "") || undefined,
+  })
+  revalidatePath("/dashboard/marketplace")
+}
+
+export async function adminSetListingSourceAction(
+  formData: FormData,
+): Promise<void> {
+  const session = await requireEditor()
+  if (!session?.admin?.id) return
+  const source = String(formData.get("source") ?? "") as MarketplaceListingSource
+  if (!["OFFICIAL", "THIRD_PARTY", "BUILT_ON_MENDANIZE"].includes(source)) return
+  await adminSetListingSource({
+    listingId: String(formData.get("listingId") ?? ""),
+    source,
+    adminId: session.admin.id,
+  })
+  revalidatePath("/dashboard/marketplace")
+  revalidatePath("/account/tools-marketplace")
 }
 
 export { submitJobForReview, submitListingForReview }

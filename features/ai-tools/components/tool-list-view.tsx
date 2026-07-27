@@ -24,26 +24,18 @@ import {
 } from "../actions/actions"
 import {
   TOOL_PRICING_LABELS,
-  TOOL_STATUS_LABELS,
+  TOOL_SOURCE_LABELS,
 } from "../constants/constants"
 
 const FILTER_TABS: Array<{
   key: ToolStatusValue | "ALL"
   label: string
-  href: string
+  path: string
 }> = [
-  { key: "ALL", label: "All", href: "/dashboard/ai-tools" },
-  { key: "DRAFT", label: "Drafts", href: "/dashboard/ai-tools/drafts" },
-  {
-    key: "PUBLISHED",
-    label: "Published",
-    href: "/dashboard/ai-tools/published",
-  },
-  {
-    key: "ARCHIVED",
-    label: "Archived",
-    href: "/dashboard/ai-tools/archived",
-  },
+  { key: "ALL", label: "All", path: "" },
+  { key: "DRAFT", label: "Drafts", path: "/drafts" },
+  { key: "PUBLISHED", label: "Published", path: "/published" },
+  { key: "ARCHIVED", label: "Archived", path: "/archived" },
 ]
 
 export function ToolListView({
@@ -51,11 +43,13 @@ export function ToolListView({
   statusFilter = "ALL",
   title = "AI Tools",
   description = "Educational Discover directory — curated tools, not AI Studio generations.",
+  basePath = "/dashboard/ai-tools",
 }: {
   initial: ToolListResult
   statusFilter?: ToolStatusValue | "ALL"
   title?: string
   description?: string
+  basePath?: string
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -71,14 +65,8 @@ export function ToolListView({
     const params = new URLSearchParams()
     if (query.trim()) params.set("query", query.trim())
     if (statusFilter !== "ALL") params.set("status", statusFilter)
-    const base =
-      statusFilter === "DRAFT"
-        ? "/dashboard/ai-tools/drafts"
-        : statusFilter === "PUBLISHED"
-          ? "/dashboard/ai-tools/published"
-          : statusFilter === "ARCHIVED"
-            ? "/dashboard/ai-tools/archived"
-            : "/dashboard/ai-tools"
+    const tab = FILTER_TABS.find((t) => t.key === statusFilter)
+    const base = `${basePath}${tab?.path ?? ""}`
     const qs = params.toString()
     router.push(qs ? `${base}?${qs}` : base)
   }
@@ -120,7 +108,7 @@ export function ToolListView({
         description={description}
         actions={
           <Button asChild size="sm">
-            <Link href="/dashboard/ai-tools/new">Add tool</Link>
+            <Link href={`${basePath}/new`}>Add tool</Link>
           </Button>
         }
       />
@@ -134,7 +122,7 @@ export function ToolListView({
               size="sm"
               variant={statusFilter === tab.key ? "secondary" : "outline"}
             >
-              <Link href={tab.href}>{tab.label}</Link>
+              <Link href={`${basePath}${tab.path}`}>{tab.label}</Link>
             </Button>
           ))}
         </div>
@@ -186,7 +174,7 @@ export function ToolListView({
           title="No tools yet"
           description="Curate an educational AI tool for the Discover directory."
           actionLabel="Add tool"
-          href="/dashboard/ai-tools/new"
+          href={`${basePath}/new`}
         />
       ) : (
         <AdminDataTable
@@ -194,9 +182,7 @@ export function ToolListView({
             "",
             "Logo",
             "Name",
-            "Slug",
-            "Category",
-            "Topic",
+            "Source",
             "Developer",
             "Pricing",
             "Status",
@@ -247,23 +233,22 @@ export function ToolListView({
               </td>
               <td className="px-3 py-2.5">
                 <Link
-                  href={`/dashboard/ai-tools/${row.id}`}
+                  href={`${basePath}/${row.id}`}
                   className="inline-flex items-center gap-1.5 font-medium hover:text-primary"
                 >
                   {row.name}
                   {row.featured ? (
                     <Star className="size-3.5 fill-primary text-primary" />
                   ) : null}
+                  {row.verified ? (
+                    <span className="rounded-full border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                      Verified
+                    </span>
+                  ) : null}
                 </Link>
               </td>
-              <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground">
-                {row.slug}
-              </td>
-              <td className="px-3 py-2.5 text-muted-foreground">
-                {row.categoryNames[0] ?? "—"}
-              </td>
-              <td className="px-3 py-2.5 text-muted-foreground">
-                {row.topicNames[0] ?? "—"}
+              <td className="px-3 py-2.5 text-xs text-muted-foreground">
+                {TOOL_SOURCE_LABELS[row.source] ?? row.source}
               </td>
               <td className="px-3 py-2.5 text-muted-foreground">
                 {row.developer ?? "—"}
@@ -280,10 +265,10 @@ export function ToolListView({
               <td className="px-3 py-2.5 text-right">
                 <div className="flex justify-end gap-1">
                   <Button asChild size="sm" variant="ghost">
-                    <Link href={`/dashboard/ai-tools/${row.id}`}>Edit</Link>
+                    <Link href={`${basePath}/${row.id}`}>Edit</Link>
                   </Button>
                   <Button asChild size="sm" variant="ghost">
-                    <Link href={`/dashboard/ai-tools/${row.id}/preview`}>
+                    <Link href={`${basePath}/${row.id}/preview`}>
                       Preview
                     </Link>
                   </Button>

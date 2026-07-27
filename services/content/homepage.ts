@@ -28,6 +28,7 @@ import { getArticleById, listPublishedArticleSummaries } from "./articles";
 import { getGuideById } from "./guides";
 import { getCategoryById } from "./taxonomy";
 import { getToolById } from "./tools";
+import { applyLiveHomepageStatistics } from "@/services/homepage";
 
 const HOMEPAGE_KEY = "main";
 
@@ -809,6 +810,17 @@ async function resolveLatestArticles(
 /**
  * Public homepage payload — published CMS (or preview draft); otherwise seed.
  */
+async function withLiveStatistics(
+  content: HomepageContent,
+): Promise<HomepageContent> {
+  try {
+    const stats = await applyLiveHomepageStatistics(content.stats);
+    return { ...content, stats };
+  } catch {
+    return content;
+  }
+}
+
 export async function getHomepageContent(options?: {
   preview?: boolean;
 }): Promise<HomepageContent> {
@@ -821,7 +833,7 @@ export async function getHomepageContent(options?: {
         "[homepage] Database unreachable, serving seeded content:",
         error instanceof Error ? error.message : error,
       );
-      return structuredClone(SEEDED_HOMEPAGE_CONTENT);
+      return withLiveStatistics(structuredClone(SEEDED_HOMEPAGE_CONTENT));
     }
     throw error;
   }
@@ -833,7 +845,7 @@ async function loadHomepageContent(options?: {
   const admin = await getHomepageAdmin();
   const useRecord = Boolean(options?.preview) || admin.status === "PUBLISHED";
   if (!useRecord) {
-    return structuredClone(SEEDED_HOMEPAGE_CONTENT);
+    return withLiveStatistics(structuredClone(SEEDED_HOMEPAGE_CONTENT));
   }
 
   const record = admin;
@@ -931,28 +943,14 @@ async function loadHomepageContent(options?: {
     })
   );
 
-  let stats = record.statistics.map((s) => ({
-    id: s.key,
-    label: s.label,
-    value: s.value,
-    icon: s.icon ?? undefined,
-  }));
-  try {
-    const { getPublicFacingStats } = await import("@/services/analytics");
-    const liveStats = await getPublicFacingStats();
-    const overlay: Record<string, string> = {
-      articles: liveStats.articles,
-      guides: liveStats.guides,
-      tools: liveStats.tools,
-      categories: liveStats.categories,
-      readers: liveStats.readers,
-    };
-    stats = stats.map((s) =>
-      overlay[s.id] ? { ...s, value: overlay[s.id]! } : s,
-    );
-  } catch {
-    /* keep CMS values */
-  }
+  const stats = await applyLiveHomepageStatistics(
+    record.statistics.map((s) => ({
+      id: s.key,
+      label: s.label,
+      value: s.value,
+      icon: s.icon ?? undefined,
+    })),
+  );
 
   const latestArticles = await resolveLatestArticles(
     record.latestArticles,

@@ -1,30 +1,13 @@
 import Link from "next/link"
-import {
-  BookOpen,
-  Cpu,
-  GraduationCap,
-  Newspaper,
-  Sparkles,
-  Users,
-  Zap,
-  type LucideIcon,
-} from "lucide-react"
+import { Zap } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Container } from "@/components/ui/container"
 import type { AskContent, HeroContent, StatItem } from "../types/types"
 import { HeroAskBar } from "./hero-ask-bar"
 import { HeroBrainVisual } from "./hero-brain-visual"
+import { LiveHomepageStats } from "./live-homepage-stats"
 import { HomeSection } from "./section-primitives"
-
-const STAT_ICONS: Record<string, LucideIcon> = {
-  articles: BookOpen,
-  tools: Cpu,
-  learners: GraduationCap,
-  subscribers: Users,
-  content: Newspaper,
-  hub: Sparkles,
-}
 
 export function HeroSection({
   content,
@@ -127,24 +110,7 @@ export function HeroSection({
           </div>
 
           {stats && stats.length > 0 ? (
-            <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2.5">
-              {stats.map((s) => {
-                const Icon = STAT_ICONS[s.icon ?? s.id] ?? Sparkles
-                return (
-                  <div key={s.id} className="flex items-center gap-2">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
-                      <Icon className="size-5" aria-hidden />
-                    </div>
-                    <span className="text-lg font-bold text-foreground">
-                      {s.value}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground">
-                      {s.label}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
+            <LiveHomepageStats items={stats} variant="hero" />
           ) : content.trustLine ? (
             <p className="mt-6 text-sm text-muted-foreground">
               {content.trustLine}

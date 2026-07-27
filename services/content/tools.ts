@@ -13,6 +13,7 @@ import type {
   ToolImageRecord,
   ToolListParams,
   ToolListResult,
+  ToolMarketplaceSourceValue,
   ToolPricingValue,
   ToolRecord,
   ToolStatusValue,
@@ -51,8 +52,10 @@ function seedTools() {
       fullDescription:
         "<p>Use Claude for long-context reading, drafting, and careful analysis.</p>",
       websiteUrl: "https://claude.ai",
+      documentationUrl: "https://docs.anthropic.com",
       developer: "Anthropic",
       platforms: ["Web", "API"],
+      aiCapabilities: ["Chat", "Long-context reasoning", "Writing"],
       availability: "AVAILABLE",
       pricing: "FREEMIUM",
       difficulty: "BEGINNER",
@@ -63,6 +66,8 @@ function seedTools() {
       relatedToolIds: [],
       demoVideoUrl: null,
       featured: true,
+      verified: true,
+      source: "THIRD_PARTY",
       status: "PUBLISHED",
       publishedAt: t,
       seoTitle: "Claude AI tool | Mendanize",
@@ -212,8 +217,10 @@ function mapToolRow(row: {
   shortDescription: string | null;
   fullDescription: string | null;
   websiteUrl: string | null;
+  documentationUrl?: string | null;
   developer: string | null;
   platforms: string[];
+  aiCapabilities?: string[];
   availability: ToolAvailabilityValue;
   pricing: ToolPricingValue;
   difficulty: ToolDifficultyValue;
@@ -224,6 +231,8 @@ function mapToolRow(row: {
   relatedToolIds: string[];
   demoVideoUrl: string | null;
   featured: boolean;
+  verified?: boolean;
+  source?: ToolMarketplaceSourceValue;
   status: ToolStatusValue;
   publishedAt: Date | null;
   seoTitle: string | null;
@@ -258,8 +267,10 @@ function mapToolRow(row: {
     shortDescription: row.shortDescription,
     fullDescription: row.fullDescription,
     websiteUrl: row.websiteUrl,
+    documentationUrl: row.documentationUrl ?? null,
     developer: row.developer,
     platforms: row.platforms,
+    aiCapabilities: row.aiCapabilities ?? [],
     availability: row.availability,
     pricing: row.pricing,
     difficulty: row.difficulty,
@@ -270,6 +281,8 @@ function mapToolRow(row: {
     relatedToolIds: row.relatedToolIds,
     demoVideoUrl: row.demoVideoUrl,
     featured: row.featured,
+    verified: row.verified ?? false,
+    source: row.source ?? "THIRD_PARTY",
     status: row.status,
     publishedAt: row.publishedAt?.toISOString() ?? null,
     seoTitle: row.seoTitle,
@@ -491,8 +504,10 @@ export async function createTool(input: ToolWriteInput): Promise<ToolRecord> {
       shortDescription: input.shortDescription ?? null,
       fullDescription: input.fullDescription ?? null,
       websiteUrl: input.websiteUrl ?? null,
+      documentationUrl: input.documentationUrl ?? null,
       developer: input.developer ?? null,
       platforms: input.platforms ?? [],
+      aiCapabilities: input.aiCapabilities ?? [],
       availability: input.availability ?? "AVAILABLE",
       pricing: input.pricing ?? "FREEMIUM",
       difficulty: input.difficulty ?? "BEGINNER",
@@ -503,6 +518,8 @@ export async function createTool(input: ToolWriteInput): Promise<ToolRecord> {
       relatedToolIds: input.relatedToolIds ?? [],
       demoVideoUrl: input.demoVideoUrl ?? null,
       featured: input.featured ?? false,
+      verified: input.verified ?? false,
+      source: input.source ?? "THIRD_PARTY",
       status,
       publishedAt: publishedAt?.toISOString() ?? null,
       seoTitle: input.seoTitle ?? null,
@@ -533,8 +550,10 @@ export async function createTool(input: ToolWriteInput): Promise<ToolRecord> {
       shortDescription: input.shortDescription ?? null,
       fullDescription: input.fullDescription ?? null,
       websiteUrl: input.websiteUrl ?? null,
+      documentationUrl: input.documentationUrl ?? null,
       developer: input.developer ?? null,
       platforms: input.platforms ?? [],
+      aiCapabilities: input.aiCapabilities ?? [],
       availability: input.availability ?? "AVAILABLE",
       pricing: input.pricing ?? "FREEMIUM",
       difficulty: input.difficulty ?? "BEGINNER",
@@ -545,6 +564,8 @@ export async function createTool(input: ToolWriteInput): Promise<ToolRecord> {
       relatedToolIds: input.relatedToolIds ?? [],
       demoVideoUrl: input.demoVideoUrl ?? null,
       featured: input.featured ?? false,
+      verified: input.verified ?? false,
+      source: input.source ?? "THIRD_PARTY",
       status,
       publishedAt,
       seoTitle: input.seoTitle ?? null,
@@ -628,8 +649,10 @@ export async function updateTool(
       shortDescription: input.shortDescription ?? null,
       fullDescription: input.fullDescription ?? null,
       websiteUrl: input.websiteUrl ?? null,
+      documentationUrl: input.documentationUrl ?? null,
       developer: input.developer ?? null,
       platforms: input.platforms ?? [],
+      aiCapabilities: input.aiCapabilities ?? existing.aiCapabilities,
       availability: input.availability ?? existing.availability,
       pricing: input.pricing ?? existing.pricing,
       difficulty: input.difficulty ?? existing.difficulty,
@@ -640,6 +663,8 @@ export async function updateTool(
       relatedToolIds: input.relatedToolIds ?? [],
       demoVideoUrl: input.demoVideoUrl ?? null,
       featured: input.featured ?? false,
+      verified: input.verified ?? existing.verified,
+      source: input.source ?? existing.source,
       status,
       publishedAt: publishedAt?.toISOString() ?? null,
       seoTitle: input.seoTitle ?? null,
@@ -676,8 +701,10 @@ export async function updateTool(
       shortDescription: input.shortDescription ?? null,
       fullDescription: input.fullDescription ?? null,
       websiteUrl: input.websiteUrl ?? null,
+      documentationUrl: input.documentationUrl ?? null,
       developer: input.developer ?? null,
       platforms: input.platforms ?? [],
+      aiCapabilities: input.aiCapabilities ?? existing.aiCapabilities,
       availability: input.availability ?? existing.availability,
       pricing: input.pricing ?? existing.pricing,
       difficulty: input.difficulty ?? existing.difficulty,
@@ -688,6 +715,8 @@ export async function updateTool(
       relatedToolIds: input.relatedToolIds ?? [],
       demoVideoUrl: input.demoVideoUrl ?? null,
       featured: input.featured ?? false,
+      verified: input.verified ?? existing.verified,
+      source: input.source ?? existing.source,
       status,
       publishedAt,
       seoTitle: input.seoTitle ?? null,

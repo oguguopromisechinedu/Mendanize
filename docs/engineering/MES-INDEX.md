@@ -170,7 +170,15 @@ The real fix here wasn't the number — it was that the draft's Revenue/Marketpl
 
 ---
 
+## v1.9 UPDATE — MES-040 COMPANY & ORGANIZATION ACCOUNTS (hybrid extension of MES-039)
+
+A pasted “Hybrid AI Tools + Work Marketplace + Company Registration” draft arrived in the MES-040 file, mislabeled MES-031. That number was already taken (AI Knowledge Pipeline), and the bulk of the marketplace work was already shipped as **MES-039**. MES-INDEX previously listed MES-040 as a dropped duplicate of MES-002/011/031 — that triage referred to an earlier enterprise paste, not this company-account need.
+
+**MES-040 is Complete (MVP):** Company/Organization accounts under `/account/*`, optional org-linked jobs on the existing Work Marketplace, hybrid listing labels (`OFFICIAL` | `THIRD_PARTY` | `BUILT_ON_MENDANIZE`), and Admin organization verification in the Marketplace moderation domain. See [MES-040-COMPLETION.md](../MES-040-COMPLETION.md). No new session type. No rebuild of Stripe Connect. Enterprise licensing, interview scheduling, and full HR RBAC remain deferred.
+
+---
+
 ## FUTURE ROADMAP (explicitly out of this sequence)
 
-Real ML-based recommendations, real learning-progress tracking and completion certificates, multi-language support, community features, mobile apps, enterprise offerings, AI tool submissions/reviews, affiliate tracking, final per-tier billing gates. Each becomes its own MES-03X spec once actually designed — not before.
+Real ML-based recommendations, multi-language support, native mobile apps, enterprise license SKUs, coding workspace execution engine, affiliate tracking. Each becomes its own MES once actually designed — not before.
 

@@ -30,5 +30,8 @@ export async function safeDbQuery<T>(
   }
 }
 
+export const MARKETPLACE_MIGRATION_HINT =
+  "Apply pending Prisma migrations for MES-039/MES-040 (run: npx prisma migrate deploy)."
+
 export const FOUNDER_DASHBOARD_MIGRATION_HINT =
   "Apply pending Prisma migration 20260726220000_mes039_mes037_growth_valuation (run: npx prisma migrate deploy).";

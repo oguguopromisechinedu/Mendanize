@@ -19,7 +19,10 @@ export type NotificationPriorityValue = "LOW" | "NORMAL" | "HIGH" | "URGENT";
 export type NotificationStatusValue = "UNREAD" | "READ" | "ARCHIVED";
 
 export type DispatchNotificationParams = {
+  /** PublicUser id for learner notifications. */
   userId?: string;
+  /** Admin id for staff notifications (MES-030). Mutually preferred over userId for staff ops. */
+  adminId?: string;
   email?: string;
   channel: NotificationChannel;
   template: string;

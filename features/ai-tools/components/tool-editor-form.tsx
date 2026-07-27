@@ -32,8 +32,11 @@ import {
   TOOL_FEATURE_KINDS,
   TOOL_PRICINGS,
   TOOL_PRICING_LABELS,
+  TOOL_SOURCES,
+  TOOL_SOURCE_LABELS,
   TOOL_STATUSES,
   TOOL_STATUS_LABELS,
+  TOOL_PLATFORMS,
 } from "../constants/constants"
 
 function slugify(input: string) {
@@ -64,9 +67,11 @@ type FeatureDraft = {
 export function ToolEditorForm({
   tool,
   options,
+  basePath = "/dashboard/ai-tools",
 }: {
   tool?: ToolRecord | null
   options: ToolEditorOptions
+  basePath?: string
 }) {
   const router = useRouter()
   const isEdit = Boolean(tool?.id)
@@ -81,9 +86,13 @@ export function ToolEditorForm({
     tool?.fullDescription ?? ""
   )
   const [websiteUrl, setWebsiteUrl] = useState(tool?.websiteUrl ?? "")
+  const [documentationUrl, setDocumentationUrl] = useState(
+    tool?.documentationUrl ?? ""
+  )
   const [developer, setDeveloper] = useState(tool?.developer ?? "")
-  const [platforms, setPlatforms] = useState(
-    listToLines(tool?.platforms ?? [])
+  const [platforms, setPlatforms] = useState<string[]>(tool?.platforms ?? [])
+  const [aiCapabilities, setAiCapabilities] = useState(
+    listToLines(tool?.aiCapabilities ?? [])
   )
   const [availability, setAvailability] = useState(
     tool?.availability ?? "AVAILABLE"
@@ -107,6 +116,8 @@ export function ToolEditorForm({
   )
   const [demoVideoUrl, setDemoVideoUrl] = useState(tool?.demoVideoUrl ?? "")
   const [featured, setFeatured] = useState(tool?.featured ?? false)
+  const [verified, setVerified] = useState(tool?.verified ?? false)
+  const [source, setSource] = useState(tool?.source ?? "THIRD_PARTY")
   const [status, setStatus] = useState(tool?.status ?? "DRAFT")
   const [seoTitle, setSeoTitle] = useState(tool?.seoTitle ?? "")
   const [seoDescription, setSeoDescription] = useState(
@@ -159,8 +170,10 @@ export function ToolEditorForm({
         shortDescription: shortDescription || null,
         fullDescription: fullDescription || null,
         websiteUrl: websiteUrl || null,
+        documentationUrl: documentationUrl || null,
         developer: developer || null,
-        platforms: linesToList(platforms),
+        platforms,
+        aiCapabilities: linesToList(aiCapabilities),
         availability,
         pricing,
         difficulty,
@@ -171,6 +184,8 @@ export function ToolEditorForm({
         relatedToolIds: linesToList(relatedToolIds),
         demoVideoUrl: demoVideoUrl || null,
         featured,
+        verified,
+        source,
         status: statusOverride ?? status,
         seoTitle: seoTitle || null,
         seoDescription: seoDescription || null,
@@ -200,7 +215,7 @@ export function ToolEditorForm({
       }
       toast.success(res.message)
       if (!isEdit && res.data?.id) {
-        router.push(`/dashboard/ai-tools/${res.data.id}`)
+        router.push(`${basePath}/${res.data.id}`)
         router.refresh()
         return
       }
@@ -208,16 +223,24 @@ export function ToolEditorForm({
     })
   }
 
+  function togglePlatform(platform: string) {
+    setPlatforms((prev) =>
+      prev.includes(platform)
+        ? prev.filter((p) => p !== platform)
+        : [...prev, platform],
+    )
+  }
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <AdminPageHeader
         title={isEdit ? "Edit AI tool" : "Add AI tool"}
-        description="Discover-pillar educational resource — connected to taxonomy and content."
+        description="Marketplace catalog entry — Official, Third-party, or Built on Mendanize. Publish when ready for the public directory."
         actions={
           <div className="flex flex-wrap gap-2">
             {isEdit ? (
               <Button asChild size="sm" variant="outline">
-                <Link href={`/dashboard/ai-tools/${tool!.id}/preview`}>
+                <Link href={`${basePath}/${tool!.id}/preview`}>
                   Preview
                 </Link>
               </Button>
@@ -279,7 +302,7 @@ export function ToolEditorForm({
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="developer">Developer</Label>
+              <Label htmlFor="developer">Company / Developer</Label>
               <Input
                 id="developer"
                 value={developer}
@@ -287,7 +310,7 @@ export function ToolEditorForm({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="website">Website</Label>
+              <Label htmlFor="website">Official website</Label>
               <Input
                 id="website"
                 type="url"
@@ -298,7 +321,46 @@ export function ToolEditorForm({
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="short">Short description</Label>
+            <Label htmlFor="docs">Documentation URL</Label>
+            <Input
+              id="docs"
+              type="url"
+              value={documentationUrl}
+              onChange={(e) => setDocumentationUrl(e.target.value)}
+              placeholder="https://"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Platforms</Label>
+            <div className="flex flex-wrap gap-2">
+              {TOOL_PLATFORMS.map((platform) => {
+                const on = platforms.includes(platform)
+                return (
+                  <Button
+                    key={platform}
+                    type="button"
+                    size="sm"
+                    variant={on ? "secondary" : "outline"}
+                    onClick={() => togglePlatform(platform)}
+                  >
+                    {platform}
+                  </Button>
+                )
+              })}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="capabilities">AI capabilities</Label>
+            <Textarea
+              id="capabilities"
+              rows={3}
+              value={aiCapabilities}
+              onChange={(e) => setAiCapabilities(e.target.value)}
+              placeholder="One capability per line (e.g. Chat, Image generation)"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="short">Description</Label>
             <Textarea
               id="short"
               rows={2}
@@ -481,12 +543,36 @@ export function ToolEditorForm({
                   ))}
                 </Select>
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="source">Marketplace label</Label>
+                <Select
+                  id="source"
+                  value={source}
+                  onChange={(e) =>
+                    setSource(e.target.value as typeof source)
+                  }
+                >
+                  {TOOL_SOURCES.map((s) => (
+                    <option key={s} value={s}>
+                      {TOOL_SOURCE_LABELS[s]}
+                    </option>
+                  ))}
+                </Select>
+              </div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="featured">Featured</Label>
                 <Switch
                   id="featured"
                   checked={featured}
                   onCheckedChange={setFeatured}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="verified">Verified</Label>
+                <Switch
+                  id="verified"
+                  checked={verified}
+                  onCheckedChange={setVerified}
                 />
               </div>
             </div>
@@ -526,15 +612,6 @@ export function ToolEditorForm({
                     </option>
                   ))}
                 </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="platforms">Platforms (one per line)</Label>
-                <Textarea
-                  id="platforms"
-                  rows={3}
-                  value={platforms}
-                  onChange={(e) => setPlatforms(e.target.value)}
-                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="tags">Tags (one per line)</Label>

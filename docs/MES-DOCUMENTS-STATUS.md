@@ -19,7 +19,7 @@ Operational status of every MES so agents and contributors know **what to work o
 
 ## Canonical files
 
-`docs/engineering/MES-001.md` … `MES-040.md` + `MES-INDEX.md` (v1.8). Empty slot: MES-040.
+`docs/engineering/MES-001.md` … `MES-040.md` + `MES-INDEX.md` (v1.9).
 
 ## Status legend
 
@@ -74,20 +74,19 @@ Operational status of every MES so agents and contributors know **what to work o
 | MES-037 | Founder Valuation Dashboard | Complete | [Handoff](./MES-037-COMPLETION.md); Super Admin `/dashboard/bi` |
 | MES-038 | Learner Ecosystem (Complete Dashboard) | Partial | [Spec](./engineering/MES-038.md); dashboard wired to marketplace/career services; portfolio, cloud, projects, workspace, messages pages |
 | MES-039 | Professional Growth & Earnings | Complete | [Handoff](./MES-039-COMPLETION.md); marketplaces + career hubs |
-| MES-040 | *(empty)* | — | Leave empty until specified |
+| MES-040 | Company & Organization Accounts | Complete | [Handoff](./MES-040-COMPLETION.md); extends MES-039 — no new session type |
 
 ## Recommended next work order
 
-1. Apply migration `20260726220000_mes039_mes037_growth_valuation` (`npx prisma migrate deploy`).
-2. Smoke-test Work/AI Tools marketplace Admin review gates and Super Admin BI valuation.
+1. Apply migration `20260727180000_mes040_organizations` (`npx prisma migrate deploy`).
+2. Smoke-test company create → Admin verify → org-linked job → hybrid listing badge.
 3. Continue MES-038: coding workspace execution engine, peer DMs, marketplace ratings — see [MES-038](./engineering/MES-038.md).
-4. Leave MES-040 empty until specified.
 
 ## Notes for agents
 
-- Do **not** invent content for empty MES file MES-040.
 - Do **not** merge Stripe Connect marketplace payments into MES-021 subscription Checkout.
-- Client/Creator/Community Moderator flags never open `/dashboard/*`.
+- Client/Creator/Community Moderator/Organization membership never open `/dashboard/*`.
+- MES-040 reuses MES-039 marketplaces; do not rebuild JobPosting / MarketplaceListing from scratch.
 
 ## Related
 

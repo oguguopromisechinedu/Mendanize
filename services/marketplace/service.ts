@@ -6,7 +6,7 @@ import "server-only"
 
 import { getPrisma, isDatabaseConfigured } from "@/lib/db/prisma"
 import { recordAudit } from "@/services/admin/audit"
-import { dispatch as dispatchNotification } from "@/services/notification"
+import { dispatch as dispatchNotification, notifyStaff } from "@/services/notification"
 import {
   feeCents,
   getMarketplaceAppBaseUrl,
@@ -19,6 +19,7 @@ import type {
   JobPostingRecord,
   MarketplaceListingKind,
   MarketplaceListingRecord,
+  MarketplaceListingSource,
   MarketplaceMetrics,
   MarketplacePricingModel,
   MarketplacePurchaseRecord,
@@ -62,6 +63,7 @@ async function uniqueListingSlug(base: string): Promise<string> {
 function mapJob(row: {
   id: string
   clientId: string
+  organizationId?: string | null
   title: string
   slug: string
   description: string
@@ -73,10 +75,12 @@ function mapJob(row: {
   publishedAt: Date | null
   createdAt: Date
   client?: { name: string | null } | null
+  organization?: { name: string } | null
 }): JobPostingRecord {
   return {
     id: row.id,
     clientId: row.clientId,
+    organizationId: row.organizationId ?? null,
     title: row.title,
     slug: row.slug,
     description: row.description,
@@ -88,6 +92,7 @@ function mapJob(row: {
     publishedAt: row.publishedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     clientName: row.client?.name ?? null,
+    organizationName: row.organization?.name ?? null,
   }
 }
 
@@ -98,6 +103,7 @@ function mapListing(row: {
   slug: string
   description: string
   kind: MarketplaceListingKind
+  source?: MarketplaceListingSource | null
   pricingModel: MarketplacePricingModel
   priceCents: number
   currency: string
@@ -114,6 +120,7 @@ function mapListing(row: {
     slug: row.slug,
     description: row.description,
     kind: row.kind,
+    source: row.source ?? "BUILT_ON_MENDANIZE",
     pricingModel: row.pricingModel,
     priceCents: row.priceCents,
     currency: row.currency,
@@ -127,60 +134,105 @@ function mapListing(row: {
 
 export async function ensureClientFlag(publicUserId: string) {
   if (!isDatabaseConfigured()) return null
-  return db().clientFlag.upsert({
-    where: { publicUserId },
-    create: { publicUserId, selfServe: true, active: true },
-    update: { active: true, revokedAt: null },
-  })
+  const { isMissingSchemaError } = await import("@/lib/db/safe-query")
+  try {
+    return await db().clientFlag.upsert({
+      where: { publicUserId },
+      create: { publicUserId, selfServe: true, active: true },
+      update: { active: true, revokedAt: null },
+    })
+  } catch (error) {
+    if (isMissingSchemaError(error)) {
+      console.warn(
+        "[marketplace] ClientFlag table missing — run prisma migrate deploy",
+        error,
+      )
+      return null
+    }
+    throw error
+  }
 }
 
 export async function ensureCreatorFlag(publicUserId: string) {
   if (!isDatabaseConfigured()) return null
-  return db().creatorFlag.upsert({
-    where: { publicUserId },
-    create: { publicUserId, selfServe: true, active: true },
-    update: { active: true, revokedAt: null },
-  })
+  const { isMissingSchemaError } = await import("@/lib/db/safe-query")
+  try {
+    return await db().creatorFlag.upsert({
+      where: { publicUserId },
+      create: { publicUserId, selfServe: true, active: true },
+      update: { active: true, revokedAt: null },
+    })
+  } catch (error) {
+    if (isMissingSchemaError(error)) {
+      console.warn(
+        "[marketplace] CreatorFlag table missing — run prisma migrate deploy",
+        error,
+      )
+      return null
+    }
+    throw error
+  }
 }
 
 export async function hasActiveClientFlag(publicUserId: string) {
   if (!isDatabaseConfigured()) return false
-  const row = await db().clientFlag.findUnique({ where: { publicUserId } })
-  return Boolean(row?.active)
+  const { safeDbQuery } = await import("@/lib/db/safe-query")
+  return safeDbQuery("marketplace.hasClientFlag", false, async () => {
+    const row = await db().clientFlag.findUnique({ where: { publicUserId } })
+    return Boolean(row?.active)
+  })
 }
 
 export async function hasActiveCreatorFlag(publicUserId: string) {
   if (!isDatabaseConfigured()) return false
-  const row = await db().creatorFlag.findUnique({ where: { publicUserId } })
-  return Boolean(row?.active)
+  const { safeDbQuery } = await import("@/lib/db/safe-query")
+  return safeDbQuery("marketplace.hasCreatorFlag", false, async () => {
+    const row = await db().creatorFlag.findUnique({ where: { publicUserId } })
+    return Boolean(row?.active)
+  })
 }
 
 export async function listOpenJobs(): Promise<JobPostingRecord[]> {
   if (!isDatabaseConfigured()) return []
-  const rows = await db().jobPosting.findMany({
-    where: { status: "OPEN" },
-    orderBy: { publishedAt: "desc" },
-    include: { client: { select: { name: true } } },
-    take: 100,
+  const { safeDbQuery } = await import("@/lib/db/safe-query")
+  return safeDbQuery("marketplace.listOpenJobs", [], async () => {
+    const rows = await db().jobPosting.findMany({
+      where: { status: "OPEN" },
+      orderBy: { publishedAt: "desc" },
+      include: {
+        client: { select: { name: true } },
+        organization: { select: { name: true } },
+      },
+      take: 100,
+    })
+    return rows.map(mapJob)
   })
-  return rows.map(mapJob)
 }
 
 export async function listJobsForClient(clientId: string): Promise<JobPostingRecord[]> {
   if (!isDatabaseConfigured()) return []
-  const rows = await db().jobPosting.findMany({
-    where: { clientId },
-    orderBy: { createdAt: "desc" },
-    include: { client: { select: { name: true } } },
+  const { safeDbQuery } = await import("@/lib/db/safe-query")
+  return safeDbQuery("marketplace.listJobsForClient", [], async () => {
+    const rows = await db().jobPosting.findMany({
+      where: { clientId },
+      orderBy: { createdAt: "desc" },
+      include: {
+        client: { select: { name: true } },
+        organization: { select: { name: true } },
+      },
+    })
+    return rows.map(mapJob)
   })
-  return rows.map(mapJob)
 }
 
 export async function getJobBySlug(slug: string): Promise<JobPostingRecord | null> {
   if (!isDatabaseConfigured()) return null
   const row = await db().jobPosting.findUnique({
     where: { slug },
-    include: { client: { select: { name: true } } },
+    include: {
+      client: { select: { name: true } },
+      organization: { select: { name: true } },
+    },
   })
   return row ? mapJob(row) : null
 }
@@ -191,14 +243,26 @@ export async function createJobPosting(input: {
   description: string
   budgetCents?: number | null
   skills?: string[]
+  organizationId?: string | null
   submitForReview?: boolean
 }): Promise<JobPostingRecord> {
   await ensureClientFlag(input.clientId)
+  if (input.organizationId) {
+    const { userCanPostForOrganization } = await import(
+      "@/services/organization"
+    )
+    const ok = await userCanPostForOrganization(
+      input.organizationId,
+      input.clientId,
+    )
+    if (!ok) throw new Error("You cannot post jobs for this company.")
+  }
   const slug = await uniqueJobSlug(input.title)
   const status = input.submitForReview ? "PENDING_REVIEW" : "DRAFT"
   const row = await db().jobPosting.create({
     data: {
       clientId: input.clientId,
+      organizationId: input.organizationId ?? null,
       title: input.title.trim(),
       slug,
       description: input.description.trim(),
@@ -206,17 +270,43 @@ export async function createJobPosting(input: {
       skills: input.skills ?? [],
       status,
     },
-    include: { client: { select: { name: true } } },
+    include: {
+      client: { select: { name: true } },
+      organization: { select: { name: true } },
+    },
   })
+  if (status === "PENDING_REVIEW") {
+    await notifyStaff({
+      template: "system.info",
+      type: "SYSTEM",
+      title: "Job pending review",
+      body: `“${row.title}” was submitted for Work Marketplace review.`,
+      link: "/dashboard/marketplace",
+      payload: { jobId: row.id },
+    }).catch(() => 0)
+  }
   return mapJob(row)
 }
 
 export async function submitJobForReview(jobId: string, clientId: string) {
+  const existing = await db().jobPosting.findFirst({
+    where: { id: jobId, clientId, status: { in: ["DRAFT", "REJECTED"] } },
+  })
   const row = await db().jobPosting.updateMany({
     where: { id: jobId, clientId, status: { in: ["DRAFT", "REJECTED"] } },
     data: { status: "PENDING_REVIEW", reviewNote: null },
   })
   if (row.count === 0) throw new Error("Job not found or not editable.")
+  if (existing) {
+    await notifyStaff({
+      template: "system.info",
+      type: "SYSTEM",
+      title: "Job pending review",
+      body: `“${existing.title}” was submitted for Work Marketplace review.`,
+      link: "/dashboard/marketplace",
+      payload: { jobId },
+    }).catch(() => 0)
+  }
 }
 
 export async function adminReviewJob(input: {
@@ -441,25 +531,31 @@ export async function fundMilestone(input: {
 
 export async function listApprovedListings(): Promise<MarketplaceListingRecord[]> {
   if (!isDatabaseConfigured()) return []
-  const rows = await db().marketplaceListing.findMany({
-    where: { status: "APPROVED" },
-    orderBy: { publishedAt: "desc" },
-    include: { creator: { select: { name: true } } },
-    take: 100,
+  const { safeDbQuery } = await import("@/lib/db/safe-query")
+  return safeDbQuery("marketplace.listApprovedListings", [], async () => {
+    const rows = await db().marketplaceListing.findMany({
+      where: { status: "APPROVED" },
+      orderBy: { publishedAt: "desc" },
+      include: { creator: { select: { name: true } } },
+      take: 100,
+    })
+    return rows.map(mapListing)
   })
-  return rows.map(mapListing)
 }
 
 export async function listListingsForCreator(
   creatorId: string,
 ): Promise<MarketplaceListingRecord[]> {
   if (!isDatabaseConfigured()) return []
-  const rows = await db().marketplaceListing.findMany({
-    where: { creatorId },
-    orderBy: { createdAt: "desc" },
-    include: { creator: { select: { name: true } } },
+  const { safeDbQuery } = await import("@/lib/db/safe-query")
+  return safeDbQuery("marketplace.listListingsForCreator", [], async () => {
+    const rows = await db().marketplaceListing.findMany({
+      where: { creatorId },
+      orderBy: { createdAt: "desc" },
+      include: { creator: { select: { name: true } } },
+    })
+    return rows.map(mapListing)
   })
-  return rows.map(mapListing)
 }
 
 export async function createMarketplaceListing(input: {
@@ -467,6 +563,7 @@ export async function createMarketplaceListing(input: {
   title: string
   description: string
   kind: MarketplaceListingKind
+  source?: MarketplaceListingSource
   pricingModel?: MarketplacePricingModel
   priceCents: number
   submitForReview?: boolean
@@ -474,6 +571,10 @@ export async function createMarketplaceListing(input: {
   await ensureCreatorFlag(input.creatorId)
   if (input.priceCents < 0) throw new Error("Price must be non-negative.")
   const slug = await uniqueListingSlug(input.title)
+  const source =
+    input.source === "OFFICIAL"
+      ? "BUILT_ON_MENDANIZE"
+      : (input.source ?? "BUILT_ON_MENDANIZE")
   const row = await db().marketplaceListing.create({
     data: {
       creatorId: input.creatorId,
@@ -481,16 +582,54 @@ export async function createMarketplaceListing(input: {
       slug,
       description: input.description.trim(),
       kind: input.kind,
+      source,
       pricingModel: input.pricingModel ?? "ONE_TIME",
       priceCents: input.priceCents,
       status: input.submitForReview ? "PENDING_REVIEW" : "DRAFT",
     },
     include: { creator: { select: { name: true } } },
   })
+  if (input.submitForReview) {
+    await notifyStaff({
+      template: "system.info",
+      type: "SYSTEM",
+      title: "Listing pending review",
+      body: `“${row.title}” was submitted for AI Tools Marketplace review.`,
+      link: "/dashboard/marketplace",
+      payload: { listingId: row.id },
+    }).catch(() => 0)
+  }
+  return mapListing(row)
+}
+
+export async function adminSetListingSource(input: {
+  listingId: string
+  source: MarketplaceListingSource
+  adminId: string
+}): Promise<MarketplaceListingRecord> {
+  const row = await db().marketplaceListing.update({
+    where: { id: input.listingId },
+    data: { source: input.source },
+    include: { creator: { select: { name: true } } },
+  })
+  await recordAudit({
+    actorId: input.adminId,
+    action: "update",
+    entityType: "marketplace_listing",
+    entityId: row.id,
+    summary: `Set listing source to ${input.source}`,
+  }).catch(() => undefined)
   return mapListing(row)
 }
 
 export async function submitListingForReview(listingId: string, creatorId: string) {
+  const existing = await db().marketplaceListing.findFirst({
+    where: {
+      id: listingId,
+      creatorId,
+      status: { in: ["DRAFT", "REJECTED"] },
+    },
+  })
   const row = await db().marketplaceListing.updateMany({
     where: {
       id: listingId,
@@ -500,6 +639,16 @@ export async function submitListingForReview(listingId: string, creatorId: strin
     data: { status: "PENDING_REVIEW", reviewNote: null },
   })
   if (row.count === 0) throw new Error("Listing not found or not editable.")
+  if (existing) {
+    await notifyStaff({
+      template: "system.info",
+      type: "SYSTEM",
+      title: "Listing pending review",
+      body: `“${existing.title}” was submitted for AI Tools Marketplace review.`,
+      link: "/dashboard/marketplace",
+      payload: { listingId },
+    }).catch(() => 0)
+  }
 }
 
 export async function adminReviewListing(input: {
@@ -659,7 +808,10 @@ export async function listPendingJobReviews(): Promise<JobPostingRecord[]> {
   const rows = await db().jobPosting.findMany({
     where: { status: "PENDING_REVIEW" },
     orderBy: { createdAt: "asc" },
-    include: { client: { select: { name: true } } },
+    include: {
+      client: { select: { name: true } },
+      organization: { select: { name: true } },
+    },
   })
   return rows.map(mapJob)
 }

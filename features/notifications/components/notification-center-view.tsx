@@ -126,7 +126,14 @@ export function NotificationCenterView({
                   <tr key={n.id}>
                     <td className="py-2.5 pr-3 font-medium">
                       {n.link ? (
-                        <Link href={n.link} className="hover:text-primary">
+                        <Link
+                          href={
+                            n.link.startsWith("/dashboard")
+                              ? n.link
+                              : "/dashboard/notifications/center"
+                          }
+                          className="hover:text-primary"
+                        >
                           {n.title}
                         </Link>
                       ) : (

@@ -52,27 +52,35 @@ async function safeSource<T>(
   }
 }
 
-// Short-lived process cache. Dashboard aggregates are global (not per-user) and
-// tolerate slight staleness, so caching avoids re-running ~100 pooled queries on
-// every navigation. TTL is intentionally small so new content shows quickly.
+// Short-lived process cache. Most dashboard aggregates are global, but
+// notification previews are Admin-scoped (MES-030), so the cache key includes adminId.
 const HOME_CACHE_TTL_MS = Number(process.env.DASHBOARD_HOME_TTL_MS ?? 45_000);
-let homeCache: { data: DashboardHomeData; expires: number } | null = null;
+const homeCache = new Map<string, { data: DashboardHomeData; expires: number }>();
 
-export async function loadDashboardHome(): Promise<DashboardHomeData> {
-  if (homeCache && homeCache.expires > Date.now()) {
-    return structuredClone(homeCache.data);
+export async function loadDashboardHome(
+  adminId?: string,
+): Promise<DashboardHomeData> {
+  const cacheKey = adminId?.trim() || "anon";
+  const cached = homeCache.get(cacheKey);
+  if (cached && cached.expires > Date.now()) {
+    return structuredClone(cached.data);
   }
-  const data = await computeDashboardHome();
-  homeCache = { data: structuredClone(data), expires: Date.now() + HOME_CACHE_TTL_MS };
+  const data = await computeDashboardHome(adminId);
+  homeCache.set(cacheKey, {
+    data: structuredClone(data),
+    expires: Date.now() + HOME_CACHE_TTL_MS,
+  });
   return data;
 }
 
 /** Force the next loadDashboardHome() to recompute (call after content writes). */
 export function invalidateDashboardHome(): void {
-  homeCache = null;
+  homeCache.clear();
 }
 
-async function computeDashboardHome(): Promise<DashboardHomeData> {
+async function computeDashboardHome(
+  adminId?: string,
+): Promise<DashboardHomeData> {
   const home = structuredClone(SEEDED_DASHBOARD_HOME);
 
   const [providers, slice, avgSeo, activity, system, notifications] =
@@ -82,7 +90,9 @@ async function computeDashboardHome(): Promise<DashboardHomeData> {
       safeSource("avgSeoScore", () => computeAverageSeoScore()),
       safeSource("recentActivity", () => loadRecentActivity()),
       safeSource("systemMetrics", () => loadSystemMetrics()),
-      safeSource("notifications", () => loadNotificationPreview()),
+      adminId
+        ? safeSource("notifications", () => loadNotificationPreview(adminId))
+        : Promise.resolve({ unreadCount: 0, items: [] }),
     ]);
 
   if (providers) {
@@ -140,10 +150,10 @@ async function computeDashboardHome(): Promise<DashboardHomeData> {
   return home;
 }
 
-export async function loadAdminShell() {
+export async function loadAdminShell(adminId?: string) {
   const [nav, home] = await Promise.all([
     getAdminNavigationConfig(),
-    loadDashboardHome(),
+    loadDashboardHome(adminId),
   ]);
   return { nav, home };
 }

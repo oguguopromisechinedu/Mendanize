@@ -320,6 +320,11 @@ export type ToolImageRecord = {
   sortOrder: number;
 };
 
+export type ToolMarketplaceSourceValue =
+  | "OFFICIAL"
+  | "THIRD_PARTY"
+  | "BUILT_ON_MENDANIZE";
+
 export type ToolRecord = {
   id: string;
   name: string;
@@ -327,8 +332,10 @@ export type ToolRecord = {
   shortDescription: string | null;
   fullDescription: string | null;
   websiteUrl: string | null;
+  documentationUrl: string | null;
   developer: string | null;
   platforms: string[];
+  aiCapabilities: string[];
   availability: ToolAvailabilityValue;
   pricing: ToolPricingValue;
   difficulty: ToolDifficultyValue;
@@ -339,6 +346,8 @@ export type ToolRecord = {
   relatedToolIds: string[];
   demoVideoUrl: string | null;
   featured: boolean;
+  verified: boolean;
+  source: ToolMarketplaceSourceValue;
   status: ToolStatusValue;
   publishedAt: string | null;
   seoTitle: string | null;
@@ -369,6 +378,8 @@ export type ToolListParams = {
   categoryId?: string;
   topicId?: string;
   featured?: boolean;
+  verified?: boolean;
+  source?: ToolMarketplaceSourceValue | "ALL";
   sort?: "updatedAt" | "name" | "pricing" | "publishedAt";
   sortDir?: "asc" | "desc";
 };
@@ -386,8 +397,10 @@ export type ToolWriteInput = {
   shortDescription?: string | null;
   fullDescription?: string | null;
   websiteUrl?: string | null;
+  documentationUrl?: string | null;
   developer?: string | null;
   platforms?: string[];
+  aiCapabilities?: string[];
   availability?: ToolAvailabilityValue;
   pricing?: ToolPricingValue;
   difficulty?: ToolDifficultyValue;
@@ -398,6 +411,8 @@ export type ToolWriteInput = {
   relatedToolIds?: string[];
   demoVideoUrl?: string | null;
   featured?: boolean;
+  verified?: boolean;
+  source?: ToolMarketplaceSourceValue;
   status?: ToolStatusValue;
   publishedAt?: string | null;
   seoTitle?: string | null;

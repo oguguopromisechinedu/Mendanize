@@ -1,4 +1,4 @@
-﻿import { handleApiError } from "@/lib/api/errors"
+import { handleApiError } from "@/lib/api/errors"
 import { ok, unauthorized } from "@/lib/api/response"
 import {
   PERMISSIONS,

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import type { AdminRoleKey } from "@prisma/client"
 import { z } from "zod"
 
-import { requireEditor, requirePermission, requireSuperAdministrator, PERMISSIONS } from "@/features/authentication/server"
+import { invalidateHomepageStatistics } from "@/lib/cache/content"
 import {
   advanceWorkflowItem,
   bulkUpdateCommentStatus,
@@ -435,6 +435,7 @@ export async function createSubscriberAction(
     const sub = await createSubscriber(parsed.data)
     await audit(session, "create", "subscriber", `Added ${sub.email}`, sub.id)
     revalidate("/dashboard/subscribers", "/dashboard/newsletter")
+    invalidateHomepageStatistics()
     return { ok: true, message: "Subscriber added" }
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "Failed" }
@@ -452,6 +453,7 @@ export async function updateSubscriberAction(
   try {
     await updateSubscriber(id, parsed.data)
     revalidate("/dashboard/subscribers")
+    invalidateHomepageStatistics()
     return { ok: true, message: "Subscriber updated" }
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "Failed" }
@@ -468,6 +470,7 @@ export async function deleteSubscribersAction(
   try {
     const n = await deleteSubscribers(parsed.data.ids)
     revalidate("/dashboard/subscribers")
+    invalidateHomepageStatistics()
     return { ok: true, message: `Removed ${n} subscriber(s)` }
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "Failed" }

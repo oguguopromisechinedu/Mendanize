@@ -165,6 +165,9 @@ model PublicUser {
   creatorFollows         CreatorFollower[]        @relation("CreatorFollower")
   creatorFollowers       CreatorFollower[]        @relation("CreatorFollowed")
   reputationScore        ReputationScore?
+  /// MES-040 Company & Organization accounts
+  organizationsOwned     Organization[]           @relation("OrganizationOwner")
+  organizationMemberships OrganizationMember[]
 }
 
 model Admin {
@@ -1019,32 +1022,37 @@ enum ToolImageKind {
 }
 
 model Tool {
-  id                   String            @id @default(cuid())
+  id                   String                   @id @default(cuid())
   name                 String
-  slug                 String            @unique
+  slug                 String                   @unique
   shortDescription     String?
-  fullDescription      String?           @db.Text
+  fullDescription      String?                  @db.Text
   websiteUrl           String?
+  documentationUrl     String?
   developer            String?
-  platforms            String[]          @default([])
-  availability         ToolAvailability  @default(AVAILABLE)
-  pricing              ToolPricing       @default(FREEMIUM)
-  difficulty           ToolDifficulty    @default(BEGINNER)
-  recommendedFor       String[]          @default([])
-  learningOutcomes     String[]          @default([])
-  relatedArticleIds    String[]          @default([])
-  relatedGuideIds      String[]          @default([])
-  relatedToolIds       String[]          @default([])
+  platforms            String[]                 @default([])
+  aiCapabilities       String[]                 @default([])
+  availability         ToolAvailability         @default(AVAILABLE)
+  pricing              ToolPricing              @default(FREEMIUM)
+  difficulty           ToolDifficulty           @default(BEGINNER)
+  recommendedFor       String[]                 @default([])
+  learningOutcomes     String[]                 @default([])
+  relatedArticleIds    String[]                 @default([])
+  relatedGuideIds      String[]                 @default([])
+  relatedToolIds       String[]                 @default([])
   demoVideoUrl         String?
-  featured             Boolean           @default(false)
-  status               ToolStatus        @default(DRAFT)
+  featured             Boolean                  @default(false)
+  verified             Boolean                  @default(false)
+  /// Hybrid marketplace label — Official Mendanize / Third-party / Built on Mendanize
+  source               MarketplaceListingSource @default(THIRD_PARTY)
+  status               ToolStatus               @default(DRAFT)
   publishedAt          DateTime?
   seoTitle             String?
   seoDescription       String?
   focusKeyword         String?
   canonicalUrl         String?
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
 
   categories           ToolCategoryRelation[]
   topics               ToolTopicRelation[]
@@ -1055,6 +1063,8 @@ model Tool {
   @@index([status])
   @@index([pricing])
   @@index([featured])
+  @@index([verified])
+  @@index([source])
   @@index([publishedAt])
 }
 
@@ -2928,6 +2938,33 @@ enum MarketplaceListingKind {
   AUTOMATION
 }
 
+enum MarketplaceListingSource {
+  OFFICIAL
+  THIRD_PARTY
+  BUILT_ON_MENDANIZE
+}
+
+enum OrganizationType {
+  COMPANY
+  STARTUP
+  EDUCATION
+  NONPROFIT
+  OTHER
+}
+
+enum OrganizationVerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum OrganizationMemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
 enum MarketplaceListingStatus {
   DRAFT
   PENDING_REVIEW
@@ -3165,9 +3202,51 @@ model CreatorFlag {
   publicUser       PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
 }
 
+/// MES-040 — Company / Organization (PublicUser-owned; never grants /dashboard)
+model Organization {
+  id                   String                          @id @default(cuid())
+  name                 String
+  slug                 String                          @unique
+  type                 OrganizationType                @default(COMPANY)
+  description          String?                         @db.Text
+  logoUrl              String?
+  website              String?
+  industry             String?
+  size                 String?
+  location             String?
+  verificationStatus   OrganizationVerificationStatus  @default(UNVERIFIED)
+  verificationNote     String?
+  reviewedByAdminId    String?
+  verifiedAt           DateTime?
+  ownerPublicUserId    String
+  createdAt            DateTime                        @default(now())
+  updatedAt            DateTime                        @updatedAt
+  owner                PublicUser                      @relation("OrganizationOwner", fields: [ownerPublicUserId], references: [id], onDelete: Cascade)
+  members              OrganizationMember[]
+  jobPostings          JobPosting[]
+
+  @@index([ownerPublicUserId])
+  @@index([verificationStatus, createdAt])
+}
+
+model OrganizationMember {
+  id             String                 @id @default(cuid())
+  organizationId String
+  publicUserId   String
+  role           OrganizationMemberRole @default(MEMBER)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  publicUser     PublicUser             @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, publicUserId])
+  @@index([publicUserId])
+}
+
 model JobPosting {
   id                String           @id @default(cuid())
   clientId          String
+  organizationId    String?
   title             String
   slug              String           @unique
   description       String           @db.Text
@@ -3181,11 +3260,13 @@ model JobPosting {
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   client            PublicUser       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  organization      Organization?    @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   applications      JobApplication[]
   contracts         Contract[]
 
   @@index([status, createdAt])
   @@index([clientId])
+  @@index([organizationId])
 }
 
 model JobApplication {
@@ -3284,6 +3365,7 @@ model MarketplaceListing {
   slug              String                            @unique
   description       String                            @db.Text
   kind              MarketplaceListingKind
+  source            MarketplaceListingSource          @default(BUILT_ON_MENDANIZE)
   pricingModel      MarketplacePricingModel           @default(ONE_TIME)
   priceCents        Int
   currency          String                            @default("usd")
@@ -3301,6 +3383,7 @@ model MarketplaceListing {
   @@index([status, publishedAt])
   @@index([creatorId])
   @@index([kind])
+  @@index([source])
 }
 
 model MarketplacePurchase {

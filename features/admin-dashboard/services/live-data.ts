@@ -392,19 +392,23 @@ export async function computeAverageSeoScore(): Promise<number | null> {
   return Math.round(total / result.items.length);
 }
 
-export async function loadNotificationPreview(): Promise<{
+export async function loadNotificationPreview(adminId: string): Promise<{
   unreadCount: number;
   items: NotificationPreview[];
 }> {
-  if (!isDatabaseConfigured()) {
+  if (!isDatabaseConfigured() || !adminId) {
     return { unreadCount: 0, items: [] };
   }
 
+  const { resolveNotificationLink } = await import("@/services/notification/links");
   const db = getPrisma();
+  const where = { adminId, archived: false as const };
   const [unreadCount, rows] = await Promise.all([
-    db.notification.count({ where: { read: false, archived: false } }),
+    db.notification.count({
+      where: { adminId, read: false, archived: false },
+    }),
     db.notification.findMany({
-      where: { archived: false },
+      where,
       orderBy: { createdAt: "desc" },
       take: 5,
       select: {
@@ -425,7 +429,7 @@ export async function loadNotificationPreview(): Promise<{
       title: n.title,
       meta: n.read ? String(n.type) : `Unread · ${n.type}`,
       time: formatRelativeTime(n.createdAt),
-      href: n.link || "/dashboard/notifications",
+      href: resolveNotificationLink(n.link, "admin"),
     })),
   };
 }

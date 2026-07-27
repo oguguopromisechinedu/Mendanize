@@ -82,3 +82,26 @@ export const TOOL_FEATURE_KIND_LABELS: Record<
   ADVANTAGE: "Advantage",
   LIMITATION: "Limitation",
 }
+
+export const TOOL_PLATFORMS = [
+  "Web",
+  "Windows",
+  "macOS",
+  "Linux",
+  "Android",
+  "iOS",
+  "API",
+] as const
+
+export const TOOL_SOURCES = [
+  "OFFICIAL",
+  "THIRD_PARTY",
+  "BUILT_ON_MENDANIZE",
+] as const
+
+export const TOOL_SOURCE_LABELS: Record<(typeof TOOL_SOURCES)[number], string> =
+  {
+    OFFICIAL: "Official Mendanize",
+    THIRD_PARTY: "Third-Party",
+    BUILT_ON_MENDANIZE: "Built on Mendanize",
+  }

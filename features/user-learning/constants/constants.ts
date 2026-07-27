@@ -110,6 +110,7 @@ export const LEARNER_NAV_GROUPS: LearnerNavGroup[] = [
       { label: "Community", href: "/account/community", icon: "users" },
       { label: "Career Hub", href: "/account/career", icon: "rocket" },
       { label: "Work Marketplace", href: "/account/work", icon: "briefcase", badge: "New" },
+      { label: "Company", href: "/account/employer", icon: "store", badge: "New" },
       { label: "Messages", href: "/account/messages", icon: "mail" },
       { label: "Notifications", href: "/account/notifications", icon: "bell" },
     ],

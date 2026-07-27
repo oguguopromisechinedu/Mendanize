@@ -11,8 +11,11 @@ import {
   getNotificationTypeMeta,
 } from "@/services/notification";
 
-export async function loadDashboard(userId?: string) {
-  return getNotificationsDashboard(userId);
+export async function loadDashboard(
+  userId?: string,
+  opts?: { domain?: "public" | "admin" },
+) {
+  return getNotificationsDashboard(userId, opts);
 }
 
 export async function loadCenter(

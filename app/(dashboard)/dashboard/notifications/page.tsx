@@ -18,6 +18,6 @@ export default async function Page() {
   if (!session?.admin?.id) {
     redirect("/dashboard/login");
   }
-  const data = await loadDashboard(session.admin.id);
+  const data = await loadDashboard(session.admin.id, { domain: "admin" });
   return <NotificationsDashboardView data={data} />;
 }
