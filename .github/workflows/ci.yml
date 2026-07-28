@@ -40,8 +40,9 @@ jobs:
       - name: Production build
         run: npm run build
         env:
-          # Build-time placeholders — real secrets live in hosting env
-          DATABASE_URL: postgresql://ci:ci@localhost:5432/mendanize?schema=public
+          # Build-time placeholders — real secrets live in hosting env.
+          # Do not set DATABASE_URL here: no Postgres service exists on the runner
+          # and page collection must not attempt live DB connections during CI.
           AUTH_SECRET: ci-auth-secret-not-for-production-use-32b
           AUTH_URL: http://localhost:3000
           NEXT_PUBLIC_APP_URL: http://localhost:3000
