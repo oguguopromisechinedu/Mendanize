@@ -23,9 +23,14 @@ function mergeStatValues(
 /** Keeps homepage stat cards in sync with /api/public/homepage/statistics. */
 export function useHomepageStatistics(initial: StatItem[]) {
   const initialRef = useRef(initial);
-  initialRef.current = initial;
   const [items, setItems] = useState(initial);
   const structureKey = initial.map((item) => `${item.id}:${item.label}`).join("|");
+
+  // Keep the latest initial payload available to async refresh without
+  // writing to a ref during render (react-hooks/refs).
+  useEffect(() => {
+    initialRef.current = initial;
+  });
 
   useEffect(() => {
     setItems(initialRef.current);

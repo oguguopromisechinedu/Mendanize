@@ -25,6 +25,7 @@ import {
 import {
   TOOL_PRICING_LABELS,
   TOOL_SOURCE_LABELS,
+  TOOL_STATUS_LABELS,
 } from "../constants/constants"
 
 const FILTER_TABS: Array<{

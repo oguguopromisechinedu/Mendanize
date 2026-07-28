@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Crown, ExternalLink, Folder, Settings2 } from "lucide-react";
+import { CircleHelp, Crown, ExternalLink, Folder, Settings2 } from "lucide-react";
 
 import Logo from "@/components/brand/Logo";
 import ThemeToggle from "@/components/ui/ThemeToggle";
@@ -183,30 +183,28 @@ export function LearnerSidebar({
             onClick={onNavigate}
             className="inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-hover hover:text-foreground"
             aria-label="Settings"
+            title="Settings"
           >
             <Settings2 className="size-4" />
           </Link>
-          {!collapsed ? (
-            <Link
-              href="/"
-              onClick={onNavigate}
-              className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-muted-foreground transition hover:bg-hover hover:text-foreground"
-              title="Leave account and open the public homepage"
-            >
-              <ExternalLink className="size-3.5 shrink-0" aria-hidden />
-              Visit public site
-            </Link>
-          ) : (
-            <Link
-              href="/"
-              onClick={onNavigate}
-              className="inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-hover hover:text-foreground"
-              aria-label="Visit public site"
-              title="Visit public site"
-            >
-              <ExternalLink className="size-4" />
-            </Link>
-          )}
+          <Link
+            href="/contact"
+            onClick={onNavigate}
+            className="inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-hover hover:text-foreground"
+            aria-label="Help and support"
+            title="Help & Support"
+          >
+            <CircleHelp className="size-4" />
+          </Link>
+          <Link
+            href="/"
+            onClick={onNavigate}
+            className="inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-hover hover:text-foreground"
+            aria-label="Visit public homepage"
+            title="Go to public homepage"
+          >
+            <ExternalLink className="size-4" />
+          </Link>
         </div>
       </div>
     </aside>
