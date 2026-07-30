@@ -45,10 +45,10 @@ async function main() {
   const updated = await prisma.homepageCTA.update({
     where: { homepageId: hp.id },
     data: {
-      headline: "Ready to get more from Mendanize?",
+      headline: "Ready to join Creators Hub?",
       description:
-        "Create a free account to unlock guided learning paths, AI tools, saved content, and the full Mendanize product experience.",
-      primaryCtaLabel: "Create account",
+        "Learn AI, create tools and prompts, sell what you build, and get hired — all inside Creators Hub.",
+      primaryCtaLabel: "Creators Hub",
       primaryCtaHref: "/sign-up",
       secondaryCtaLabel: "Explore guides",
       secondaryCtaHref: "/guides",

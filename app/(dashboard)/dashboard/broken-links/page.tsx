@@ -1,6 +1,7 @@
 ﻿import type { Metadata } from "next"
 
-import { BrokenLinksView, loadBrokenLinks } from "@/features/admin-modules"
+import { BrokenLinksView } from "@/features/admin-modules"
+import { loadBrokenLinks } from "@/features/admin-modules/server"
 
 export const metadata: Metadata = {
   title: "Broken Links",

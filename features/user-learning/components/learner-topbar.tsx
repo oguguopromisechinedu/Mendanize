@@ -5,6 +5,7 @@ import { Bell, Menu, Search, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { routes } from "@/lib/design";
 
 export type LearnerTopBarUser = {
   name?: string | null;
@@ -24,7 +25,7 @@ export function LearnerTopBar({
   onOpenMobileNav?: () => void;
 }) {
   const displayName =
-    user.name?.trim() || user.email?.split("@")[0] || "Learner";
+    user.name?.trim() || user.email?.split("@")[0] || "Creator";
   const initials = displayName
     .split(/\s+/)
     .slice(0, 2)
@@ -41,7 +42,7 @@ export function LearnerTopBar({
         size="icon"
         className="lg:hidden"
         onClick={onOpenMobileNav}
-        aria-label="Open navigation"
+        aria-label="Open Creators Hub navigation"
       >
         <Menu className="size-5" />
       </Button>
@@ -74,7 +75,7 @@ export function LearnerTopBar({
               size="icon-sm"
               className="rounded-full bg-gradient-to-r from-primary to-amber-500 text-primary-foreground shadow-glow hover:opacity-95 sm:hidden"
             >
-              <Link href="/account/billing" aria-label="Go Premium">
+              <Link href={routes.billing} aria-label="Go Premium">
                 <Sparkles className="size-4" aria-hidden />
               </Link>
             </Button>
@@ -83,7 +84,7 @@ export function LearnerTopBar({
               size="sm"
               className="hidden rounded-full bg-gradient-to-r from-primary to-amber-500 text-primary-foreground shadow-glow hover:opacity-95 sm:inline-flex"
             >
-              <Link href="/account/billing" className="gap-1.5">
+              <Link href={routes.billing} className="gap-1.5">
                 <Sparkles className="size-3.5 shrink-0" aria-hidden />
                 <span className="hidden md:inline">Go Premium</span>
                 <span className="md:hidden">Premium</span>
@@ -97,7 +98,7 @@ export function LearnerTopBar({
             variant="outline"
             className="hidden max-w-[7.5rem] truncate rounded-full sm:inline-flex"
           >
-            <Link href="/account/billing" title={planName}>
+            <Link href={routes.billing} title={planName}>
               {planName}
             </Link>
           </Button>
@@ -114,7 +115,7 @@ export function LearnerTopBar({
               : "Notifications"
           }
         >
-          <Link href="/account/notifications">
+          <Link href={routes.notifications}>
             <Bell className="size-4" />
             {unreadCount > 0 ? (
               <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
@@ -125,7 +126,7 @@ export function LearnerTopBar({
         </Button>
 
         <Link
-          href="/account/preferences"
+          href={routes.preferences}
           className="flex min-w-0 max-w-[9.5rem] items-center gap-2 rounded-full border border-border bg-card/70 py-1 pl-1 pr-2 transition hover:border-primary/35 hover:bg-hover sm:gap-2.5 sm:pr-3"
         >
           <span className="flex size-8 items-center justify-center overflow-hidden rounded-full bg-primary/20 text-xs font-semibold text-primary">
@@ -145,7 +146,7 @@ export function LearnerTopBar({
               {displayName}
             </span>
             <span className="block text-[11px] text-muted-foreground">
-              Learner
+              Creators Hub
             </span>
           </span>
         </Link>

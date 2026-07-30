@@ -1,7 +1,8 @@
+import { loadHistory } from "@/features/user-learning/server";
 import type { Metadata } from "next"
 
 import { requirePublicUser } from "@/features/authentication/server"
-import { HistoryView, loadHistory } from "@/features/user-learning"
+import { HistoryView } from "@/features/user-learning"
 
 export const metadata: Metadata = {
   title: "Learning history",

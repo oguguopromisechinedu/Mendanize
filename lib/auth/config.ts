@@ -9,6 +9,7 @@ export const publicProtectedPrefixes = [
   "/workspace",
   "/onboarding",
   "/learning",
+  "/my-learning",
 ] as const;
 
 export const adminPrefixes = ["/dashboard"] as const;

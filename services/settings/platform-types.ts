@@ -83,6 +83,14 @@ export type EmailSettingRecord = {
   smtpSecure: boolean;
   smtpPlaceholder: string | null;
   templatesNote: string | null;
+  defaultReplyTo: string | null;
+  brandLogoUrl: string | null;
+  footerHtml: string | null;
+  companyAddress: string | null;
+  socialLinksJson: string | null;
+  unsubscribeFooterHtml: string | null;
+  trackingOpens: boolean;
+  trackingClicks: boolean;
   updatedAt: string;
 };
 

@@ -18,6 +18,7 @@ export type PromptPackItemRecord = {
   title: string;
   prompt: string;
   sortOrder: number;
+  tags: string[];
   createdAt: Date;
   updatedAt: Date;
 };
@@ -30,6 +31,11 @@ export type PromptPackRecord = {
   category: string | null;
   status: CatalogPublishStatus;
   sortOrder: number;
+  featured: boolean;
+  premium: boolean;
+  tags: string[];
+  ratingAvg: number;
+  ratingCount: number;
   publishedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -141,6 +147,9 @@ export type CreatePromptPackInput = {
   description?: string | null;
   category?: string | null;
   sortOrder?: number;
+  featured?: boolean;
+  premium?: boolean;
+  tags?: string[];
 };
 
 export type UpdatePromptPackInput = Partial<CreatePromptPackInput>;
@@ -149,6 +158,7 @@ export type CreatePromptPackItemInput = {
   title: string;
   prompt: string;
   sortOrder?: number;
+  tags?: string[];
 };
 
 export type UpdatePromptPackItemInput = Partial<CreatePromptPackItemInput>;

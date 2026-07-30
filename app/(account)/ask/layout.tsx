@@ -1,10 +1,10 @@
+import { loadBillingDashboard } from "@/features/billing/server";
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 
 import { requirePublicUser } from "@/features/authentication/server";
 import { LearnerShell } from "@/features/user-learning/components/learner-shell";
 import { loadLearnerShellConfig } from "@/features/user-learning/services/learner-shell-config";
-import { loadBillingDashboard } from "@/features/billing";
 import { loadDashboard } from "@/features/notifications/services/service";
 import { isFeatureEnabled } from "@/services/settings/platform";
 

@@ -1,11 +1,10 @@
+import { loadAdminCenter } from "@/features/notifications/server";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { requireEditor } from "@/features/authentication/server";
 import {
-  NotificationCenterView,
-  loadAdminCenter,
-} from "@/features/notifications";
+  NotificationCenterView } from "@/features/notifications";
 
 export const metadata: Metadata = {
   title: "Notification center",

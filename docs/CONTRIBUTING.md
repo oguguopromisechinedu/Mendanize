@@ -55,8 +55,8 @@ CI: `.github/workflows/ci.yml` (lint/typecheck reported; tests + build gate).
 ## Docs to read first
 
 - [docs/README.md](./README.md)
-- [docs/engineering/MES-INDEX.md](./engineering/MES-INDEX.md) — MES-001 → MES-035
-- [docs/MES-DOCUMENTS-STATUS.md](./MES-DOCUMENTS-STATUS.md) — what is next
+- [docs/engineering/MES-INDEX.md](./engineering/MES-INDEX.md) — **MES-001 → MES-051** (v2.1)
+- [docs/MES-DOCUMENTS-STATUS.md](./MES-DOCUMENTS-STATUS.md) — what is next (one MES at a time)
 - [docs/core/MSEM.md](./core/MSEM.md) · [Cursor System Prompt](./core/Cursor-System-Prompt.md)
 - [docs/architecture/Module-Map.md](./architecture/Module-Map.md)
 - [docs/MES-029-COMPLETION.md](./MES-029-COMPLETION.md) — v1.0 readiness baseline (pre–MES-030+)

@@ -8,11 +8,15 @@ import {
   adminReviewJobAction,
   adminReviewListingAction,
   adminReviewOrganizationAction,
+  adminSetJobFeaturedAction,
+  adminSetListingFeaturedAction,
   adminSetListingSourceAction,
 } from "@/features/growth"
 import {
   getMarketplaceMetrics,
+  listApprovedListings,
   listDisputedContracts,
+  listPastDueRetainersForAdmin,
   listPendingJobReviews,
   listPendingListingReviews,
 } from "@/services/marketplace"
@@ -28,12 +32,15 @@ export default async function Page() {
   const session = await requireEditor()
   if (!session?.admin?.id) redirect("/dashboard/login")
 
-  const [jobs, listings, disputes, metrics, organizations] = await Promise.all([
+  const [jobs, listings, disputes, metrics, organizations, approvedListings, pastDueRetainers] =
+    await Promise.all([
     listPendingJobReviews(),
     listPendingListingReviews(),
     listDisputedContracts(),
     getMarketplaceMetrics(),
     listPendingOrganizationReviews(),
+    listApprovedListings(),
+    listPastDueRetainersForAdmin(),
   ])
 
   return (
@@ -47,6 +54,12 @@ export default async function Page() {
         <div className="mt-4 flex flex-wrap gap-2">
           <Button asChild className="rounded-xl">
             <Link href="/dashboard/marketplace/tools">Manage AI Tools catalog</Link>
+          </Button>
+          <Button asChild variant="outline" className="rounded-xl">
+            <Link href="/dashboard/marketplace/finance">Finance & commissions</Link>
+          </Button>
+          <Button asChild variant="outline" className="rounded-xl">
+            <Link href="/dashboard/marketplace/disputes">Contract disputes</Link>
           </Button>
           <Button asChild variant="outline" className="rounded-xl">
             <Link href="/dashboard/marketplace/tools/new">Add AI Tool</Link>
@@ -169,6 +182,17 @@ export default async function Page() {
                     Reject
                   </Button>
                 </form>
+                <form action={adminSetJobFeaturedAction}>
+                  <input type="hidden" name="jobId" value={job.id} />
+                  <input
+                    type="hidden"
+                    name="featured"
+                    value={job.featured ? "0" : "1"}
+                  />
+                  <Button type="submit" size="sm" variant="outline" className="rounded-xl">
+                    {job.featured ? "Unfeature" : "Feature"}
+                  </Button>
+                </form>
               </div>
             </div>
           ))
@@ -231,20 +255,88 @@ export default async function Page() {
                     Set source
                   </Button>
                 </form>
+                <form action={adminSetListingFeaturedAction}>
+                  <input type="hidden" name="listingId" value={listing.id} />
+                  <input
+                    type="hidden"
+                    name="featured"
+                    value={listing.featured ? "0" : "1"}
+                  />
+                  <Button type="submit" size="sm" variant="outline" className="rounded-xl">
+                    {listing.featured ? "Unfeature" : "Feature"}
+                  </Button>
+                </form>
               </div>
             </div>
           ))
         )}
       </section>
 
+      <section className="space-y-4">
+        <h2 className="text-lg font-medium">Approved listings — featured</h2>
+        {approvedListings.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No approved listings yet.</p>
+        ) : (
+          approvedListings.slice(0, 20).map((listing) => (
+            <div
+              key={listing.id}
+              className="flex flex-wrap items-center justify-between gap-3 border-t border-border/50 pt-4"
+            >
+              <div>
+                <p className="font-medium">{listing.title}</p>
+                <p className="text-xs text-muted-foreground">
+                  {listing.featured ? "Featured" : "Not featured"} ·{" "}
+                  {listing.licenseType} · $
+                  {(listing.priceCents / 100).toFixed(2)}
+                </p>
+              </div>
+              <form action={adminSetListingFeaturedAction}>
+                <input type="hidden" name="listingId" value={listing.id} />
+                <input
+                  type="hidden"
+                  name="featured"
+                  value={listing.featured ? "0" : "1"}
+                />
+                <Button type="submit" size="sm" variant="outline" className="rounded-xl">
+                  {listing.featured ? "Unfeature" : "Feature"}
+                </Button>
+              </form>
+            </div>
+          ))
+        )}
+      </section>
+
       <section className="space-y-2">
-        <h2 className="text-lg font-medium">Contract disputes</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-lg font-medium">Contract disputes</h2>
+          <Button asChild size="sm" variant="outline" className="rounded-xl">
+            <Link href="/dashboard/marketplace/disputes">Open queue</Link>
+          </Button>
+        </div>
         {disputes.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No open disputes.</p>
+          <p className="text-sm text-muted-foreground">No DISPUTED contracts.</p>
         ) : (
           disputes.map((d) => (
             <p key={d.id} className="text-sm text-muted-foreground">
               {d.id} · {d.disputeNote ?? "No note"}
+            </p>
+          ))
+        )}
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-lg font-medium">Past-due retainers</h2>
+        <p className="text-sm text-muted-foreground">
+          Read-only health for MES-053 monthly maintenance plans (Connect rail).
+        </p>
+        {pastDueRetainers.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No past-due retainers.</p>
+        ) : (
+          pastDueRetainers.map((r) => (
+            <p key={r.id} className="text-sm text-muted-foreground">
+              {r.continuationContract.websiteLabel ?? r.continuationContract.id} ·{" "}
+              {r.tier} · client {r.client.name ?? r.client.email} · worker{" "}
+              {r.worker.name ?? r.worker.email}
             </p>
           ))
         )}

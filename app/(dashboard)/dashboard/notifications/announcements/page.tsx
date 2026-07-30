@@ -1,9 +1,7 @@
+import { loadAnnouncements } from "@/features/notifications/server";
 import type { Metadata } from "next"
 
-import {
-  AnnouncementsView,
-  loadAnnouncements,
-} from "@/features/notifications"
+import { AnnouncementsView } from "@/features/notifications";
 
 export const metadata: Metadata = {
   title: "Announcements",

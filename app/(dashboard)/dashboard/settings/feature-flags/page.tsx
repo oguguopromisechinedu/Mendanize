@@ -1,6 +1,7 @@
+import { loadFeatureFlags } from "@/features/platform-settings/server";
 import type { Metadata } from "next"
 
-import { loadFeatureFlags, FeatureFlagsView } from "@/features/platform-settings"
+import { FeatureFlagsView } from "@/features/platform-settings"
 
 export const metadata: Metadata = {
   title: "Feature flags",

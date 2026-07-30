@@ -1,6 +1,6 @@
-# Mendanize Engineering Specifications — Master Index (Final, v1.8)
+# Mendanize Engineering Specifications — Master Index (Final, v2.1)
 
-Complete sequence — MES-001 through MES-030, plus MSEM Appendix A. This supersedes every earlier draft. **Note:** per the build history, MES-001–028 were already implemented by Cursor and a v1.0 Production Readiness Report was produced before MES-030 (Dual Authentication) was introduced. MES-030 is therefore a **retrofit** against the live codebase, not greenfield — see MES-030 and the updated MES-006 for what that means in practice. Every other spec in this v1.1 index has been updated in place to reference `PublicUser`/`Admin` explicitly wherever it previously said "user," "authenticated," or implied a single shared session.
+Complete sequence — MES-001 through MES-051, plus MSEM Appendix A. This supersedes every earlier draft. **Note:** per the build history, MES-001–028 were already implemented by Cursor and a v1.0 Production Readiness Report was produced before MES-030 (Dual Authentication) was introduced. MES-030 is therefore a **retrofit** against the live codebase, not greenfield — see MES-030 and the updated MES-006 for what that means in practice. Every other spec in this index has been updated in place to reference `PublicUser`/`Admin` explicitly wherever it previously said "user," "authenticated," or implied a single shared session.
 
 ---
 
@@ -52,8 +52,23 @@ Save every file to `docs/` (including `MSEM-Appendix-A-Engineering-Standards.md`
 | MES-034    | Backup & Recovery                                                                                    | Launch — rightsized, relies on Supabase's built-in backups                                                                                    |
 | MES-035    | Privacy & Compliance Basics                                                                          | Launch — rightsized, real GDPR/CCPA obligations only                                                                                          |
 | MES-036    | Community Platform (Phase 1)                                                                         | Post-v1.0 feature — knowingly reopens a deferred item, full scope, at user's explicit request                                                 |
-| MES-039    | Professional Growth & Earnings Ecosystem                                                             | Post-v1.0 feature — full scope including two marketplaces; real legal/business sign-off still needed before launch, not resolved by this spec |
 | MES-037    | Founder Valuation Dashboard (Estimated Company Worth)                                                | Post-v1.0 feature — Super-Administrator-only internal tool; reads from MES-021/023/039 rather than duplicating their analytics                |
+| MES-038    | Learner Ecosystem (Complete Dashboard)                                                               | Post-v1.0 implementation prompt — wires learner hubs; execution/messaging called out as later MES                                             |
+| MES-039    | Professional Growth & Earnings Ecosystem                                                             | Post-v1.0 feature — full scope including two marketplaces; real legal/business sign-off still needed before launch, not resolved by this spec |
+| MES-040    | Company & Organization Accounts + Hybrid Marketplace Labeling                                        | Post-v1.0 — extends MES-039; no new session type                                                                                              |
+| MES-041    | Public Static Pages CMS (Company Pages)                                                              | Content Module — Dashboard Pages as source of truth for `/{slug}` company routes                                                              |
+| MES-042    | Transactional Email Delivery                                                                         | Platform Service — closes Gap C2; one transport for auth + MES-024                                                                            |
+| MES-043    | Learner Messaging (Direct Messages)                                                                  | User Experience — deferred from MES-036/039                                                                                                   |
+| MES-044    | Coding Workspace Execution Engine                                                                    | Platform Service — security-critical sandbox deferred from MES-039                                                                            |
+| MES-045    | Community Events & Learning Calendar                                                                 | Post-v1.0 — deferred events system from MES-036                                                                                               |
+| MES-046    | Affiliate & Referral Tracking                                                                        | Growth — roadmap item; not a second Stripe Connect rail                                                                                       |
+| MES-047    | Enterprise Organization Licensing                                                                    | Platform Service — seat plans via MES-021; extends MES-040                                                                                    |
+| MES-048    | Marketplace Dispute Resolution Workflow                                                              | Admin Marketplace domain — human-reviewed; uses MES-039 Connect                                                                               |
+| MES-049    | Recommendations ML Upgrade                                                                           | Platform Service — extends MES-018; rules remain fallback                                                                                     |
+| MES-050    | Progressive Web App & Offline Learning Basics                                                        | Launch / UX — rightsized mobile (PWA), not native/AR/VR                                                                                       |
+| MES-051    | Email Management System (EMS)                                                                        | Platform Service — dashboard control plane for all outbound email; extends MES-042 transport                                                  |
+| MES-052    | Marketplace Experience, Licensing & Revenue Control                                                  | Post-v1.0 — upgrades MES-039 UI + licenses + Super Admin commission/finance; rightsizes pasted 052–055 drafts                                 |
+| MES-053    | Work Marketplace Lifecycle: Maintenance & Ongoing Support                                            | Post-v1.0 — extends MES-039/052; Hire Again + tasks (Phase A), Connect retainers (Phase B); not the dropped ISO/SOC2 paste                     |
 
 
 ---
@@ -178,7 +193,53 @@ A pasted “Hybrid AI Tools + Work Marketplace + Company Registration” draft a
 
 ---
 
+## v2.0 UPDATE — MES-041 THROUGH MES-050 (next-phase sequence)
+
+Ten new specs were added to continue the sequence after MES-040. They are drawn from **explicit deferrals** (MES-036 messaging/events, MES-039 coding sandbox / disputes / affiliates, MES-040 enterprise seats), **audit gaps** (C2 email delivery), and the former FUTURE ROADMAP — each rightsized the same way MES-032–035 were, and written to reuse MES-002/018/021/024/039 rather than invent parallel platforms.
+
+| Spec | Why it exists |
+|------|----------------|
+| MES-041 | Company routes must stop being hard-coded placeholders; Pages CMS is the source of truth |
+| MES-042 | Auth verification/reset and notifications cannot stay log-only in production |
+| MES-043 | Community/marketplace need private DMs without a Slack clone |
+| MES-044 | Running user code needs a dedicated sandbox threat model |
+| MES-045 | Community “upcoming events” was deferred with no owner |
+| MES-046 | Referral attribution without multi-level affiliate theater |
+| MES-047 | Org seat licensing on MES-021 Checkout, not a third billing stack |
+| MES-048 | Human dispute workflow on top of Stripe Connect |
+| MES-049 | Real ML ranking behind the existing MES-018 facade |
+| MES-050 | Installable PWA / offline learning — native apps stay out |
+
+**Still explicitly out of this sequence:** multi-language i18n platform, native mobile/wearables/AR-VR, Kubernetes/GitOps multi-region, ISO 27001/SOC 2 governance programs, plugin marketplace/SDK. Those remain “write a MES only when a real product/contract need appears.”
+
+---
+
+## v2.1 UPDATE — MES-051 EMAIL MANAGEMENT SYSTEM (EMS)
+
+A full Email Management System design was requested (templates, categories, senders, variables, newsletter, automations, analytics, queue, settings, RBAC). It is **MES-051**, not a rewrite of MES-042.
+
+- **MES-042** = transport + fail-loud production delivery + critical auth templates.  
+- **MES-051** = Dashboard → Communication → Email Management control plane; verified `@mendanize.com` senders; code emits events, EMS owns copy/senders.  
+- Existing Newsletter admin is **absorbed** into EMS (no two campaign UIs).  
+- MES-024 remains preference/in-app owner; marketing still requires MES-035 consent.
+
+---
+
+## v2.2 UPDATE — MES-053 WORK MARKETPLACE LIFECYCLE (Maintenance & Ongoing Support)
+
+After MES-052, the Work Marketplace still treated delivery as a commercial endpoint: `Contract` goes `COMPLETED`, review is recorded, and there is no first-class path for the same client–developer pair to keep maintaining the site. Product intent (Continue Working / Hire Again, task requests, monthly retainers, a Maintenance & Support panel, ongoing platform commission) is now **MES-053**.
+
+**Corrections baked into the spec:**
+
+- Do **not** reopen `COMPLETED` contracts — continuations are new contracts with `parentContractId` / `kind = CONTINUATION`.
+- Retainers use **Stripe Connect + Billing** (destination charges + `application_fee_percent`), never MES-021 learner Checkout.
+- Chat = MES-043; disputes = MES-048; commission = existing WORK rules from MES-052.
+- **Phased:** Phase A (relationship MVP + tasks) before Phase B (retainers).
+- Number reclaim: the old enterprise “MES-053” (ISO/SOC2) was already rightsized into MES-035; this slot is a real marketplace lifecycle need, same reclaim pattern as MES-040.
+
+---
+
 ## FUTURE ROADMAP (explicitly out of this sequence)
 
-Real ML-based recommendations, multi-language support, native mobile apps, enterprise license SKUs, coding workspace execution engine, affiliate tracking. Each becomes its own MES once actually designed — not before.
+Multi-language support (full i18n), native mobile apps, SSO/SAML enterprise IdP, coding language-matrix expansion beyond MES-044’s first runtime, affiliate tax-form automation, webinar/streaming platform, ESP-grade email A/B labs, maintenance hour-banking / SLA automation beyond MES-053 Phase B. Each becomes its own MES once actually designed — not before.
 

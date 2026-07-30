@@ -17,6 +17,19 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        source: "/sw.js",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-cache, no-store, must-revalidate",
+          },
+          {
+            key: "Service-Worker-Allowed",
+            value: "/",
+          },
+        ],
+      },
+      {
         source: "/(.*)",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
@@ -43,7 +56,16 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
-    return [];
+    return [
+      { source: "/privacy-policy", destination: "/privacy", permanent: true },
+      { source: "/terms-of-service", destination: "/terms", permanent: true },
+      { source: "/cookie-policy", destination: "/cookies", permanent: true },
+      { source: "/cookies-policy", destination: "/cookies", permanent: true },
+      { source: "/learning", destination: "/my-learning", permanent: false },
+      { source: "/support", destination: "/contact", permanent: false },
+      { source: "/disclaimer", destination: "/terms", permanent: false },
+      { source: "/status", destination: "/contact", permanent: false },
+    ];
   },
   reactStrictMode: true,
   poweredByHeader: false,

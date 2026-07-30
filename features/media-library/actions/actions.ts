@@ -52,7 +52,11 @@ export async function uploadMediaAction(
     const asset = await uploadAsset({
       filename: data.filename,
       mimeType: data.mimeType,
-      body: data.url ? { url: data.url } : undefined,
+      body: data.base64
+        ? { base64: data.base64 }
+        : data.url
+          ? { url: data.url }
+          : undefined,
       altText: data.altText,
       categoryId: data.categoryId,
       collectionId: data.collectionId,

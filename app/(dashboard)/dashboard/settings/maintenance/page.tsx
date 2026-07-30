@@ -1,6 +1,7 @@
+import { loadMaintenance } from "@/features/platform-settings/server";
 import type { Metadata } from "next"
 
-import { loadMaintenance, MaintenanceSettingsView } from "@/features/platform-settings"
+import { MaintenanceSettingsView } from "@/features/platform-settings"
 
 export const metadata: Metadata = {
   title: "Maintenance",

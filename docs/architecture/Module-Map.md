@@ -65,15 +65,35 @@ Complete coverage of **MES-001–035** and meta docs. Source of truth for folder
 | MES-033 | Caching layer (content + knowledge reuse) | content, search, recommendations | Invalidation on publish; no separate cache product |
 | MES-034 | Backup & recovery (process) | — | Ops runbook + Supabase backups (docs) |
 | MES-035 | Privacy & compliance | audit, settings | Consent banner; `/account` export/delete; privacy policy page |
+| MES-036 | `features/community` | search, notification, media, audit, ai | `/community/*`, `/dashboard/community` |
+| MES-037 | Founder valuation / BI | analytics reads, ai, audit | Super Admin `/dashboard/bi` |
+| MES-038 | Learner ecosystem (Partial) | account hubs | Align messaging/sandbox with MES-043/044 |
+| MES-039 | Growth & marketplaces | billing separate; Connect rail | `/account/hiring`, `/account/marketplace`, `/dashboard/marketplace` |
+| MES-052 | Marketplace UX + finance | extends 039; licenses + commissions | `/account/tools-marketplace`, `/account/work`, `/account/work/contracts/[id]`, `/dashboard/marketplace/finance` |
+| MES-053 | Work lifecycle / maintenance | extends 039/052; Phase A continuations + tasks | Contract workspace Maintenance panel; Phase B retainers deferred |
+| MES-040 | Organizations | extends MES-039 | `/account/company` |
+| MES-041 | `features/static-pages` | admin pages service | `/{slug}` company pages from CMS |
+| MES-042 | Email transport | notification | SMTP/API adapter; auth mail |
+| MES-043 | Learner messaging | notification, media | `/account/messages` (Specified) |
+| MES-044 | Coding workspace execution | logging, audit | Sandbox engine (Specified) |
+| MES-045 | Community events | notification, search, media | `/community/events` (Specified) |
+| MES-046 | Affiliates / referrals | audit, billing | Attribution (Specified) |
+| MES-047 | Org seat licensing | MES-021 Checkout | Extends MES-040 (Specified) |
+| MES-048 | Marketplace disputes | Connect, audit | Admin dispute queue (Specified) |
+| MES-049 | Recommendations ML | **recommendations** only | Behind MES-018 facade (Specified) |
+| MES-050 | PWA / offline | — | Manifest + SW (Specified) |
+| MES-051 | Email Management System | notification, MES-042 | `/dashboard/communication/email/*` (Specified) |
 
 
 ## No-Duplication Summary
 
 - AI config → MES-020 / `services/settings` only  
-- Recommendations → MES-018 / `services/recommendations` only  
+- Recommendations → MES-018 / `services/recommendations` only (MES-049 upgrades in place)  
 - Session → MES-006 / MES-030 / `features/authentication` only  
 - API envelope → [API-STANDARDS.md](../standards/API-Standards.md) only  
-- AI Knowledge generation → MES-031 (reuses MES-011; does not fork Ask or Studio)
+- AI Knowledge generation → MES-031 (reuses MES-011; does not fork Ask or Studio)  
+- Email send → MES-042 transport; EMS UI → MES-051 (do not fork nodemailer in features)  
+- Marketplace payouts → Stripe Connect (MES-039), not MES-021 Checkout
 
 
 ## Implementation Notes

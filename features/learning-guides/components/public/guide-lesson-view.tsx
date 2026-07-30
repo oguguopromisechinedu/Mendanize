@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { CacheLearningContent } from "@/components/pwa/cache-learning-content";
 import { prepareArticleHtml } from "@/features/articles";
 import {
   contentHref,
@@ -127,6 +128,7 @@ export function GuideLessonView({
           ) : null}
 
           <div
+            data-offline-content
             className="prose prose-neutral mt-8 max-w-[42rem] dark:prose-invert prose-headings:scroll-mt-24 prose-a:text-primary prose-pre:rounded-lg prose-pre:border prose-pre:border-border"
             dangerouslySetInnerHTML={{ __html: html }}
           />
@@ -181,6 +183,14 @@ export function GuideLessonView({
             lessonExcerpt={excerpt}
             related={related}
             scope={scope}
+          />
+
+          <CacheLearningContent
+            kind="guide_lesson"
+            title={`${lesson.title} · ${guide.title}`}
+            slug={guide.slug}
+            lessonSlug={lesson.slug}
+            href={contentLessonHref(guide.slug, lesson.slug, { scope })}
           />
         </div>
 

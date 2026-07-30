@@ -1,10 +1,9 @@
+import { loadRecommended } from "@/features/user-learning/server";
 import type { Metadata } from "next"
 
 import { requirePublicUser } from "@/features/authentication/server"
 import {
-  RecommendedView,
-  loadRecommended,
-} from "@/features/user-learning"
+  RecommendedView } from "@/features/user-learning";
 
 export const metadata: Metadata = {
   title: "Recommended for you",

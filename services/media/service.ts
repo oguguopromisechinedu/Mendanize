@@ -1,6 +1,7 @@
 /**
  * Media Shared Service — MES-014 Digital Asset Management.
- * Cloud storage interface prepared; provider remains "placeholder" / URL-based.
+ * Cloud storage via Supabase Storage bucket `media` when env vars are set (MES-014 complete).
+ * URL paste remains supported for external assets.
  */
 
 import { getPrisma, isDatabaseConfigured } from "@/lib/db/prisma";
@@ -250,7 +251,10 @@ function assertMime(mimeType: string) {
   }
 }
 
-function extractUploadUrl(body: unknown, filename: string): string {
+function extractUploadUrl(body: unknown, filename: string, hadBytes = false): string {
+  if (hadBytes) {
+    throw new Error("Storage upload failed for file payload.");
+  }
   if (
     typeof body === "object" &&
     body &&
@@ -279,6 +283,29 @@ function extractUploadBytes(body: unknown): Buffer | null {
     if (raw) return Buffer.from(raw, "base64");
   }
   return null;
+}
+
+/**
+ * Uploads bytes to Supabase Storage bucket `media` when service role env is set.
+ * Create a public bucket named `media` in the Supabase dashboard first.
+ */
+async function deleteFromSupabaseStorage(storageKey: string): Promise<void> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!url || !key || !storageKey) return;
+
+  try {
+    const { supabaseAdmin } = await import("@/lib/supabase/server");
+    const { error } = await supabaseAdmin.storage.from("media").remove([storageKey]);
+    if (error) {
+      console.error("[media] supabase delete failed:", error.message);
+    }
+  } catch (error) {
+    console.error(
+      "[media] supabase delete error:",
+      error instanceof Error ? error.message : error,
+    );
+  }
 }
 
 /**
@@ -631,8 +658,14 @@ export async function uploadAsset(
       })
     : null;
 
+  if (bytes && !supabase) {
+    throw new Error(
+      "File upload failed. Ensure Supabase Storage bucket `media` exists and SUPABASE env vars are set.",
+    );
+  }
+
   const url =
-    supabase?.url ?? extractUploadUrl(params.body, params.filename);
+    supabase?.url ?? extractUploadUrl(params.body, params.filename, Boolean(bytes));
   const storageKey =
     supabase?.storageKey ??
     `placeholder/${Date.now()}-${slugify(params.filename)}`;
@@ -805,6 +838,17 @@ export async function deleteAssets(ids: string[]): Promise<number> {
     refreshCounts();
     return before - memory.assets.length;
   }
+
+  const rows = await getPrisma().mediaAsset.findMany({
+    where: { id: { in: ids } },
+    select: { storageKey: true, storageProvider: true },
+  });
+  for (const row of rows) {
+    if (row.storageProvider === "supabase" && row.storageKey) {
+      await deleteFromSupabaseStorage(row.storageKey);
+    }
+  }
+
   const result = await getPrisma().mediaAsset.deleteMany({
     where: { id: { in: ids } },
   });

@@ -1,6 +1,7 @@
+import { loadSocialLinks } from "@/features/navigation/server";
 import type { Metadata } from "next"
 
-import { loadSocialLinks, SocialLinksView } from "@/features/navigation"
+import { SocialLinksView } from "@/features/navigation"
 
 export const metadata: Metadata = {
   title: "Social links",

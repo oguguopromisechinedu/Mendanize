@@ -1,9 +1,7 @@
+import { loadHomepageAdmin } from "@/features/homepage-management/server";
 import type { Metadata } from "next"
 
-import {
-  HomepagePreviewView,
-  loadHomepageAdmin,
-} from "@/features/homepage-management"
+import { HomepagePreviewView } from "@/features/homepage-management";
 import { getHomepageContent } from "@/services/content/homepage"
 
 export const metadata: Metadata = {

@@ -1,6 +1,7 @@
 ﻿import type { Metadata } from "next"
 
-import { KnowledgeListView, loadKnowledge } from "@/features/admin-modules"
+import { KnowledgeListView } from "@/features/admin-modules"
+import { loadKnowledge } from "@/features/admin-modules/server"
 
 export const metadata: Metadata = {
   title: "Knowledge Base",

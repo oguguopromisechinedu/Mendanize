@@ -1,10 +1,9 @@
+import { loadPreferencesPage } from "@/features/user-learning/server";
 import type { Metadata } from "next";
 
 import { requirePublicUser } from "@/features/authentication/server";
 import {
-  PreferencesView,
-  loadPreferencesPage,
-} from "@/features/user-learning";
+  PreferencesView } from "@/features/user-learning";
 import { loadPreferences as loadNotificationPreferences } from "@/features/notifications/services/service";
 
 export const metadata: Metadata = {

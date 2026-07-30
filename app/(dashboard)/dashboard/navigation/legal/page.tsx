@@ -1,6 +1,7 @@
+import { loadLegalLinks } from "@/features/navigation/server";
 import type { Metadata } from "next"
 
-import { loadLegalLinks, LegalLinksView } from "@/features/navigation"
+import { LegalLinksView } from "@/features/navigation"
 
 export const metadata: Metadata = {
   title: "Legal links",

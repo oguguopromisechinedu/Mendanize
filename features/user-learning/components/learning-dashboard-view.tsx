@@ -20,7 +20,6 @@ import {
   Users,
   Wallet,
   Wrench,
-  Zap,
 } from "lucide-react";
 
 import {
@@ -28,6 +27,7 @@ import {
 } from "@/components/brand/MendanizeRobot";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { routes } from "@/lib/design";
 import { cn } from "@/lib/utils";
 import type { FeaturedPublishedContent } from "@/services/content/featured-published";
 import type {
@@ -149,8 +149,67 @@ const TOOL_KIND_TABS = [
   "Prompts",
   "Automation",
   "Templates",
-  "Extensions",
+  "Agents",
 ] as const;
+
+function matchesJobTypeTab(job: JobPostingRecord, tab: string) {
+  if (tab === "All Jobs") return true;
+  const type = (job.jobType ?? "").toLowerCase();
+  if (tab === "Full-time") return type.includes("full");
+  if (tab === "Part-time") return type.includes("part");
+  if (tab === "Freelance") {
+    return (
+      type.includes("freelance") ||
+      type.includes("contract") ||
+      type.includes("gig") ||
+      type.includes("project")
+    );
+  }
+  return true;
+}
+
+function jobTypeLabel(job: JobPostingRecord) {
+  const type = job.jobType?.trim();
+  return type || "Open role";
+}
+
+function listingMarketplaceHref(listing: MarketplaceListingRecord) {
+  const params = new URLSearchParams({ query: listing.title });
+  return `${routes.toolsMarketplace}?${params.toString()}`;
+}
+
+function jobWorkspaceHref(job: JobPostingRecord) {
+  return `${routes.workMarketplace}?tab=jobs#job-${job.id}`;
+}
+
+function formatListingRating(listing: MarketplaceListingRecord) {
+  if (listing.averageRating == null || !(listing.reviewCount ?? 0)) {
+    return null;
+  }
+  return `★ ${listing.averageRating.toFixed(1)} (${listing.reviewCount})`;
+}
+
+function topRatedListings(listings: MarketplaceListingRecord[]) {
+  const rated = [...listings]
+    .filter((l) => l.averageRating != null && (l.reviewCount ?? 0) > 0)
+    .sort(
+      (a, b) =>
+        (b.averageRating ?? 0) - (a.averageRating ?? 0) ||
+        (b.reviewCount ?? 0) - (a.reviewCount ?? 0),
+    );
+  if (rated.length > 0) return rated.slice(0, 3);
+
+  const featured = listings.filter((l) => l.featured).slice(0, 3);
+  if (featured.length > 0) return featured;
+
+  return [...listings]
+    .sort(
+      (a, b) =>
+        new Date(b.publishedAt ?? b.createdAt).getTime() -
+        new Date(a.publishedAt ?? a.createdAt).getTime(),
+    )
+    .slice(0, 3);
+}
 
 function buildContinueCards(
   inProgress: ContinueLearningCard[],
@@ -206,6 +265,7 @@ function buildContinueCards(
 }
 
 function formatListingPrice(listing: MarketplaceListingRecord) {
+  if (listing.pricingModel === "FREE" || listing.priceCents === 0) return "Free";
   const amount = (listing.priceCents / 100).toFixed(
     listing.priceCents % 100 === 0 ? 0 : 2,
   );
@@ -235,7 +295,7 @@ export function LearningDashboardView({
   data: LearningDashboard;
   extras?: LearnerDashboardExtras;
 }) {
-  const first = data.userName?.trim().split(/\s+/)[0] || "learner";
+  const first = data.userName?.trim().split(/\s+/)[0] || "creator";
   const planName = extras?.planName ?? "Free";
   const quickActions = extras?.quickActions ?? LEARNER_QUICK_ACTIONS;
   const streak = Math.max(data.stats.streakDays ?? 0, 0);
@@ -274,7 +334,8 @@ export function LearningDashboardView({
         </div>
       </div>
 
-      {/* Quick Navigation Row */}
+      {/* Journey pillars + quick navigation */}
+      <JourneyPillars />
       <QuickActions actions={quickActions} />
 
       {/* Continue Learning — 4 cards */}
@@ -334,15 +395,15 @@ function WelcomeHero({ firstName }: { firstName: string }) {
       />
 
       <div className="relative mb-5">
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+          Creators Hub
+        </p>
         <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
           Welcome back,{" "}
           <span className="text-primary">{firstName}</span>
-          <span className="ml-2 inline-block" aria-hidden>
-            👋
-          </span>
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Learn. Build. Collaborate. Earn.
+          Learn → Create → Sell → Work → Grow
         </p>
       </div>
 
@@ -350,11 +411,11 @@ function WelcomeHero({ firstName }: { firstName: string }) {
         <div className="flex flex-col justify-between rounded-2xl border border-border/80 bg-background/50 p-5 backdrop-blur-sm sm:p-6">
           <div>
             <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-foreground sm:text-2xl">
-              Your AI-powered journey starts here
+              Your AI creator journey continues here
             </h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Get personalized recommendations, achieve your goals, and grow
-              your skills.
+              Master AI skills, build tools and prompts, sell what you create,
+              and get hired for AI, automation, and web work.
             </p>
           </div>
           <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-stretch">
@@ -364,11 +425,11 @@ function WelcomeHero({ firstName }: { firstName: string }) {
               className="h-auto min-h-11 w-full !whitespace-normal rounded-xl px-4 py-2.5 shadow-glow sm:min-w-[10rem] sm:flex-1"
             >
               <Link
-                href="/ask"
+                href={routes.accountGuides}
                 className="inline-flex items-center justify-center gap-1.5 text-center text-sm leading-snug sm:text-base"
               >
-                <Zap className="size-4 shrink-0" aria-hidden />
-                <span>Ask Mendanize AI</span>
+                <GraduationCap className="size-4 shrink-0" aria-hidden />
+                <span>Continue learning</span>
               </Link>
             </Button>
             <Button
@@ -377,7 +438,7 @@ function WelcomeHero({ firstName }: { firstName: string }) {
               variant="outline"
               className="h-auto min-h-11 w-full !whitespace-normal rounded-xl px-4 py-2.5 text-center text-sm leading-snug sm:min-w-[10rem] sm:flex-1 sm:text-base"
             >
-              <Link href="/account/guides">Browse courses</Link>
+              <Link href={routes.projects}>Start creating</Link>
             </Button>
           </div>
         </div>
@@ -387,6 +448,68 @@ function WelcomeHero({ firstName }: { firstName: string }) {
           <MendanizeRobot3D className="h-full w-full" />
         </div>
       </div>
+    </section>
+  );
+}
+
+/* ─── Journey pillars strip ─── */
+function JourneyPillars() {
+  const pillars = [
+    {
+      label: "Learn",
+      desc: "Courses, tutor & certificates",
+      href: routes.accountGuides,
+      icon: BookOpen,
+    },
+    {
+      label: "Create",
+      desc: "Projects, prompts & tools",
+      href: routes.projects,
+      icon: Code2,
+    },
+    {
+      label: "Sell",
+      desc: "Listings & marketplace",
+      href: routes.toolsMarketplace,
+      icon: ShoppingBag,
+    },
+    {
+      label: "Work",
+      desc: "Jobs, clients & earnings",
+      href: routes.workMarketplace,
+      icon: Briefcase,
+    },
+  ] as const;
+
+  return (
+    <section aria-label="Creators Hub journey">
+      <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {pillars.map((pillar, index) => (
+          <li key={pillar.label}>
+            <Link
+              href={pillar.href}
+              className="group flex h-full items-center gap-3 rounded-2xl border border-border bg-card/80 px-4 py-3.5 transition duration-[var(--motion-base)] hover:-translate-y-0.5 hover:border-primary/40 hover:bg-hover hover:shadow-glow"
+            >
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary transition group-hover:bg-primary group-hover:text-primary-foreground">
+                <pillar.icon className="size-5" aria-hidden />
+              </span>
+              <span className="min-w-0">
+                <span className="flex items-center gap-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {index + 1}
+                  </span>
+                  <span className="text-sm font-semibold text-foreground">
+                    {pillar.label}
+                  </span>
+                </span>
+                <span className="block truncate text-[11px] text-muted-foreground">
+                  {pillar.desc}
+                </span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
@@ -437,18 +560,23 @@ function ContinueLearningSection({
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-foreground">
-          Continue Learning
-        </h2>
+        <div>
+          <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-foreground">
+            Continue Learning
+          </h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Step 1 of Creators Hub — build skills that feed create, sell, and work
+          </p>
+        </div>
         <Button asChild size="sm" variant="ghost" className="text-primary">
-          <Link href="/account/continue">View all</Link>
+          <Link href={routes.continueLearning}>View all</Link>
         </Button>
       </div>
       {cards.length === 0 ? (
         <EmptyPanel
           title="No courses in progress yet"
           body="Start a guide and your progress will show up here."
-          href="/account/guides"
+          href={routes.accountGuides}
           cta="Browse courses"
         />
       ) : (
@@ -541,6 +669,7 @@ function WorkMarketplaceOverview({
       trendClass: "text-emerald-400",
       icon: Briefcase,
       iconBg: "bg-violet-500/20 text-violet-300",
+      href: routes.workMarketplace,
     },
     {
       label: "Open Jobs",
@@ -549,6 +678,7 @@ function WorkMarketplaceOverview({
       trendClass: "text-emerald-400",
       icon: ShoppingBag,
       iconBg: "bg-emerald-500/20 text-emerald-300",
+      href: `${routes.workMarketplace}?tab=jobs`,
     },
     {
       label: "Total Earned",
@@ -559,6 +689,7 @@ function WorkMarketplaceOverview({
       trendClass: "text-emerald-400",
       icon: Wallet,
       iconBg: "bg-sky-500/20 text-sky-300",
+      href: routes.workMarketplace,
     },
     {
       label: "Your Proposals",
@@ -570,37 +701,50 @@ function WorkMarketplaceOverview({
       trendClass: "text-sky-300",
       icon: Send,
       iconBg: "bg-cyan-500/20 text-cyan-300",
+      href: `${routes.workMarketplace}?tab=jobs`,
     },
   ] as const;
 
   return (
     <section className="space-y-4">
-      <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-foreground">
-        Work Marketplace Overview
-      </h2>
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-foreground">
+            Work & earnings
+          </h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Hire and get hired for AI, automation, websites, and digital work
+          </p>
+        </div>
+        <Button asChild size="sm" variant="ghost" className="text-primary">
+          <Link href={routes.workMarketplace}>Open marketplace</Link>
+        </Button>
+      </div>
       <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
-          <li
-            key={card.label}
-            className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card/90 p-4"
-          >
-            <span
-              className={cn(
-                "flex size-11 shrink-0 items-center justify-center rounded-xl",
-                card.iconBg,
-              )}
+          <li key={card.label}>
+            <Link
+              href={card.href}
+              className="flex h-full items-center gap-3 rounded-2xl border border-border/70 bg-card/90 p-4 transition hover:border-primary/40 hover:bg-hover"
             >
-              <card.icon className="size-5" aria-hidden />
-            </span>
-            <div className="min-w-0">
-              <p className="text-xs text-muted-foreground">{card.label}</p>
-              <p className="text-2xl font-bold tracking-tight text-foreground">
-                {card.value}
-              </p>
-              <p className={cn("truncate text-[11px] font-medium", card.trendClass)}>
-                {card.trend}
-              </p>
-            </div>
+              <span
+                className={cn(
+                  "flex size-11 shrink-0 items-center justify-center rounded-xl",
+                  card.iconBg,
+                )}
+              >
+                <card.icon className="size-5" aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">{card.label}</p>
+                <p className="text-2xl font-bold tracking-tight text-foreground">
+                  {card.value}
+                </p>
+                <p className={cn("truncate text-[11px] font-medium", card.trendClass)}>
+                  {card.trend}
+                </p>
+              </div>
+            </Link>
           </li>
         ))}
       </ul>
@@ -620,23 +764,36 @@ function RecentProjectsSection({ projects }: { projects: JobPostingRecord[] }) {
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-foreground">
-          Recent Projects
-        </h2>
+        <div>
+          <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-foreground">
+            Work — open opportunities
+          </h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Apply skills from Learn and Create to real AI and web projects
+          </p>
+        </div>
         <Button asChild size="sm" variant="ghost" className="text-primary">
-          <Link href="/account/work">View all</Link>
+          <Link href={routes.workMarketplace}>View all</Link>
         </Button>
       </div>
       {projects.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card/40 p-6 text-sm text-muted-foreground">
-          No open projects yet. Browse the Work Marketplace to find opportunities.
+          No open projects yet. Browse{" "}
+          <Link href={routes.workMarketplace} className="text-primary hover:underline">
+            Work Marketplace
+          </Link>{" "}
+          or start a project in{" "}
+          <Link href={routes.projects} className="text-primary hover:underline">
+            Projects
+          </Link>
+          .
         </div>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {projects.slice(0, 4).map((project, index) => (
             <li key={project.id}>
               <Link
-                href={`/account/work#job-${project.id}`}
+                href={jobWorkspaceHref(project)}
                 className="flex h-full flex-col rounded-2xl border border-border/70 bg-card/90 p-4 transition hover:border-primary/40 hover:bg-hover"
               >
                 <span
@@ -695,7 +852,12 @@ function DailyGoalCard({
       <div className="flex items-start justify-between gap-2">
         <div>
           <h3 className="text-sm font-semibold text-foreground">Daily Goal</h3>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">Edit</p>
+          <Link
+            href={routes.preferences}
+            className="mt-0.5 text-[11px] text-primary hover:underline"
+          >
+            Edit preferences
+          </Link>
         </div>
       </div>
       <div className="mt-3 flex items-center gap-4">
@@ -715,10 +877,10 @@ function DailyGoalCard({
             <span className="text-muted-foreground"> / {target} mins</span>
           </p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Keep it up! 🔥
+            Keep going — consistency compounds.
           </p>
           <p className="text-[10px] text-muted-foreground">
-            You&apos;re doing great today!
+            You&apos;re making progress today.
           </p>
         </div>
       </div>
@@ -810,7 +972,7 @@ function CareerReadinessCard({
           variant="ghost"
           className="h-6 px-2 text-[10px] text-primary"
         >
-          <Link href="/account/career">View Career Hub</Link>
+          <Link href={routes.career}>View Career Hub</Link>
         </Button>
       </div>
       <div className="mt-3 flex items-center gap-4">
@@ -863,7 +1025,7 @@ function RecentActivity({
       id: `n-${n.id}`,
       title: n.title,
       meta: formatRelative(n.createdAt),
-      href: n.link || "/account/notifications",
+      href: n.link || routes.notifications,
       icon: "notification" as const,
     })),
     ...history.slice(0, 4).map((h) => ({
@@ -902,7 +1064,7 @@ function RecentActivity({
           Recent Activity
         </h3>
         <Button asChild size="sm" variant="ghost" className="h-7 px-2 text-xs text-primary">
-          <Link href="/account/history">View all</Link>
+          <Link href={routes.history}>View all</Link>
         </Button>
       </div>
       <ul className="space-y-3">
@@ -946,26 +1108,26 @@ function CommunityHighlightsCard() {
     {
       icon: Users,
       label: "Ask the Community",
-      desc: "Get help from fellow learners",
-      href: "/community",
+      desc: "Get help from fellow creators",
+      href: routes.communityDiscussions,
     },
     {
       icon: Users,
-      label: "Study Groups",
-      desc: "Join or create a study group",
-      href: "/community/groups",
+      label: "Creator Groups",
+      desc: "Join groups around AI skills",
+      href: routes.communityGroups,
     },
     {
       icon: Rocket,
       label: "Project Showcase",
-      desc: "Show off your projects",
-      href: "/community/projects",
+      desc: "Share what you built",
+      href: routes.communityProjects,
     },
     {
       icon: GraduationCap,
-      label: "Upcoming Events",
-      desc: "Join webinars & challenges",
-      href: "/community/discussions",
+      label: "Events & Challenges",
+      desc: "Learn and grow with others",
+      href: routes.communityEvents,
     },
   ];
 
@@ -973,10 +1135,10 @@ function CommunityHighlightsCard() {
     <section className="rounded-2xl border border-border bg-card/90 p-5">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-foreground">
-          Community Highlights
+          Community
         </h3>
         <Button asChild size="sm" variant="ghost" className="h-7 px-2 text-xs text-primary">
-          <Link href="/community">View all</Link>
+          <Link href={routes.community}>View all</Link>
         </Button>
       </div>
       <ul className="space-y-3">
@@ -1006,19 +1168,12 @@ function CommunityHighlightsCard() {
 /* ─── Work Marketplace ─── */
 function WorkMarketplaceSection({ jobs }: { jobs: JobPostingRecord[] }) {
   const [activeTab, setActiveTab] = useState<string>("All Jobs");
-  const jobTypes = ["Full-time", "Part-time", "Freelance"];
 
-  const filtered =
-    activeTab === "All Jobs"
-      ? jobs
-      : jobs.filter((_, index) => {
-          const typeIndex = jobTypes.indexOf(
-            activeTab as (typeof jobTypes)[number],
-          );
-          return typeIndex >= 0 && index % 3 === typeIndex;
-        });
-
-  const display = (filtered.length ? filtered : jobs).slice(0, 3);
+  const filtered = jobs.filter((job) => matchesJobTypeTab(job, activeTab));
+  const display = (filtered.length ? filtered : activeTab === "All Jobs" ? jobs : []).slice(
+    0,
+    3,
+  );
 
   return (
     <section className="flex h-full flex-col rounded-2xl border border-border bg-card/90 p-4 sm:p-5">
@@ -1027,7 +1182,7 @@ function WorkMarketplaceSection({ jobs }: { jobs: JobPostingRecord[] }) {
           Work Marketplace
         </h3>
         <Button asChild size="sm" variant="ghost" className="h-7 px-2 text-[11px] text-violet-400">
-          <Link href="/account/work">View all jobs</Link>
+          <Link href={`${routes.workMarketplace}?tab=jobs`}>View all jobs</Link>
         </Button>
       </div>
       <div className="mb-3 flex flex-wrap gap-1.5">
@@ -1049,14 +1204,21 @@ function WorkMarketplaceSection({ jobs }: { jobs: JobPostingRecord[] }) {
       </div>
       {display.length === 0 ? (
         <p className="flex-1 text-sm text-muted-foreground">
-          No open jobs yet. Check back soon.
+          No open jobs in this filter.{" "}
+          <Link
+            href={`${routes.workMarketplace}?tab=jobs`}
+            className="text-primary hover:underline"
+          >
+            Browse all jobs
+          </Link>
+          .
         </p>
       ) : (
         <ul className="space-y-2.5">
-          {display.map((job, index) => (
+          {display.map((job) => (
             <li key={job.id}>
               <Link
-                href={`/account/work#job-${job.id}`}
+                href={jobWorkspaceHref(job)}
                 className="block rounded-xl border border-border/60 bg-background/40 p-3 transition hover:border-violet-500/40 hover:bg-hover"
               >
                 <div className="flex items-start justify-between gap-2">
@@ -1068,7 +1230,7 @@ function WorkMarketplaceSection({ jobs }: { jobs: JobPostingRecord[] }) {
                       <Badge className="mb-1 bg-emerald-500/90 text-[9px]">New</Badge>
                     ) : null}
                     <p className="text-[10px] text-muted-foreground">
-                      {jobTypes[index % jobTypes.length]}
+                      {jobTypeLabel(job)}
                     </p>
                   </div>
                 </div>
@@ -1097,7 +1259,7 @@ function WorkMarketplaceSection({ jobs }: { jobs: JobPostingRecord[] }) {
         variant="outline"
         className="mt-4 w-full rounded-xl border-violet-500/40 text-xs text-violet-300 hover:bg-violet-500/10"
       >
-        <Link href="/account/work">
+        <Link href={`${routes.workMarketplace}?tab=jobs`}>
           Browse all jobs <span aria-hidden>→</span>
         </Link>
       </Button>
@@ -1118,8 +1280,10 @@ function AiToolsMarketplaceSection({
       ? listings
       : listings.filter((listing) => {
           const label = LISTING_KIND_LABEL[listing.kind];
-          if (activeTab === "AI Apps") return label === "AI Apps" || listing.kind === "AI_APP";
-          if (activeTab === "Extensions") return listing.kind === "AGENT";
+          if (activeTab === "AI Apps") {
+            return label === "AI Apps" || listing.kind === "AI_APP";
+          }
+          if (activeTab === "Agents") return listing.kind === "AGENT";
           return label === activeTab;
         });
 
@@ -1129,10 +1293,10 @@ function AiToolsMarketplaceSection({
     <section className="flex h-full flex-col rounded-2xl border border-border bg-card/90 p-4 sm:p-5">
       <div className="mb-3 flex items-center justify-between gap-2">
         <h3 className="font-[family-name:var(--font-display)] text-base font-semibold text-foreground sm:text-lg">
-          AI Tools Marketplace
+          Sell — AI Tools Marketplace
         </h3>
         <Button asChild size="sm" variant="ghost" className="h-7 px-2 text-[11px] text-emerald-400">
-          <Link href="/account/tools-marketplace">View all tools</Link>
+          <Link href={routes.toolsMarketplace}>View all tools</Link>
         </Button>
       </div>
       <div className="mb-3 flex flex-wrap gap-1.5">
@@ -1154,35 +1318,43 @@ function AiToolsMarketplaceSection({
       </div>
       {display.length === 0 ? (
         <p className="flex-1 text-sm text-muted-foreground">
-          No approved listings yet.
+          No approved listings yet.{" "}
+          <Link href={routes.myListings} className="text-primary hover:underline">
+            Create a listing
+          </Link>{" "}
+          to sell your tools.
         </p>
       ) : (
         <ul className="space-y-2.5">
-          {display.map((listing) => (
-            <li key={listing.id}>
-              <Link
-                href="/account/tools-marketplace"
-                className="flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-background/40 p-3 transition hover:border-emerald-500/40 hover:bg-hover"
-              >
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400">
-                    <Wrench className="size-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {listing.title}
-                    </p>
-                    <p className="text-[10px] text-amber-400">
-                      ★ {(4.5 + (listing.id.charCodeAt(0) % 5) / 10).toFixed(1)}
-                    </p>
+          {display.map((listing) => {
+            const rating = formatListingRating(listing);
+            return (
+              <li key={listing.id}>
+                <Link
+                  href={listingMarketplaceHref(listing)}
+                  className="flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-background/40 p-3 transition hover:border-emerald-500/40 hover:bg-hover"
+                >
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400">
+                      <Wrench className="size-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {listing.title}
+                      </p>
+                      <p className="truncate text-[10px] text-muted-foreground">
+                        {LISTING_KIND_LABEL[listing.kind]}
+                        {rating ? ` · ${rating}` : ""}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <span className="shrink-0 text-base font-semibold text-emerald-400">
-                  {formatListingPrice(listing)}
-                </span>
-              </Link>
-            </li>
-          ))}
+                  <span className="shrink-0 text-base font-semibold text-emerald-400">
+                    {formatListingPrice(listing)}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
       <Button
@@ -1190,7 +1362,7 @@ function AiToolsMarketplaceSection({
         variant="outline"
         className="mt-4 w-full rounded-xl border-emerald-500/40 text-xs text-emerald-300 hover:bg-emerald-500/10"
       >
-        <Link href="/account/tools-marketplace">
+        <Link href={routes.toolsMarketplace}>
           Explore all tools <span aria-hidden>→</span>
         </Link>
       </Button>
@@ -1204,9 +1376,7 @@ function TopRatedToolsSection({
 }: {
   listings: MarketplaceListingRecord[];
 }) {
-  const featured = [...listings]
-    .sort((a, b) => a.priceCents - b.priceCents)
-    .slice(0, 3);
+  const featured = topRatedListings(listings);
 
   return (
     <section className="flex h-full flex-col rounded-2xl border border-border bg-card/90 p-4 sm:p-5">
@@ -1215,45 +1385,52 @@ function TopRatedToolsSection({
           Top Rated Tools
         </h3>
         <Button asChild size="sm" variant="ghost" className="h-7 px-2 text-[11px] text-orange-400">
-          <Link href="/account/tools-marketplace">View all</Link>
+          <Link href={routes.toolsMarketplace}>View all</Link>
         </Button>
       </div>
       {featured.length === 0 ? (
         <p className="flex-1 text-sm text-muted-foreground">
-          Approved creator tools will appear here.
+          Approved creator tools will appear here.{" "}
+          <Link href={routes.myListings} className="text-primary hover:underline">
+            Sell your tool
+          </Link>
+          .
         </p>
       ) : (
         <ul className="space-y-2.5">
-          {featured.map((listing) => (
-            <li key={listing.id}>
-              <Link
-                href="/account/tools-marketplace"
-                className="flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-background/40 p-3 transition hover:border-orange-500/40 hover:bg-hover"
-              >
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-orange-500/15 text-orange-400">
-                    <Wrench className="size-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {listing.title}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      ★ {(4.6 + (listing.id.charCodeAt(1) % 4) / 10).toFixed(1)} (
-                      {(listing.id.charCodeAt(2) % 900) + 100})
-                    </p>
+          {featured.map((listing) => {
+            const rating = formatListingRating(listing);
+            return (
+              <li key={listing.id}>
+                <Link
+                  href={listingMarketplaceHref(listing)}
+                  className="flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-background/40 p-3 transition hover:border-orange-500/40 hover:bg-hover"
+                >
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-orange-500/15 text-orange-400">
+                      <Wrench className="size-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {listing.title}
+                      </p>
+                      <p className="truncate text-[10px] text-muted-foreground">
+                        {rating ??
+                          (listing.featured ? "Featured listing" : "Newest listing")}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <span className="shrink-0 text-sm font-semibold text-orange-400">
-                  {formatListingPrice(listing)}
-                </span>
-              </Link>
-            </li>
-          ))}
+                  <span className="shrink-0 text-sm font-semibold text-orange-400">
+                    {formatListingPrice(listing)}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
       <Link
-        href="/account/marketplace"
+        href={routes.myListings}
         className="mt-4 flex items-center justify-center gap-2 rounded-xl border border-orange-500/40 p-2.5 text-xs font-medium text-orange-300 transition hover:bg-orange-500/10"
       >
         Sell Your Tool <span aria-hidden>→</span>
@@ -1269,37 +1446,36 @@ function JourneyRoadmap() {
       num: 1,
       icon: BookOpen,
       title: "Learn",
-      desc: "Take courses and master in-demand skills.",
+      desc: "Courses, AI Tutor, and certificates.",
+      href: routes.accountGuides,
     },
     {
       num: 2,
       icon: Code2,
-      title: "Build",
-      desc: "Build projects in the coding workspace.",
+      title: "Create",
+      desc: "Build tools, prompts, and projects.",
+      href: routes.projects,
     },
     {
       num: 3,
-      icon: GraduationCap,
-      title: "Get Certified",
-      desc: "Earn certificates and verified badges.",
+      icon: ShoppingBag,
+      title: "Sell",
+      desc: "List AI tools and digital products.",
+      href: routes.toolsMarketplace,
     },
     {
       num: 4,
-      icon: Rocket,
-      title: "Build Portfolio",
-      desc: "Showcase your projects and skills.",
+      icon: Briefcase,
+      title: "Work",
+      desc: "Get hired for AI and web projects.",
+      href: routes.workMarketplace,
     },
     {
       num: 5,
-      icon: Users,
-      title: "Get Hired",
-      desc: "Find work and complete real projects.",
-    },
-    {
-      num: 6,
       icon: Trophy,
-      title: "Earn & Grow",
-      desc: "Build reputation and earn online income.",
+      title: "Grow",
+      desc: "Earn, build reputation, keep learning.",
+      href: routes.career,
     },
   ];
 
@@ -1307,19 +1483,20 @@ function JourneyRoadmap() {
     <section className="rounded-[1.75rem] border border-border bg-gradient-to-r from-surface via-card to-surface p-6 sm:p-8">
       <div className="mb-6 text-center">
         <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-foreground sm:text-2xl">
-          Your Journey
+          Your Creators Hub journey
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          A complete path to learn, build, earn and grow
+          Learn → Create → Sell → Work → Grow — each step feeds the next
         </p>
       </div>
 
       <div className="relative flex flex-wrap items-start justify-center gap-4">
-        {steps.map((step, i) => (
-          <div
+        {steps.map((step) => (
+          <Link
             key={step.num}
-            className="flex flex-col items-center gap-2 text-center"
-            style={{ width: "clamp(7rem, 14%, 10rem)" }}
+            href={step.href}
+            className="flex flex-col items-center gap-2 text-center transition hover:-translate-y-0.5"
+            style={{ width: "clamp(7rem, 16%, 11rem)" }}
           >
             <div className="relative">
               <div className="flex size-16 items-center justify-center rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/20 via-card to-card shadow-md">
@@ -1335,12 +1512,7 @@ function JourneyRoadmap() {
             <p className="text-[11px] leading-tight text-muted-foreground">
               {step.desc}
             </p>
-            {i < steps.length - 1 && (
-              <div className="pointer-events-none absolute left-0 top-8 hidden w-full xl:block" aria-hidden>
-                {/* connector arrows rendered via layout spacing */}
-              </div>
-            )}
-          </div>
+          </Link>
         ))}
       </div>
     </section>
@@ -1406,7 +1578,7 @@ function FeaturedFromHomepageSection({
           Featured on Mendanize
         </h2>
         <Button asChild size="sm" variant="ghost" className="text-primary">
-          <Link href="/account/guides">Browse all</Link>
+          <Link href={routes.accountGuides}>Browse all</Link>
         </Button>
       </div>
       <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -1474,14 +1646,14 @@ function RecommendedSection({ items }: { items: RecommendationItem[] }) {
           Recommended for You
         </h2>
         <Button asChild size="sm" variant="ghost" className="text-primary">
-          <Link href="/account/recommended">See more</Link>
+          <Link href={routes.recommended}>See more</Link>
         </Button>
       </div>
       {items.length === 0 ? (
         <EmptyPanel
           title="Recommendations will appear here"
           body="Set a few interests and we'll tailor courses, guides, and tools."
-          href="/account/interests"
+          href={routes.interests}
           cta="Pick interests"
           variant="tip"
         />
@@ -1545,14 +1717,14 @@ function SubscriptionStatus({ planName }: { planName: string }) {
       <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
         <div>
           <h3 className="font-[family-name:var(--font-display)] text-xl font-semibold text-foreground">
-            Upgrade to Pro
+            Unlock more of Creators Hub
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Unlock all premium features, advanced AI models, and more.
+            Go Pro for advanced AI, deeper learning paths, and creator tools.
           </p>
         </div>
         <Button asChild size="lg" className="rounded-xl">
-          <Link href="/account/billing">Upgrade Now</Link>
+          <Link href={routes.billing}>Upgrade Now</Link>
         </Button>
       </div>
     </section>

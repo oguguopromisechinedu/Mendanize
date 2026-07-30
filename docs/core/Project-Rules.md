@@ -24,7 +24,7 @@ Every engineer, contractor, and Cursor agent session.
 ## Rules
 
 1. **Docs before code** — Behaviour changes that affect architecture update `docs/` in the same change when practical.
-2. **Spec order** — Follow [MES-INDEX.md](../engineering/MES-INDEX.md) and [MES-DOCUMENTS-STATUS.md](../MES-DOCUMENTS-STATUS.md). Do not skip dependencies. Implement the next pending MES; STOP after each.
+2. **Spec order** — Follow [MES-INDEX.md](../engineering/MES-INDEX.md) (**MES-001 → MES-051**) and [MES-DOCUMENTS-STATUS.md](../MES-DOCUMENTS-STATUS.md). Do not skip dependencies. Implement the next pending MES; STOP after each. Never implement a whole MES range in one change set.
 3. **Appendix A is binding** — Every MES follows [MSEM-Appendix-A-Engineering-Standards.md](./MSEM-Appendix-A-Engineering-Standards.md) unless it states an explicit exception.
 4. **Shared Services stay shared** — Content, Recommendations, AI, Search, Notification, SEO, Media, Settings, Logging, Audit live only under `/services`.
 5. **Single contracts**

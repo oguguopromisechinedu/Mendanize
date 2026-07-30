@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button"
 
 export const metadata: Metadata = {
-  title: "Creator marketplace",
+  title: "My Listings — Creators Hub",
   robots: { index: false },
 }
 
@@ -96,6 +96,20 @@ export default async function Page({ searchParams }: PageProps) {
         >
           <option value="BUILT_ON_MENDANIZE">Built on Mendanize</option>
           <option value="THIRD_PARTY">Third-party</option>
+        </select>
+        <input
+          name="category"
+          placeholder="Category (e.g. AI Chatbots)"
+          className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+        />
+        <select
+          name="licenseType"
+          className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+          defaultValue="STANDARD"
+        >
+          <option value="STANDARD">Standard license (no resale)</option>
+          <option value="TRANSFERABLE">Transferable license</option>
+          <option value="RESALE">Marketplace resale allowed</option>
         </select>
         <input
           name="priceCents"

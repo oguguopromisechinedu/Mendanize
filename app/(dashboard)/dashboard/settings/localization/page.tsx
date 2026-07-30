@@ -1,6 +1,7 @@
+import { loadLocalization } from "@/features/platform-settings/server";
 import type { Metadata } from "next"
 
-import { loadLocalization, LocalizationSettingsView } from "@/features/platform-settings"
+import { LocalizationSettingsView } from "@/features/platform-settings"
 
 export const metadata: Metadata = {
   title: "Localization",

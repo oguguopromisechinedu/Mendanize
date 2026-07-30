@@ -1,4 +1,6 @@
-/** Public exports — features/ai-studio (MES-011) */
+/** Client-safe exports — features/ai-studio (MES-011)
+ * Loaders: `@/features/ai-studio/server`
+ */
 
 export {
   generateArticleAction,
@@ -7,12 +9,6 @@ export {
   sendToArticleEditorAction,
   saveImageToMediaAction,
 } from "./actions/actions"
-
-export {
-  loadStudioHome,
-  loadStudioTaxonomy,
-  loadGenerationHistory,
-} from "./services/service"
 
 export { StudioHomeView } from "./components/studio-home-view"
 export { GenerateArticleView } from "./components/generate-article-view"

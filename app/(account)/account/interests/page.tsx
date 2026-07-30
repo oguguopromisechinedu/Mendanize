@@ -1,10 +1,9 @@
+import { loadInterestsPage } from "@/features/user-learning/server";
 import type { Metadata } from "next"
 
 import { requirePublicUser } from "@/features/authentication/server"
 import {
-  InterestsView,
-  loadInterestsPage,
-} from "@/features/user-learning"
+  InterestsView } from "@/features/user-learning";
 
 export const metadata: Metadata = {
   title: "My interests",

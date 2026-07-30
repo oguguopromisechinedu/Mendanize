@@ -40,16 +40,16 @@ export function AiAssistantCard({ userName }: { userName?: string | null }) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-sm font-semibold text-foreground">
-              AI Assistant
+              AI Tutor
             </h3>
             <span className="rounded-md bg-success/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-success">
               Online
             </span>
           </div>
-          <p className="text-xs text-muted-foreground">Mendanize AI</p>
+          <p className="text-xs text-muted-foreground">Creators Hub · Ask Mendanize</p>
           <RobotSpeechBubble className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            Hi {first}! I’m here to help you learn faster — ask for a path, a
-            quiz, or an explanation.
+            Hi {first}! Ask for a learning path, help building a tool or prompt,
+            or advice on selling and getting hired.
           </RobotSpeechBubble>
         </div>
       </div>

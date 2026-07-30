@@ -3,18 +3,20 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 
 import { requirePublicUser } from "@/features/authentication/server"
-import { applyToJobAction } from "@/features/growth"
 import {
   OnboardingBanner,
   resolveHiringNotice,
 } from "@/features/growth/components/onboarding-banner"
+import { WorkMarketplaceView } from "@/features/marketplace/components/work-marketplace-view"
 import {
+  getWorkMarketplaceLiveStats,
   hasActiveClientFlag,
-  isStripeConnectConfigured,
+  listContractsForUser,
   listOpenJobs,
 } from "@/services/marketplace"
 import { getOrganizationForUser } from "@/services/organization"
-import { Button } from "@/components/ui/button"
+import { getPrisma, isDatabaseConfigured } from "@/lib/db/prisma"
+import { isMissingSchemaError } from "@/lib/db/safe-query"
 
 export const metadata: Metadata = {
   title: "Work Marketplace",
@@ -32,105 +34,106 @@ export default async function Page({ searchParams }: PageProps) {
   }
 
   const params = await searchParams
-  const [jobs, isClient, org] = await Promise.all([
-    listOpenJobs(),
+  const query = typeof params.query === "string" ? params.query : undefined
+  const category =
+    typeof params.category === "string" ? params.category : undefined
+  const tab = params.tab === "talent" ? "talent" : "jobs"
+
+  const [jobs, isClient, org, stats, contracts] = await Promise.all([
+    listOpenJobs({ query, category }),
     hasActiveClientFlag(session.user.id),
     getOrganizationForUser(session.user.id),
+    getWorkMarketplaceLiveStats(),
+    listContractsForUser(session.user.id),
   ])
-  const connectReady = isStripeConnectConfigured()
   const hasEmployerAccount = Boolean(org) || isClient
   const notice = resolveHiringNotice({
     onboarded: params.onboarded,
     error: params.error,
   })
 
+  let talent: Array<{
+    id: string
+    name: string | null
+    title: string | null
+    skills: string[]
+    completedJobs: number
+  }> = []
+
+  if (tab === "talent" && isDatabaseConfigured()) {
+    try {
+      const rows = await getPrisma().careerProfile.findMany({
+        take: 24,
+        orderBy: { updatedAt: "desc" },
+        include: {
+          publicUser: {
+            select: {
+              id: true,
+              name: true,
+              _count: {
+                select: { contractsAsWorker: true },
+              },
+            },
+          },
+        },
+      })
+      talent = rows
+        .filter((row) => {
+          if (!query) return true
+          const q = query.toLowerCase()
+          return (
+            row.publicUser.name?.toLowerCase().includes(q) ||
+            row.headline?.toLowerCase().includes(q) ||
+            row.skills.some((s) => s.toLowerCase().includes(q))
+          )
+        })
+        .map((row) => ({
+          id: row.publicUser.id,
+          name: row.publicUser.name,
+          title: row.headline,
+          skills: row.skills,
+          completedJobs: row.publicUser._count.contractsAsWorker,
+        }))
+    } catch (error) {
+      if (!isMissingSchemaError(error)) throw error
+    }
+  }
+
   return (
-    <div className="mx-auto max-w-3xl space-y-8 px-4 py-8">
+    <div className="mx-auto max-w-6xl space-y-10 px-4 py-8">
       {notice ? <OnboardingBanner notice={notice} /> : null}
+      <WorkMarketplaceView
+        jobs={jobs}
+        talent={talent}
+        tab={tab}
+        query={query}
+        category={category}
+        stats={stats}
+        hasEmployerAccount={hasEmployerAccount}
+      />
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold">
-            Work Marketplace
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Jobs and contracts use Stripe Connect — separate from subscription
-            billing.{" "}
-            {!connectReady
-              ? "Connect keys are not configured yet; funding stays pending."
-              : null}
-          </p>
-        </div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
-          <Button asChild variant="outline" className="w-full rounded-xl sm:w-auto">
-            <Link href="/account/employer">
-              {hasEmployerAccount
-                ? "Open employer dashboard"
-                : "Enable client posting"}
-            </Link>
-          </Button>
-          {hasEmployerAccount ? (
-            <Button asChild className="w-full rounded-xl sm:w-auto">
-              <Link href="/account/hiring">Client dashboard</Link>
-            </Button>
-          ) : (
-            <Button asChild className="w-full rounded-xl sm:w-auto">
-              <Link href="/account/company?intent=employer">
-                Register company
-              </Link>
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <ul className="space-y-6">
-        {jobs.length === 0 ? (
-          <li className="text-sm text-muted-foreground">
-            No open jobs yet. Clients post from the hiring dashboard after Admin
-            review.
-          </li>
-        ) : (
-          jobs.map((job) => (
-            <li
-              key={job.id}
-              id={`job-${job.id}`}
-              className="border-t border-border/40 pt-6 first:border-0 first:pt-0"
-            >
-              <h2 className="text-lg font-medium">{job.title}</h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {job.organizationName
-                  ? `${job.organizationName} · `
-                  : null}
-                {job.clientName ?? "Client"}
-                {job.budgetCents != null
-                  ? ` · $${(job.budgetCents / 100).toFixed(0)}`
-                  : null}
-              </p>
-              <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">
-                {job.description}
-              </p>
-              {job.skills.length > 0 ? (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {job.skills.join(" · ")}
-                </p>
-              ) : null}
-              <form action={applyToJobAction} className="mt-4 space-y-2">
-                <input type="hidden" name="jobId" value={job.id} />
-                <textarea
-                  name="coverLetter"
-                  required
-                  rows={3}
-                  placeholder="Cover letter / proposal"
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
-                />
-                <Button type="submit" size="sm" className="rounded-xl">
-                  Apply
-                </Button>
-              </form>
-            </li>
-          ))
-        )}
-      </ul>
+      {contracts.length > 0 ? (
+        <section className="space-y-3 border-t border-border/50 pt-8">
+          <h2 className="text-lg font-medium">My project workspaces</h2>
+          <ul className="space-y-2 text-sm">
+            {contracts.map((c) => (
+              <li key={c.id}>
+                <Link
+                  href={`/account/work/contracts/${c.id}`}
+                  className="font-medium underline-offset-4 hover:underline"
+                >
+                  {c.websiteLabel ?? c.job.title}
+                </Link>
+                <span className="text-muted-foreground">
+                  {" "}
+                  · {c.kind === "CONTINUATION" ? "maintenance" : "project"} ·{" "}
+                  {c.status}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </div>
   )
 }

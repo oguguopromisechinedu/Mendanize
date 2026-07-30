@@ -1,6 +1,7 @@
 ﻿import type { Metadata } from "next"
 
-import { CommentsListView, loadComments } from "@/features/admin-modules"
+import { CommentsListView } from "@/features/admin-modules"
+import { loadComments } from "@/features/admin-modules/server"
 
 export const metadata: Metadata = {
   title: "Comments",

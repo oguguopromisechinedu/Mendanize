@@ -1,15 +1,12 @@
+import { loadSearchResults, loadFilterOptions } from "@/features/search/server";
 import type { Metadata } from "next"
 import { Suspense } from "react"
 
 import { PageShell } from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  loadFilterOptions,
-  loadSearchResults,
-  SearchFilters,
-  SearchResultsView,
-} from "@/features/search"
+import { requirePublicUser } from "@/features/authentication/server"
+import { SearchFilters, SearchResultsView } from "@/features/search"
 import type { SearchEntityType } from "@/services/search/types"
 import { searchFiltersSchema } from "@/features/search/validators/schema"
 
@@ -29,6 +26,7 @@ type PageProps = {
 }
 
 export default async function SearchPage({ searchParams }: PageProps) {
+  const session = await requirePublicUser()
   const raw = await searchParams
   const flat: Record<string, string | undefined> = {}
   for (const [k, v] of Object.entries(raw)) {
@@ -72,6 +70,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
           publishedAfter: filters.from,
           publishedBefore: filters.to,
           hrefScope: "account",
+          userId: session?.user?.id ?? null,
         })
       : Promise.resolve(null),
   ])
@@ -79,7 +78,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
   return (
     <PageShell
       title="Search"
-      description="One search across articles, guides, AI tools, categories, and topics."
+      description="One search across articles, guides, AI tools, jobs, marketplace, prompts, certificates, and your projects."
       homeHref="/account"
       homeLabel="Account"
       crumbs={[{ label: "Search" }]}

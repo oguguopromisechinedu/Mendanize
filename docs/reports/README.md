@@ -14,11 +14,9 @@ Governance and audit records produced during the enterprise audit (evidence-base
 
 ## Execution rule
 
-Implementation proceeds in **strict MES numerical order (MES-001 → MES-035)**, one spec at a
-time, each followed by verification (`typecheck`, `lint`, `build`) and explicit approval before
-the next. Gap severity informs *what to do within a MES*, never the sequence.
+Implementation proceeds in **strict MES numerical order** per [MES-INDEX.md](../engineering/MES-INDEX.md) (**MES-001 → MES-051**), one spec at a time, each followed by verification (`typecheck`, `lint`, `build`) and explicit approval before the next. Gap severity informs *what to do within a MES*, never the sequence. Live board: [MES-DOCUMENTS-STATUS.md](../MES-DOCUMENTS-STATUS.md).
 
-**Note:** The evidence tables in these reports (dated 2026-07-19) cover **MES-001 → MES-029**. Specs **MES-030 → MES-035** were added afterward — track their implementation status in [MES-DOCUMENTS-STATUS.md](../MES-DOCUMENTS-STATUS.md) until these audit reports are refreshed.
+**Note:** The evidence tables in these reports (dated 2026-07-19) cover **MES-001 → MES-029**. Specs **MES-030 → MES-051** are tracked in [MES-DOCUMENTS-STATUS.md](../MES-DOCUMENTS-STATUS.md) until these audit reports are refreshed.
 
 ## Related
 

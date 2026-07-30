@@ -46,6 +46,23 @@ export function CommunityAdminView({
         description="Moderation queue, categories, featured projects, and community moderator flags. Community moderators never receive /dashboard access."
       />
 
+      <p className="text-sm text-muted-foreground">
+        Learner DM reports:{" "}
+        <a
+          href="/dashboard/community/messages"
+          className="text-primary underline"
+        >
+          Message reports
+        </a>
+        {" · "}
+        <a
+          href="/dashboard/community/events"
+          className="text-primary underline"
+        >
+          Events
+        </a>
+      </p>
+
       <section>
         <h2 className="mb-3 font-display text-lg font-semibold">
           Reported content ({reports.length})

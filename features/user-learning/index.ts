@@ -1,4 +1,6 @@
-/** Public exports — features/user-learning (MES-022) */
+/** Client-safe exports — features/user-learning (MES-022)
+ * Loaders: `@/features/user-learning/server`
+ */
 
 export { LearningNav } from "./components/learning-nav";
 export { LearningDashboardView } from "./components/learning-dashboard-view";
@@ -14,17 +16,6 @@ export { HistoryView } from "./components/history-view";
 export { RecommendedView } from "./components/recommended-view";
 export { InterestsView } from "./components/interests-view";
 export { PreferencesView } from "./components/preferences-view";
-export {
-  loadContinueLearning,
-  loadHistory,
-  loadInterestsPage,
-  loadLearningDashboard,
-  loadLearnerEcosystemExtras,
-  loadPreferencesPage,
-  loadRecommended,
-  loadSaved,
-} from "./services/service";
-export type { LearnerEcosystemSnapshot } from "./services/ecosystem-dashboard";
 export {
   deleteGoalAction,
   saveContentAction,

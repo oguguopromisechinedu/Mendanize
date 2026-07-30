@@ -1,6 +1,7 @@
 ﻿import type { Metadata } from "next"
 
-import { WorkflowQueueView, loadWorkflow } from "@/features/admin-modules"
+import { WorkflowQueueView } from "@/features/admin-modules"
+import { loadWorkflow } from "@/features/admin-modules/server"
 
 export const metadata: Metadata = {
   title: "Workflow",

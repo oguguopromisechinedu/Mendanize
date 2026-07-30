@@ -223,6 +223,7 @@ export function ContentHubView() {
     { label: "AI Tools", href: "/dashboard/ai-tools", desc: "Directory listings" },
     { label: "Media", href: "/dashboard/media", desc: "Assets library" },
     { label: "Pages", href: "/dashboard/pages", desc: "Static / marketing" },
+    { label: "Free Resources & Glossary", href: "/dashboard/resources", desc: "Downloads and terms" },
     { label: "Tags", href: "/dashboard/tags", desc: "Shared vocabulary" },
   ]
   return (

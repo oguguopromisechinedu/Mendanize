@@ -200,7 +200,7 @@ export function PublicHeader({
             size="sm"
             className="hidden !whitespace-normal rounded-lg px-2.5 md:inline-flex"
           >
-            <Link href={signInHref}>Sign in</Link>
+            <Link href={signInHref}>Creators Hub</Link>
           </Button>
           <Button
             asChild
@@ -208,8 +208,8 @@ export function PublicHeader({
             className="hidden !whitespace-normal rounded-lg px-2.5 sm:inline-flex"
           >
             <Link href={routes.signUp}>
-              <span className="hidden lg:inline">Create account</span>
-              <span className="lg:hidden">Sign up</span>
+              <span className="hidden lg:inline">Join Creators Hub</span>
+              <span className="lg:hidden">Creators Hub</span>
             </Link>
           </Button>
 
@@ -252,12 +252,12 @@ export function PublicHeader({
               <div className="mt-8 space-y-2 border-t border-border pt-6">
                 <SheetClose asChild>
                   <Button asChild variant="outline" className="w-full rounded-lg">
-                    <Link href={signInHref}>Sign in</Link>
+                    <Link href={signInHref}>Sign in to Creators Hub</Link>
                   </Button>
                 </SheetClose>
                 <SheetClose asChild>
                   <Button asChild className="w-full rounded-lg">
-                    <Link href={routes.signUp}>Create account</Link>
+                    <Link href={routes.signUp}>Join Creators Hub</Link>
                   </Button>
                 </SheetClose>
               </div>

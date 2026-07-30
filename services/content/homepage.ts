@@ -32,10 +32,15 @@ import { applyLiveHomepageStatistics } from "@/services/homepage";
 
 const HOMEPAGE_KEY = "main";
 
-/** Keep "Create account" CTAs pointed at public registration. */
+/** Keep Creators Hub / registration CTAs pointed at public registration. */
 function publicCtaLink(label: string, href: string): { label: string; href: string } {
-  if (/^create\s+account$/i.test(label.trim())) {
-    return { label: label.trim(), href: "/sign-up" };
+  const normalized = label.trim();
+  if (
+    /^create\s+account$/i.test(normalized) ||
+    /^creators?\s+hub$/i.test(normalized) ||
+    /^join\s+creators?\s+hub$/i.test(normalized)
+  ) {
+    return { label: normalized, href: "/sign-up" };
   }
   return { label, href };
 }

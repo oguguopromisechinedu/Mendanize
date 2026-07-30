@@ -1,7 +1,8 @@
+import { loadToolEditor } from "@/features/ai-tools/server";
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 
-import { ToolEditorForm, loadToolEditor } from "@/features/ai-tools"
+import { ToolEditorForm } from "@/features/ai-tools"
 
 export const metadata: Metadata = {
   title: "Edit marketplace AI tool",

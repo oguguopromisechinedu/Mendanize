@@ -1,7 +1,8 @@
+import { loadAuthSettings } from "@/features/platform-settings/server";
 import type { Metadata } from "next";
 
 import { getAdminSession } from "@/features/authentication/server";
-import { loadAuthSettings, AuthSettingsView } from "@/features/platform-settings";
+import { AuthSettingsView } from "@/features/platform-settings"
 import { getPrisma, isDatabaseConfigured } from "@/lib/db/prisma";
 
 export const metadata: Metadata = {

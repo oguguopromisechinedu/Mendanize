@@ -204,12 +204,36 @@ export async function signUpWithCredentials(
     );
     const authSettings = await getAuthenticationSettings();
     if (authSettings.emailVerification) {
-      const { sendEmailVerification } = await import("../services/verification");
-      await sendEmailVerification({
-        userId: user.id,
-        email: normalizedEmail,
-        name,
-      });
+      const { requireEmailConfiguredInProduction, logEmailEvent } =
+        await import("@/lib/email/mes042");
+      try {
+        await requireEmailConfiguredInProduction("public-signup-verification");
+        const { sendEmailVerification } = await import(
+          "../services/verification"
+        );
+        await sendEmailVerification({
+          userId: user.id,
+          email: normalizedEmail,
+          name,
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Verification email failed";
+        await logEmailEvent({
+          level: "ERROR",
+          message,
+          template: "email_verification",
+          email: normalizedEmail,
+        });
+        if (process.env.NODE_ENV === "production") {
+          return {
+            ok: false,
+            message:
+              "Account was created but we could not send a verification email. Configure email delivery or contact support.",
+          };
+        }
+        console.info(`[auth] verification email failed for ${normalizedEmail}`);
+      }
     }
   } catch {
     if (process.env.NODE_ENV !== "production") {
@@ -237,6 +261,27 @@ export async function signUpWithCredentials(
     });
   } catch {
     /* welcome notification failures must not block signup */
+  }
+
+  try {
+    const { readReferralCookie } = await import(
+      "@/services/referrals/cookie-read"
+    );
+    const { attributeSignup } = await import("@/services/referrals");
+    const { getRequestIpAddress } = await import("@/lib/auth/request-ip");
+    const { headers } = await import("next/headers");
+    const ref = await readReferralCookie();
+    const h = await headers();
+    await attributeSignup({
+      referredUserId: user.id,
+      referralCode: ref.code,
+      cookieCapturedAt: ref.capturedAt,
+      ipAddress: await getRequestIpAddress(),
+      userAgent: h.get("user-agent"),
+      landingPath: "/sign-up",
+    });
+  } catch {
+    /* referral attribution must not block signup */
   }
 
   try {
@@ -370,6 +415,9 @@ export async function requestPasswordReset(
       },
     });
     try {
+      const { requireEmailConfiguredInProduction } =
+        await import("@/lib/email/mes042");
+      await requireEmailConfiguredInProduction("public-password-reset");
       const base =
         process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
         "http://localhost:3000";
@@ -382,7 +430,17 @@ export async function requestPasswordReset(
         email,
         payload: { resetUrl, name: user.name ?? "there" },
       });
-    } catch {
+    } catch (error) {
+      const { logEmailEvent } = await import("@/lib/email/mes042");
+      await logEmailEvent({
+        level: "ERROR",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Password reset email failed",
+        template: "password_reset",
+        email,
+      });
       if (process.env.NODE_ENV !== "production") {
         console.info(`[auth] password reset token for ${email}: ${token}`);
       }
@@ -485,22 +543,33 @@ export async function requestAdminPasswordReset(
       },
     });
     try {
+      const { requireEmailConfiguredInProduction } =
+        await import("@/lib/email/mes042");
+      await requireEmailConfiguredInProduction("admin-password-reset");
       const base =
         process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
         process.env.AUTH_URL?.replace(/\/$/, "") ||
         "http://localhost:3000";
       const resetUrl = `${base}/dashboard/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
-      const { sendEmail } = await import("@/lib/email/send");
-      const result = await sendEmail({
-        to: email,
-        subject: "Reset your Mendanize admin password",
-        text: `Hi ${admin.name ?? "there"},\n\nReset your admin password: ${resetUrl}\n\nThis link expires in 1 hour.`,
-        html: `<p>Hi ${admin.name ?? "there"},</p><p><a href="${resetUrl}">Reset your admin password</a></p><p>This link expires in 1 hour.</p>`,
+      const { dispatch } = await import("@/services/notification");
+      await dispatch({
+        channel: "email",
+        template: "admin_password_reset",
+        adminId: admin.id,
+        email,
+        payload: { resetUrl, name: admin.name ?? "there" },
       });
-      if (!result.ok && process.env.NODE_ENV !== "production") {
-        console.info(`[auth] admin reset token for ${email}: ${token}`);
-      }
-    } catch {
+    } catch (error) {
+      const { logEmailEvent } = await import("@/lib/email/mes042");
+      await logEmailEvent({
+        level: "ERROR",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Admin password reset email failed",
+        template: "admin_password_reset",
+        email,
+      });
       if (process.env.NODE_ENV !== "production") {
         console.info(`[auth] admin reset token for ${email}: ${token}`);
       }

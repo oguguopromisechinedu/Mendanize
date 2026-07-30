@@ -228,12 +228,12 @@ export async function getCommunityHome(): Promise<CommunityHomePayload> {
       recommendedGroups: [],
       activeTeams: [],
       featuredProjects: [],
-      upcomingEventsPlaceholder: true,
+      upcomingEvents: [],
     }
   }
   await ensureCommunityCategories()
 
-  const [categories, latest, trending, groups, teams, projects] =
+  const [categories, latest, trending, groups, teams, projects, events] =
     await Promise.all([
       db().communityCategory.findMany({
         where: { active: true },
@@ -289,6 +289,15 @@ export async function getCommunityHome(): Promise<CommunityHomePayload> {
           _count: { select: { likes: true, comments: true } },
         },
       }),
+      db().communityEvent.findMany({
+        where: {
+          status: "PUBLISHED",
+          endsAt: { gte: new Date() },
+        },
+        orderBy: { startsAt: "asc" },
+        take: 6,
+        include: { _count: { select: { rsvps: true } } },
+      }),
     ])
 
   return {
@@ -325,7 +334,14 @@ export async function getCommunityHome(): Promise<CommunityHomePayload> {
       createdAt: t.createdAt.toISOString(),
     })),
     featuredProjects: projects.map(mapProject),
-    upcomingEventsPlaceholder: true,
+    upcomingEvents: events.map((e) => ({
+      id: e.id,
+      title: e.title,
+      slug: e.slug,
+      startsAt: e.startsAt.toISOString(),
+      locationType: e.locationType,
+      rsvpCount: e._count.rsvps,
+    })),
   }
 }
 
@@ -1274,6 +1290,9 @@ export async function searchCommunity(
     }),
   ])
 
+  const { searchPublishedEvents } = await import("@/services/community-events")
+  const eventHits = await searchPublishedEvents(q)
+
   const hits: CommunitySearchHit[] = [
     ...discussions.map((d) => ({
       type: "discussion" as const,
@@ -1303,6 +1322,7 @@ export async function searchCommunity(
       href: `/community/projects/${p.slug}`,
       excerpt: preview(p.description),
     })),
+    ...eventHits,
   ]
   return hits
 }

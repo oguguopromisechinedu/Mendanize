@@ -1,6 +1,7 @@
+import { loadBranding } from "@/features/platform-settings/server";
 import type { Metadata } from "next"
 
-import { loadBranding, BrandingSettingsView } from "@/features/platform-settings"
+import { BrandingSettingsView } from "@/features/platform-settings"
 
 export const metadata: Metadata = {
   title: "Branding",

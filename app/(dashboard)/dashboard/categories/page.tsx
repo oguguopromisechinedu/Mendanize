@@ -1,6 +1,7 @@
+import { loadCategoryList } from "@/features/categories-topics/server";
 import type { Metadata } from "next"
 
-import { CategoryListView, loadCategoryList } from "@/features/categories-topics"
+import { CategoryListView } from "@/features/categories-topics"
 
 export const metadata: Metadata = {
   title: "Categories",

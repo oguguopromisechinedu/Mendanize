@@ -1,6 +1,7 @@
+import { loadEmail } from "@/features/platform-settings/server";
 import type { Metadata } from "next"
 
-import { loadEmail, EmailSettingsView } from "@/features/platform-settings"
+import { EmailSettingsView } from "@/features/platform-settings"
 
 export const metadata: Metadata = {
   title: "Email settings",

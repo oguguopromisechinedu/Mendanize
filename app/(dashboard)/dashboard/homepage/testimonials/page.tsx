@@ -1,9 +1,7 @@
+import { loadHomepageAdmin } from "@/features/homepage-management/server";
 import type { Metadata } from "next"
 
-import {
-  HomepageTestimonialsView,
-  loadHomepageAdmin,
-} from "@/features/homepage-management"
+import { HomepageTestimonialsView } from "@/features/homepage-management";
 
 export const metadata: Metadata = {
   title: "Homepage testimonials",

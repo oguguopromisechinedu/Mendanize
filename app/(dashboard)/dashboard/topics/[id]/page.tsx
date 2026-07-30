@@ -1,7 +1,8 @@
+import { loadTopicDetails } from "@/features/categories-topics/server";
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 
-import { TopicDetailView, loadTopicDetails } from "@/features/categories-topics"
+import { TopicDetailView } from "@/features/categories-topics"
 
 export const metadata: Metadata = {
   title: "Topic details",

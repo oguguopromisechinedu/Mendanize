@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CacheLearningContent } from "@/components/pwa/cache-learning-content";
 import { AskContextualWidget } from "@/features/ask-mendanize";
 import { RecommendationsRail } from "@/features/recommendations";
 import {
@@ -158,6 +159,7 @@ export function ArticleReadingView({
           ) : null}
 
           <div
+            data-offline-content
             className="article-body prose prose-neutral mt-10 max-w-[42rem] dark:prose-invert prose-headings:scroll-mt-24 prose-a:text-primary prose-pre:rounded-lg prose-pre:border prose-pre:border-border prose-table:border prose-blockquote:border-primary/40 prose-blockquote:bg-muted/30 prose-blockquote:py-1 prose-blockquote:not-italic"
             dangerouslySetInnerHTML={{ __html: html }}
           />
@@ -265,6 +267,13 @@ export function ArticleReadingView({
           <div className="mt-14">
             <RecommendationsRail title="Related content" items={related} />
           </div>
+
+          <CacheLearningContent
+            kind="article"
+            title={article.title}
+            slug={article.slug}
+            href={contentHref("article", article.slug, { scope })}
+          />
         </div>
 
         <aside className="min-w-0">

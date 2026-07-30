@@ -27,6 +27,14 @@ export const metadata: Metadata = {
   },
   description:
     "Learn modern technology through educational content, curated AI tools, structured guides, and intelligent assistance.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Mendanize",
+  },
+  icons: {
+    apple: "/icons/icon-192.png",
+  },
 };
 
 /** DB-backed layouts/pages (nav, tokens, CMS) — skip static prerender at build. */

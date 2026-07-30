@@ -10,6 +10,9 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./tests/setup.ts"],
     include: ["tests/**/*.{test,spec}.{ts,tsx}"],
+    // Cold dynamic imports of Prisma-backed services are slow on Windows/OneDrive.
+    testTimeout: 30_000,
+    hookTimeout: 30_000,
   },
   resolve: {
     alias: {

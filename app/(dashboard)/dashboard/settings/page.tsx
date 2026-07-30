@@ -1,9 +1,7 @@
 ﻿import type { Metadata } from "next"
 
-import {
-  loadSettingsDashboard,
-  SettingsDashboardView,
-} from "@/features/platform-settings"
+import { loadSettingsDashboard } from "@/features/platform-settings/server";
+import { SettingsDashboardView } from "@/features/platform-settings";
 
 export const metadata: Metadata = {
   title: "Platform settings",

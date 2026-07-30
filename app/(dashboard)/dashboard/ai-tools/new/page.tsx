@@ -1,6 +1,7 @@
+import { loadToolEditor } from "@/features/ai-tools/server";
 import type { Metadata } from "next"
 
-import { ToolEditorForm, loadToolEditor } from "@/features/ai-tools"
+import { ToolEditorForm } from "@/features/ai-tools"
 
 export const metadata: Metadata = {
   title: "Add AI tool",

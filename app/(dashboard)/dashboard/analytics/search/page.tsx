@@ -1,6 +1,7 @@
+import { loadSearchDomain } from "@/features/analytics/server";
 import type { Metadata } from "next"
 
-import { DomainAnalyticsView, loadSearchDomain } from "@/features/analytics"
+import { DomainAnalyticsView } from "@/features/analytics"
 
 export const metadata: Metadata = {
   title: "Search analytics",

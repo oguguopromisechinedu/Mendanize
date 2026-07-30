@@ -8,6 +8,7 @@ import {
   SheetDescription,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { PwaShell } from "@/components/pwa/pwa-shell";
 import { cn } from "@/lib/utils";
 import type { LearnerNavGroup } from "../constants/constants";
 import type { LearnerSpaceLink } from "../services/learner-shell-config";
@@ -51,10 +52,10 @@ export function LearnerShell({
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-72 p-0" showCloseButton>
-          <SheetTitle className="sr-only">Learner navigation</SheetTitle>
+          <SheetTitle className="sr-only">Creators Hub navigation</SheetTitle>
           <SheetDescription className="sr-only">
-            Navigate your Mendanize learning space. Availability is controlled by
-            administrators.
+            Navigate Creators Hub — learn, create, sell, and work. Availability is
+            controlled by administrators.
           </SheetDescription>
           <LearnerSidebar
             collapsed={false}
@@ -82,6 +83,7 @@ export function LearnerShell({
           {children}
         </main>
       </div>
+      <PwaShell />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-/** MES-030: learner personalization moved to /account/* */
+/** Legacy /learning → public My Learning hub */
 export default function LegacyLearningRedirect() {
-  redirect("/account");
+  redirect("/my-learning");
 }

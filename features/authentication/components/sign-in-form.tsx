@@ -62,13 +62,13 @@ function SignInForm() {
 
   return (
     <AuthShell
-      title="Welcome back"
-      description="Sign in to your Mendanize account"
+      title="Creators Hub"
+      description="Sign in to learn, create, sell, and work with AI on Mendanize"
       footer={
         <>
           No account?{" "}
           <Link href={routes.signUp} className="text-primary hover:opacity-90">
-            Create one
+            Join Creators Hub
           </Link>
         </>
       }

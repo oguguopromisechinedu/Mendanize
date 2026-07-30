@@ -9,11 +9,7 @@ import "server-only";
 import type { AskContextType, MessageRole } from "@prisma/client";
 import { getPrisma, isDatabaseConfigured } from "@/lib/db/prisma";
 import { getRecommendations } from "@/services/recommendations";
-import {
-  adminActionsForQuery,
-  buildAdminActionMarkdown,
-  resolveAdminIntent,
-} from "@/features/admin-dashboard/utils/admin-intent";
+import { adminActionsForQuery } from "@/features/admin-dashboard/utils/admin-intent";
 import type {
   AskConversationRecord,
   AskDashboardPayload,

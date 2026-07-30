@@ -1,6 +1,7 @@
 ﻿import type { Metadata } from "next"
 
-import { SubscribersListView, loadSubscribers } from "@/features/admin-modules"
+import { SubscribersListView } from "@/features/admin-modules"
+import { loadSubscribers } from "@/features/admin-modules/server"
 
 export const metadata: Metadata = {
   title: "Subscribers",

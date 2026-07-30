@@ -8,6 +8,7 @@ const LINKS = [
   { href: "/community/groups", label: "Study Groups" },
   { href: "/community/teams", label: "Teams" },
   { href: "/community/projects", label: "Showcase" },
+  { href: "/community/events", label: "Events" },
   { href: "/community/guidelines", label: "Guidelines" },
 ]
 

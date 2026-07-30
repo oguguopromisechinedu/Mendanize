@@ -1005,6 +1005,44 @@ export async function resolveMetadata(
   const global = await getGlobalSEOSettings();
 
   if (params.entityType === "page") {
+    if (params.entityId) {
+      const { getPageById } = await import("@/services/admin/pages");
+      const page = await getPageById(params.entityId);
+      if (page) {
+        const title = page.seoTitle || page.title;
+        const description = page.seoDescription || page.excerpt || "";
+        const image = page.featuredImageUrl || "";
+        return {
+          title,
+          description,
+          openGraph: {
+            title,
+            description,
+            ...(image ? { image } : global.defaultOgImageUrl
+              ? { image: global.defaultOgImageUrl }
+              : {}),
+          },
+          twitter: {
+            title,
+            description,
+            ...(image || global.defaultTwitterImageUrl
+              ? { image: image || global.defaultTwitterImageUrl || undefined }
+              : {}),
+          },
+          robots: {
+            index: global.defaultRobotsIndex,
+            follow: global.defaultRobotsFollow,
+          },
+          canonicalUrl: global.canonicalDomain
+            ? `${global.canonicalDomain.replace(/\/$/, "")}/${page.slug}`
+            : null,
+          structuredData: {
+            "@type": "WebPage",
+            name: title,
+          },
+        };
+      }
+    }
     const title =
       params.path === "/" || !params.path
         ? global.defaultMetaTitle || global.websiteTitle

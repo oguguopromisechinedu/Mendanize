@@ -9,7 +9,15 @@ export type SearchEntityType =
   | "discussion"
   | "study_group"
   | "team"
-  | "showcase_project";
+  | "showcase_project"
+  | "job"
+  | "marketplace_listing"
+  | "prompt"
+  | "certificate"
+  | "learner_project"
+  | "glossary_term"
+  | "free_resource"
+  | "static_page";
 
 export type SearchDifficulty = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
 

@@ -73,6 +73,9 @@ export default async function Page() {
             <Link href="/account/hiring">Hiring desk</Link>
           </Button>
           <Button asChild variant="outline" className="rounded-xl">
+            <Link href="/account/company/billing">Company billing</Link>
+          </Button>
+          <Button asChild variant="outline" className="rounded-xl">
             <Link href="/account/work">Browse jobs</Link>
           </Button>
         </div>

@@ -23,38 +23,149 @@ const memory = {
   seeded: false,
 }
 
+function companyPage(
+  id: string,
+  slug: string,
+  title: string,
+  excerpt: string,
+  hero: string,
+  content: string,
+  t: string
+): StaticPageRecord {
+  return {
+    id,
+    title,
+    slug,
+    content,
+    excerpt,
+    hero,
+    featuredImageUrl: null,
+    featuredImageAlt: null,
+    status: "PUBLISHED",
+    seoTitle: `${title} | Mendanize`,
+    seoDescription: excerpt,
+    publishedAt: t,
+    createdAt: t,
+    updatedAt: t,
+  }
+}
+
 function seed() {
   if (memory.seeded) return
   memory.seeded = true
   const t = nowIso()
   memory.items = [
-    {
-      id: "pg_about",
-      title: "About",
-      slug: "about",
-      content: "<p>Mendanize helps teams learn AI with structured guides and tools.</p>",
-      excerpt: "Who we are",
-      status: "PUBLISHED",
-      seoTitle: "About | Mendanize",
-      seoDescription: "Learn about Mendanize",
-      publishedAt: t,
-      createdAt: t,
-      updatedAt: t,
-    },
-    {
-      id: "pg_contact",
-      title: "Contact",
-      slug: "contact",
-      content: "<p>Reach us at hello@mendanize.com</p>",
-      excerpt: "Get in touch",
-      status: "DRAFT",
-      seoTitle: null,
-      seoDescription: null,
-      publishedAt: null,
-      createdAt: t,
-      updatedAt: t,
-    },
+    companyPage(
+      "pg_about",
+      "about",
+      "About Us",
+      "Learn modern technology with clarity on Mendanize.",
+      "Our mission",
+      "<p>Mendanize is an AI-powered technology learning platform. We combine structured guides, curated AI tools, articles, and community so learners can build real skills—not just skim headlines.</p><p>We believe education should be practical, accessible, and connected to the tools people actually use.</p>",
+      t
+    ),
+    companyPage(
+      "pg_contact",
+      "contact",
+      "Contact",
+      "Get in touch with the Mendanize team.",
+      "We're here to help",
+      "<p>Email us at <a href=\"mailto:hello@mendanize.com\">hello@mendanize.com</a> for partnership, press, or product questions.</p><p>For account and learning support, use the in-app help options after you sign in.</p>",
+      t
+    ),
+    companyPage(
+      "pg_faq",
+      "faq",
+      "FAQ",
+      "Answers to common questions about Mendanize.",
+      "Frequently asked questions",
+      "<h2>Is Mendanize free?</h2><p>Core articles and many learning guides are free. Paid plans unlock advanced AI tools and workspace features.</p><h2>How do courses work?</h2><p>AI Courses are structured guides with modules, lessons, quizzes, and progress tracking.</p><h2>Can I cancel anytime?</h2><p>Yes. Manage billing from your account settings.</p>",
+      t
+    ),
+    companyPage(
+      "pg_pricing",
+      "pricing",
+      "Pricing",
+      "Simple plans for learners and teams.",
+      "Choose your plan",
+      "<p>Start free with articles and learning guides. Upgrade when you need more AI generations, workspace capacity, or team seats.</p><p>Visit the interactive pricing catalog for current plan details and checkout.</p>",
+      t
+    ),
+    companyPage(
+      "pg_privacy",
+      "privacy",
+      "Privacy Policy",
+      "How Mendanize collects, uses, and protects your data.",
+      "Your privacy matters",
+      "<p>We collect account details, learning progress, and usage analytics needed to operate the platform. We do not sell personal data.</p><p>You can manage cookie and marketing preferences from the site banner and account settings. Contact hello@mendanize.com for data requests.</p>",
+      t
+    ),
+    companyPage(
+      "pg_terms",
+      "terms",
+      "Terms of Service",
+      "The rules for using Mendanize.",
+      "Terms of Service",
+      "<p>By using Mendanize you agree to use the platform lawfully, respect intellectual property, and not abuse AI or community features.</p><p>We may update these terms; continued use after changes constitutes acceptance.</p>",
+      t
+    ),
+    companyPage(
+      "pg_cookies",
+      "cookies",
+      "Cookies Policy",
+      "How we use cookies and similar technologies.",
+      "Cookies Policy",
+      "<p>We use essential cookies for authentication and security, plus optional analytics cookies when you consent.</p><p>You can update preferences anytime via the cookie banner or account privacy settings.</p>",
+      t
+    ),
+    companyPage(
+      "pg_careers",
+      "careers",
+      "Careers",
+      "Join the team building clearer technology learning.",
+      "Build with us",
+      "<p>We're looking for educators, engineers, and designers who care about practical AI education.</p><p>Send a short note and resume to <a href=\"mailto:careers@mendanize.com\">careers@mendanize.com</a>.</p>",
+      t
+    ),
+    companyPage(
+      "pg_partners",
+      "partners",
+      "Partners",
+      "Collaborate with Mendanize on learning and tools.",
+      "Partner with Mendanize",
+      "<p>We partner with tool makers, educators, and organizations to bring high-quality AI learning to more people.</p><p>Reach out at <a href=\"mailto:partners@mendanize.com\">partners@mendanize.com</a>.</p>",
+      t
+    ),
   ]
+}
+
+/** Ensure required company CMS pages exist in the database (idempotent upsert by slug). */
+export async function ensureCompanyPagesSeeded(): Promise<void> {
+  if (!isDatabaseConfigured()) {
+    seed()
+    return
+  }
+  seed()
+  const prisma = getPrisma()
+  for (const page of memory.items) {
+    await prisma.staticPage.upsert({
+      where: { slug: page.slug },
+      create: {
+        title: page.title,
+        slug: page.slug,
+        content: page.content,
+        excerpt: page.excerpt,
+        hero: page.hero,
+        featuredImageUrl: page.featuredImageUrl,
+        featuredImageAlt: page.featuredImageAlt,
+        status: page.status,
+        seoTitle: page.seoTitle,
+        seoDescription: page.seoDescription,
+        publishedAt: page.publishedAt ? new Date(page.publishedAt) : new Date(),
+      },
+      update: {},
+    })
+  }
 }
 
 function mapRow(row: {
@@ -63,6 +174,9 @@ function mapRow(row: {
   slug: string
   content: string
   excerpt: string | null
+  hero: string | null
+  featuredImageUrl: string | null
+  featuredImageAlt: string | null
   status: StaticPageRecord["status"]
   seoTitle: string | null
   seoDescription: string | null
@@ -76,6 +190,9 @@ function mapRow(row: {
     slug: row.slug,
     content: row.content,
     excerpt: row.excerpt,
+    hero: row.hero,
+    featuredImageUrl: row.featuredImageUrl,
+    featuredImageAlt: row.featuredImageAlt,
     status: row.status,
     seoTitle: row.seoTitle,
     seoDescription: row.seoDescription,
@@ -83,6 +200,19 @@ function mapRow(row: {
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }
+}
+
+export type PageWriteInput = {
+  title?: string
+  slug?: string
+  content?: string
+  excerpt?: string | null
+  hero?: string | null
+  featuredImageUrl?: string | null
+  featuredImageAlt?: string | null
+  status?: StaticPageRecord["status"]
+  seoTitle?: string | null
+  seoDescription?: string | null
 }
 
 export async function listPagesAdmin(params: {
@@ -147,11 +277,43 @@ export async function getPageById(id: string): Promise<StaticPageRecord | null> 
   return row ? mapRow(row) : null
 }
 
+/** Published page by public URL slug — returns null when missing or unpublished. */
+export async function getPublishedPageBySlug(
+  slug: string
+): Promise<StaticPageRecord | null> {
+  const normalized = slug.trim().toLowerCase()
+  if (!normalized) return null
+
+  if (!isDatabaseConfigured()) {
+    seed()
+    return (
+      memory.items.find(
+        (p) => p.slug === normalized && p.status === "PUBLISHED"
+      ) ?? null
+    )
+  }
+
+  const prisma = getPrisma()
+  let row = await prisma.staticPage.findFirst({
+    where: { slug: normalized, status: "PUBLISHED" },
+  })
+  if (!row) {
+    await ensureCompanyPagesSeeded().catch(() => undefined)
+    row = await prisma.staticPage.findFirst({
+      where: { slug: normalized, status: "PUBLISHED" },
+    })
+  }
+  return row ? mapRow(row) : null
+}
+
 export async function createPage(input: {
   title: string
   slug?: string
   content?: string
   excerpt?: string | null
+  hero?: string | null
+  featuredImageUrl?: string | null
+  featuredImageAlt?: string | null
   status?: StaticPageRecord["status"]
   seoTitle?: string | null
   seoDescription?: string | null
@@ -173,6 +335,9 @@ export async function createPage(input: {
       slug,
       content: input.content ?? "",
       excerpt: input.excerpt ?? null,
+      hero: input.hero ?? null,
+      featuredImageUrl: input.featuredImageUrl ?? null,
+      featuredImageAlt: input.featuredImageAlt ?? null,
       status,
       seoTitle: input.seoTitle ?? null,
       seoDescription: input.seoDescription ?? null,
@@ -190,6 +355,9 @@ export async function createPage(input: {
       slug,
       content: input.content ?? "",
       excerpt: input.excerpt ?? null,
+      hero: input.hero ?? null,
+      featuredImageUrl: input.featuredImageUrl ?? null,
+      featuredImageAlt: input.featuredImageAlt ?? null,
       status,
       seoTitle: input.seoTitle ?? null,
       seoDescription: input.seoDescription ?? null,
@@ -201,15 +369,7 @@ export async function createPage(input: {
 
 export async function updatePage(
   id: string,
-  input: {
-    title?: string
-    slug?: string
-    content?: string
-    excerpt?: string | null
-    status?: StaticPageRecord["status"]
-    seoTitle?: string | null
-    seoDescription?: string | null
-  }
+  input: PageWriteInput
 ): Promise<StaticPageRecord> {
   if (!isDatabaseConfigured()) {
     seed()
@@ -219,6 +379,13 @@ export async function updatePage(
     if (input.slug !== undefined) row.slug = slugify(input.slug)
     if (input.content !== undefined) row.content = input.content
     if (input.excerpt !== undefined) row.excerpt = input.excerpt
+    if (input.hero !== undefined) row.hero = input.hero
+    if (input.featuredImageUrl !== undefined) {
+      row.featuredImageUrl = input.featuredImageUrl
+    }
+    if (input.featuredImageAlt !== undefined) {
+      row.featuredImageAlt = input.featuredImageAlt
+    }
     if (input.seoTitle !== undefined) row.seoTitle = input.seoTitle
     if (input.seoDescription !== undefined) row.seoDescription = input.seoDescription
     if (input.status !== undefined) {
@@ -247,6 +414,13 @@ export async function updatePage(
       ...(input.slug !== undefined ? { slug: slugify(input.slug) } : {}),
       ...(input.content !== undefined ? { content: input.content } : {}),
       ...(input.excerpt !== undefined ? { excerpt: input.excerpt } : {}),
+      ...(input.hero !== undefined ? { hero: input.hero } : {}),
+      ...(input.featuredImageUrl !== undefined
+        ? { featuredImageUrl: input.featuredImageUrl }
+        : {}),
+      ...(input.featuredImageAlt !== undefined
+        ? { featuredImageAlt: input.featuredImageAlt }
+        : {}),
       ...(input.seoTitle !== undefined ? { seoTitle: input.seoTitle } : {}),
       ...(input.seoDescription !== undefined
         ? { seoDescription: input.seoDescription }

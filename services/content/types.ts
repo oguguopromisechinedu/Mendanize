@@ -137,6 +137,9 @@ export type GuideSummary = {
   estimatedMinutes?: number;
   coverImageUrl?: string | null;
   categoryName?: string | null;
+  categorySlug?: string | null;
+  authorName?: string | null;
+  publishedAt?: string | null;
   featured?: boolean;
   sectionCount?: number;
   lessonCount?: number;

@@ -33,6 +33,8 @@ export const uploadSchema = z.object({
   width: z.number().int().optional().nullable(),
   height: z.number().int().optional().nullable(),
   sizeBytes: z.number().int().optional().nullable(),
+  /** Base64 file payload for Supabase Storage upload (MES-014). */
+  base64: z.string().max(15_000_000).optional().nullable(),
 })
 
 export const bulkIdsSchema = z.object({

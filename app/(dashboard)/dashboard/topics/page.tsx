@@ -1,9 +1,7 @@
+import { loadTopicList } from "@/features/categories-topics/server";
 import type { Metadata } from "next"
 
-import {
-  TopicListView,
-  loadTopicList,
-} from "@/features/categories-topics"
+import { TopicListView } from "@/features/categories-topics";
 import { listCategorySummaries } from "@/services/content"
 
 export const metadata: Metadata = {

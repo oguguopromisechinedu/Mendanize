@@ -1,9 +1,7 @@
+import { loadStudioTaxonomy } from "@/features/ai-studio/server";
 import type { Metadata } from "next"
 
-import {
-  GenerateArticleView,
-  loadStudioTaxonomy,
-} from "@/features/ai-studio"
+import { GenerateArticleView } from "@/features/ai-studio";
 
 export const metadata: Metadata = {
   title: "Generate article",

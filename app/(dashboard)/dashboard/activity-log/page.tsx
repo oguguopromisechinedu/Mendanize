@@ -1,6 +1,7 @@
 ﻿import type { Metadata } from "next"
 
-import { ActivityLogView, loadActivityLog } from "@/features/admin-modules"
+import { ActivityLogView } from "@/features/admin-modules"
+import { loadActivityLog } from "@/features/admin-modules/server"
 
 export const metadata: Metadata = {
   title: "Activity Log",

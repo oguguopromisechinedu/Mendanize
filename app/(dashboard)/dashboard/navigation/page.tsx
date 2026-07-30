@@ -1,9 +1,7 @@
+import { loadNavigationOverview } from "@/features/navigation/server";
 import type { Metadata } from "next"
 
-import {
-  loadNavigationOverview,
-  NavigationOverviewView,
-} from "@/features/navigation"
+import { NavigationOverviewView } from "@/features/navigation";
 
 export const metadata: Metadata = {
   title: "Navbar Manager",

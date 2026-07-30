@@ -1,9 +1,7 @@
+import { loadHomepageAdmin } from "@/features/homepage-management/server";
 import type { Metadata } from "next"
 
-import {
-  HomepageAskView,
-  loadHomepageAdmin,
-} from "@/features/homepage-management"
+import { HomepageAskView } from "@/features/homepage-management";
 
 export const metadata: Metadata = {
   title: "Homepage Ask copy",

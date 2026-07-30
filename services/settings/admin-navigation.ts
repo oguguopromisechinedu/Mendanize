@@ -40,6 +40,12 @@ export const SEEDED_ADMIN_NAVIGATION: AdminNavigationConfig = {
         { label: "Certificates", href: "/dashboard/certificates", icon: "award" },
         { label: "Featured Learning", href: "/dashboard/featured-learning", icon: "star" },
         { label: "Workspace Presets", href: "/dashboard/workspace-presets", icon: "code-2" },
+        {
+          label: "Code Execution",
+          href: "/dashboard/code-execution",
+          icon: "cpu",
+          roles: ["SUPER_ADMIN", "ADMIN"],
+        },
       ],
     },
     {
@@ -53,6 +59,7 @@ export const SEEDED_ADMIN_NAVIGATION: AdminNavigationConfig = {
         { label: "Topics", href: "/dashboard/topics", icon: "tags" },
         { label: "Media Library", href: "/dashboard/media", icon: "image" },
         { label: "Pages", href: "/dashboard/pages", icon: "layout" },
+        { label: "Free Resources", href: "/dashboard/resources", icon: "library" },
         { label: "AI Article Generator", href: "/dashboard/ai-studio/article", icon: "sparkles" },
         { label: "AI Image Generator", href: "/dashboard/ai-studio/image", icon: "image" },
         { label: "AI Video Generator", href: "/dashboard/ai-studio/video", icon: "video" },
@@ -74,22 +81,68 @@ export const SEEDED_ADMIN_NAVIGATION: AdminNavigationConfig = {
       ],
     },
     {
+      id: "communication",
+      label: "Communication",
+      items: [
+        {
+          label: "Email Management",
+          href: "/dashboard/communication/email",
+          icon: "mail",
+        },
+      ],
+    },
+    {
       id: "growth",
       label: "Growth & Engagement",
       items: [
-        { label: "Newsletter", href: "/dashboard/newsletter", icon: "mail" },
         { label: "Notifications", href: "/dashboard/notifications", icon: "bell" },
         { label: "Subscribers", href: "/dashboard/subscribers", icon: "users" },
         { label: "Analytics", href: "/dashboard/analytics", icon: "bar-chart-3" },
+        {
+          label: "Referrals",
+          href: "/dashboard/referrals",
+          icon: "users",
+        },
+        {
+          label: "Org plans",
+          href: "/dashboard/organization-plans",
+          icon: "store",
+        },
         {
           label: "Community",
           href: "/dashboard/community",
           icon: "message-square",
         },
         {
+          label: "Community events",
+          href: "/dashboard/community/events",
+          icon: "calendar",
+        },
+        {
+          label: "Message reports",
+          href: "/dashboard/community/messages",
+          icon: "mail",
+        },
+        {
           label: "Marketplace",
           href: "/dashboard/marketplace",
           icon: "store",
+        },
+        {
+          label: "Marketplace Finance",
+          href: "/dashboard/marketplace/finance",
+          icon: "credit-card",
+          roles: ["SUPER_ADMIN"],
+        },
+        {
+          label: "Disputes",
+          href: "/dashboard/marketplace/disputes",
+          icon: "message-square",
+        },
+        {
+          label: "Recommendation ML",
+          href: "/dashboard/recommendations/ml",
+          icon: "sparkles",
         },
       ],
     },

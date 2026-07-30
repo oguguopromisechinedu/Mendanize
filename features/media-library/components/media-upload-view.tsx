@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useState, useTransition } from "react"
+import { useCallback, useRef, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
@@ -13,6 +13,22 @@ import { Select } from "@/components/ui/select"
 import { uploadMediaAction } from "../actions/actions"
 import { ALLOWED_UPLOAD_MIME } from "../constants/constants"
 import { MediaCmsNav } from "./media-cms-nav"
+
+function readFileAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result
+      if (typeof result !== "string") {
+        reject(new Error("Could not read file"))
+        return
+      }
+      resolve(result)
+    }
+    reader.onerror = () => reject(reader.error ?? new Error("Read failed"))
+    reader.readAsDataURL(file)
+  })
+}
 
 type QueueItem = {
   id: string
@@ -35,6 +51,7 @@ export function MediaUploadView({ options }: { options: MediaLibraryOptions }) {
   )
   const [collectionId, setCollectionId] = useState("")
   const [dragOver, setDragOver] = useState(false)
+  const fileMapRef = useRef<Map<string, File>>(new Map())
 
   const enqueueFiles = useCallback((files: FileList | File[]) => {
     const list = Array.from(files)
@@ -49,8 +66,10 @@ export function MediaUploadView({ options }: { options: MediaLibraryOptions }) {
         toast.error(`Skipped ${file.name}: type not allowed`)
         continue
       }
+      const id = `${file.name}-${file.size}-${Date.now()}-${Math.random()}`
+      fileMapRef.current.set(id, file)
       next.push({
-        id: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`,
+        id,
         filename: file.name,
         mimeType: file.type || "image/webp",
         sizeBytes: file.size,
@@ -92,11 +111,28 @@ export function MediaUploadView({ options }: { options: MediaLibraryOptions }) {
               : q
           )
         )
-        // Architecture prepared for cloud storage — placeholder provider + seed URL.
+        // Real file upload via Supabase Storage (MES-014).
+        const file = fileMapRef.current.get(item.id)
+        let base64: string | undefined
+        if (file) {
+          try {
+            base64 = await readFileAsBase64(file)
+          } catch {
+            setQueue((prev) =>
+              prev.map((q) =>
+                q.id === item.id
+                  ? { ...q, status: "error", progress: 0, error: "Read failed" }
+                  : q,
+              ),
+            )
+            continue
+          }
+        }
         const res = await uploadMediaAction({
           filename: item.filename,
           mimeType: item.mimeType,
           sizeBytes: item.sizeBytes,
+          base64: base64 ?? null,
           categoryId: categoryId || null,
           collectionId: collectionId || null,
         })

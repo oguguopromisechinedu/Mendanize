@@ -88,30 +88,75 @@ export type LearnerNavGroup = {
 };
 
 /**
- * Default learner IA skeleton.
+ * Creators Hub IA — Learn → Create → Marketplace → Work.
  * Visibility is filtered at runtime by Admin FeatureFlags via loadLearnerShellConfig.
+ * Routes are unchanged; only grouping/labels are reorganized.
  */
 export const LEARNER_NAV_GROUPS: LearnerNavGroup[] = [
   {
-    id: "main",
+    id: "home",
+    items: [{ label: "Home", href: "/account", icon: "home" }],
+  },
+  {
+    id: "learn",
+    label: "Learn",
     items: [
-      { label: "Home", href: "/account", icon: "home" },
-      { label: "Learn", href: "/account/continue", icon: "bookOpen", flagKey: "guides" },
+      { label: "Continue learning", href: "/account/continue", icon: "bookOpen", flagKey: "guides" },
       { label: "Courses", href: "/account/guides", icon: "graduationCap", flagKey: "guides" },
+      { label: "Assessments", href: "/account/assessments", icon: "award", flagKey: "guides" },
       { label: "AI Tutor", href: "/ask", icon: "bot", flagKey: "ask_mendanize" },
+      { label: "Certificates", href: "/account/certificates", icon: "award" },
+      { label: "Offline library", href: "/account/offline", icon: "notebookPen" },
+    ],
+  },
+  {
+    id: "create",
+    label: "Create",
+    items: [
       { label: "Coding Workspace", href: "/account/workspace", icon: "code2" },
       { label: "Projects", href: "/account/projects", icon: "folderKanban" },
       { label: "Prompt Library", href: "/account/prompts", icon: "messageSquareText" },
       { label: "AI Tools", href: "/account/ai-tools", icon: "wrench", flagKey: "ai_tools" },
-      { label: "AI Tools Marketplace", href: "/account/tools-marketplace", icon: "store", badge: "New" },
-      { label: "Certificates", href: "/account/certificates", icon: "award" },
       { label: "Portfolio", href: "/account/portfolio", icon: "library" },
       { label: "Mendanize Cloud", href: "/account/cloud", icon: "cloud" },
-      { label: "Community", href: "/account/community", icon: "users" },
+    ],
+  },
+  {
+    id: "marketplace",
+    label: "Marketplace",
+    items: [
+      {
+        label: "AI Tools Marketplace",
+        href: "/account/tools-marketplace",
+        icon: "store",
+        badge: "New",
+      },
+      { label: "My Listings", href: "/account/marketplace", icon: "shoppingBag" },
+    ],
+  },
+  {
+    id: "work",
+    label: "Work",
+    items: [
       { label: "Career Hub", href: "/account/career", icon: "rocket" },
       { label: "Work Marketplace", href: "/account/work", icon: "briefcase", badge: "New" },
-      { label: "Company", href: "/account/employer", icon: "store", badge: "New" },
+      { label: "Hire talent", href: "/account/employer", icon: "store", badge: "New" },
+    ],
+  },
+  {
+    id: "community",
+    label: "Community",
+    items: [
+      { label: "Community", href: "/account/community", icon: "users" },
       { label: "Messages", href: "/account/messages", icon: "mail" },
+    ],
+  },
+  {
+    id: "account",
+    label: "Account",
+    items: [
+      { label: "Profile", href: "/account/profile", icon: "users" },
+      { label: "Referrals", href: "/account/referrals", icon: "users" },
       { label: "Notifications", href: "/account/notifications", icon: "bell" },
     ],
   },
@@ -128,54 +173,54 @@ export const LEARNER_SPACES = [
 
 export const LEARNER_QUICK_ACTIONS = [
   {
-    label: "Browse Courses",
+    label: "Learn",
     href: "/account/guides",
-    description: "Explore topics",
+    description: "Courses & paths",
     icon: "graduationCap" as const satisfies LearnerIconName,
     flagKey: "guides",
   },
   {
     label: "AI Tutor",
     href: "/ask",
-    description: "Ask anything",
+    description: "Practice with AI",
     icon: "bot" as const satisfies LearnerIconName,
     flagKey: "ask_mendanize",
   },
   {
-    label: "Coding Workspace",
-    href: "/account/workspace",
-    description: "Build & code",
-    icon: "code2" as const satisfies LearnerIconName,
+    label: "Create",
+    href: "/account/projects",
+    description: "Projects & workspace",
+    icon: "folderKanban" as const satisfies LearnerIconName,
   },
   {
-    label: "Projects",
-    href: "/account/projects",
-    description: "Build portfolio",
-    icon: "folderKanban" as const satisfies LearnerIconName,
+    label: "Sell",
+    href: "/account/tools-marketplace",
+    description: "Tools & prompts",
+    icon: "store" as const satisfies LearnerIconName,
+  },
+  {
+    label: "Work",
+    href: "/account/work",
+    description: "Get hired",
+    icon: "briefcase" as const satisfies LearnerIconName,
+  },
+  {
+    label: "Portfolio",
+    href: "/account/portfolio",
+    description: "Showcase skills",
+    icon: "library" as const satisfies LearnerIconName,
   },
   {
     label: "Community",
     href: "/community",
-    description: "Connect & learn",
+    description: "Connect & grow",
     icon: "users" as const satisfies LearnerIconName,
-  },
-  {
-    label: "Work Marketplace",
-    href: "/account/work",
-    description: "Find work",
-    icon: "briefcase" as const satisfies LearnerIconName,
-  },
-  {
-    label: "AI Tools Marketplace",
-    href: "/account/tools-marketplace",
-    description: "Discover & sell tools",
-    icon: "store" as const satisfies LearnerIconName,
   },
 ] as const;
 
 /** Keep existing flat nav for secondary pages that still use LearningNav. */
 export const LEARNING_NAV = [
-  { label: "Dashboard", href: "/account" },
+  { label: "Creators Hub", href: "/account" },
   { label: "Continue", href: "/account/continue" },
   { label: "Saved", href: "/account/saved" },
   { label: "History", href: "/account/history" },

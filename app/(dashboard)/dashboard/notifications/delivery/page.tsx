@@ -1,9 +1,7 @@
+import { loadDelivery } from "@/features/notifications/server";
 import type { Metadata } from "next"
 
-import {
-  DeliverySettingsView,
-  loadDelivery,
-} from "@/features/notifications"
+import { DeliverySettingsView } from "@/features/notifications";
 
 export const metadata: Metadata = {
   title: "Delivery settings",

@@ -1,5 +1,6 @@
 import { PublicHeader } from "@/components/layout/PublicHeader"
 import { PublicFooter } from "@/components/layout/PublicFooter"
+import { PwaShell } from "@/components/pwa/pwa-shell"
 import { ConsentBanner } from "@/features/privacy/components/consent-banner"
 import { getNavigationConfig } from "@/services/settings/navigation"
 
@@ -37,6 +38,7 @@ export default async function PublicLayout({
         }}
       />
       <ConsentBanner />
+      <PwaShell />
     </div>
   )
 }

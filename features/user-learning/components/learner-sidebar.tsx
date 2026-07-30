@@ -40,8 +40,8 @@ export function LearnerSidebar({
     >
       <div
         className={cn(
-          "flex items-center px-4 py-5",
-          collapsed && "justify-center px-2",
+          "flex flex-col gap-1 px-4 py-5",
+          collapsed && "items-center px-2",
         )}
       >
         <Logo
@@ -50,11 +50,21 @@ export function LearnerSidebar({
           size="sm"
           className={collapsed ? "gap-0" : undefined}
         />
+        {!collapsed ? (
+          <p className="pl-0.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
+            Creators Hub
+          </p>
+        ) : null}
       </div>
 
       <nav className="flex-1 space-y-6 overflow-y-auto px-3 pb-4">
         {navGroups.map((group) => (
           <div key={group.id}>
+            {group.label && !collapsed ? (
+              <p className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                {group.label}
+              </p>
+            ) : null}
             <ul className="space-y-0.5">
               {group.items.map((item) => {
                 const active =

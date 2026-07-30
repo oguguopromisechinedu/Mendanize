@@ -1,6 +1,7 @@
+import { loadUserDomain } from "@/features/analytics/server";
 import type { Metadata } from "next"
 
-import { DomainAnalyticsView, loadUserDomain } from "@/features/analytics"
+import { DomainAnalyticsView } from "@/features/analytics"
 
 export const metadata: Metadata = {
   title: "User analytics",

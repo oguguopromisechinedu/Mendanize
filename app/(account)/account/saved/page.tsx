@@ -1,7 +1,8 @@
+import { loadSaved } from "@/features/user-learning/server";
 import type { Metadata } from "next"
 
 import { requirePublicUser } from "@/features/authentication/server"
-import { SavedContentView, loadSaved } from "@/features/user-learning"
+import { SavedContentView } from "@/features/user-learning"
 
 export const metadata: Metadata = {
   title: "Saved content",

@@ -182,11 +182,11 @@ export async function updateNewsletterCampaign(
   return mapRow(row)
 }
 
-/** Sends campaign to active subscribers via Resend/SMTP; fails if mailer unconfigured. */
+/** Sends campaign via EMS queue → MES-042 transport (MES-051). */
 export async function sendNewsletterCampaign(
   id: string
 ): Promise<NewsletterCampaignRecord> {
-  const { isEmailConfigured, sendEmail } = await import("@/lib/email/send")
+  const { isEmailConfigured } = await import("@/lib/email/send")
   if (!(await isEmailConfigured())) {
     throw new Error(
       "Email is not configured. Set RESEND_API_KEY or SMTP in Email settings."
@@ -215,18 +215,41 @@ export async function sendNewsletterCampaign(
   let failed = 0
   const errors: string[] = []
 
+  const { enqueueAndSend } = await import("@/services/ems")
+
   for (const sub of subscribers.items) {
-    const result = await sendEmail({
-      to: sub.email,
-      subject: campaign.subject,
-      html: campaign.bodyHtml,
-      text: campaign.previewText ?? campaign.subject,
-    })
-    if (result.ok) sent++
-    else {
+    try {
+      if (isDatabaseConfigured()) {
+        await enqueueAndSend({
+          toEmail: sub.email,
+          subject: campaign.subject,
+          bodyHtml: campaign.bodyHtml,
+          bodyText: campaign.previewText ?? campaign.subject,
+          campaignId: id,
+        })
+        sent++
+      } else {
+        const { sendEmail } = await import("@/lib/email/send")
+        const result = await sendEmail({
+          to: sub.email,
+          subject: campaign.subject,
+          html: campaign.bodyHtml,
+          text: campaign.previewText ?? campaign.subject,
+        })
+        if (result.ok) sent++
+        else {
+          failed++
+          if (errors.length < 5) {
+            errors.push(`${sub.email}: ${result.error ?? "failed"}`)
+          }
+        }
+      }
+    } catch (e) {
       failed++
       if (errors.length < 5) {
-        errors.push(`${sub.email}: ${result.error ?? "failed"}`)
+        errors.push(
+          `${sub.email}: ${e instanceof Error ? e.message : "failed"}`,
+        )
       }
     }
   }
@@ -240,7 +263,7 @@ export async function sendNewsletterCampaign(
   const note =
     failed > 0
       ? `Sent ${sent}, failed ${failed}. ${errors.join("; ")}`
-      : `Sent ${sent} via mailer`
+      : `Sent ${sent} via EMS queue`
 
   if (!isDatabaseConfigured()) {
     seed()

@@ -1,4 +1,6 @@
-/** Public exports — features/platform-settings (MES-020) */
+/** Client-safe exports — features/platform-settings (MES-020)
+ * Loaders: `@/features/platform-settings/server`
+ */
 
 export { SettingsDashboardView } from "./components/settings-dashboard-view";
 export { SettingsCmsNav } from "./components/settings-cms-nav";
@@ -15,16 +17,3 @@ export {
   SearchPlatformSettingsView,
   SecuritySettingsView,
 } from "./components/settings-forms";
-export {
-  loadAiSettings,
-  loadAuthSettings,
-  loadBranding,
-  loadEmail,
-  loadFeatureFlags,
-  loadGeneral,
-  loadLocalization,
-  loadMaintenance,
-  loadSearchPlatform,
-  loadSecurity,
-  loadSettingsDashboard,
-} from "./services/service";

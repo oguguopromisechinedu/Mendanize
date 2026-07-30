@@ -1,6 +1,7 @@
 ﻿import type { Metadata } from "next"
 
-import { AutomationView, loadAutomation } from "@/features/admin-modules"
+import { AutomationView } from "@/features/admin-modules"
+import { loadAutomation } from "@/features/admin-modules/server"
 
 export const metadata: Metadata = {
   title: "Automation",

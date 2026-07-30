@@ -34,13 +34,12 @@ export function LearnerComingSoon({
         {title}
       </h1>
       <p className="mt-3 text-muted-foreground">
-        This space is part of the Mendanize learner ecosystem. AI features use
-        platform-managed keys on the server — nothing sensitive lives in your
-        browser.
+        This space is part of Creators Hub. AI features use platform-managed keys
+        on the server — nothing sensitive lives in your browser.
       </p>
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
         <Button asChild className="rounded-xl">
-          <Link href="/account">Back to home</Link>
+          <Link href="/account">Back to Creators Hub</Link>
         </Button>
         <Button asChild variant="outline" className="rounded-xl">
           <Link href="/ask">Open AI Tutor</Link>

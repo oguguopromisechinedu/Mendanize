@@ -18,6 +18,11 @@ import type {
   RecommendationParams,
   RecommendationsResult,
 } from "./types";
+import {
+  getActiveModel,
+  getShadowModel,
+  scoreWithModel,
+} from "./ml-scoring";
 
 type SeedContext = {
   categoryIds: string[];
@@ -586,9 +591,14 @@ async function userRecommendations(
 /**
  * Canonical recommendations API (MES-018).
  * All modules must call this — never invent parallel ranking.
+ *
+ * MES-049: If an ML model is active (DEFAULT or CANARY with rollout match),
+ * rules candidates are re-ranked by the model. Shadow models are scored in
+ * the background for comparison but never affect user-facing results.
+ * Falls back to rules on any model failure.
  */
 export async function getRecommendations(
-  params: GetRecommendationsParams,
+  params: GetRecommendationsParams & { sessionId?: string },
 ): Promise<RecommendationsResult> {
   const limit = Math.min(24, Math.max(1, params.limit ?? 8));
   const hrefScope: ContentScope = params.hrefScope ?? "public";
@@ -612,6 +622,17 @@ export async function getRecommendations(
     contextType === "tool"
   ) {
     items = await relatedForContent(contextType, contextId, limit);
+  }
+
+  // MES-049: attempt ML re-ranking
+  const mlResult = await tryMlRerank(items, {
+    userId: contextType === "user" ? contextId : undefined,
+    contextType,
+    contextId: contextType !== "user" ? contextId : undefined,
+    sessionId: params.sessionId,
+  });
+  if (mlResult) {
+    items = mlResult;
   }
 
   if (hrefScope === "account") {
@@ -660,6 +681,42 @@ export async function getRecommendedForUser(
     limit: params?.limit,
   });
   return result.items;
+}
+
+/**
+ * MES-049: attempt ML re-ranking of rules-scored candidates.
+ * Shadow models are scored but their results are discarded (comparison only).
+ * Returns null when rules should be used as-is.
+ */
+async function tryMlRerank(
+  candidates: RecommendationItem[],
+  ctx: { userId?: string; contextType: string; contextId?: string; sessionId?: string },
+): Promise<RecommendationItem[] | null> {
+  if (!candidates.length) return null;
+
+  const activeModel = await getActiveModel(ctx.sessionId);
+
+  // Fire-and-forget shadow scoring for comparison logging
+  getShadowModel().then(async (shadow) => {
+    if (!shadow) return;
+    await scoreWithModel(shadow, {
+      userId: ctx.userId,
+      contextType: ctx.contextType,
+      contextId: ctx.contextId,
+      candidates,
+    }).catch(() => {});
+  }).catch(() => {});
+
+  if (!activeModel) return null;
+
+  const result = await scoreWithModel(activeModel, {
+    userId: ctx.userId,
+    contextType: ctx.contextType,
+    contextId: ctx.contextId,
+    candidates,
+  });
+
+  return result?.items ?? null;
 }
 
 /** Record a view for Learning History (Personalization / public pages). */

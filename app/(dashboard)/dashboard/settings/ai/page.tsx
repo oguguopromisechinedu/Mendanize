@@ -1,6 +1,7 @@
+import { loadAiSettings } from "@/features/platform-settings/server";
 import type { Metadata } from "next"
 
-import { loadAiSettings, AiSettingsView } from "@/features/platform-settings"
+import { AiSettingsView } from "@/features/platform-settings"
 
 export const metadata: Metadata = {
   title: "AI settings",

@@ -1,6 +1,7 @@
+import { loadGuideList } from "@/features/learning-guides/server";
 import type { Metadata } from "next"
 
-import { GuideListView, loadGuideList } from "@/features/learning-guides"
+import { GuideListView } from "@/features/learning-guides"
 import type { GuideStatusValue } from "@/services/content/types"
 
 export const metadata: Metadata = {

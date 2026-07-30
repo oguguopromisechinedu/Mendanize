@@ -1,6 +1,7 @@
+import { loadLocationsAndMenus } from "@/features/navigation/server";
 import type { Metadata } from "next"
 
-import { loadLocationsAndMenus, LocationsView } from "@/features/navigation"
+import { LocationsView } from "@/features/navigation"
 
 export const metadata: Metadata = {
   title: "Menu locations",

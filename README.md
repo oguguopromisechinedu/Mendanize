@@ -2,7 +2,7 @@
 
 > AI-powered technology learning and content platform built on Next.js, Prisma, and PostgreSQL.
 
-Mendanize is an AI-native learning platform with two primary surfaces that share data and
+Mendanize is an AI-native learning platform with **three** primary surfaces that share data and
 Shared Services but keep separate routing, layouts, and permission boundaries.
 
 | Field | Value |
@@ -35,18 +35,17 @@ Shared Services but keep separate routing, layouts, and permission boundaries.
 
 ## Platform overview
 
-Mendanize serves two audiences from one application:
+Mendanize serves three surfaces from one application (MES-001 v3.0 / MES-030):
 
 1. **Teaching Frontend** (`app/(public)`) — public **Learn / Discover / Explore** experience.
-   Articles, learning guides, categories/topics, an AI tools directory, and a contextual
-   "Ask Mendanize" widget. No authentication required. SEO and accessibility are treated as
-   product features.
-2. **Dashboard** (`app/(dashboard)`) — authenticated **Practice / Ask / Create / Administer**
-   surface for signed-in users and operators. Includes the AI Studio, content management
-   (articles, guides, media, categories), SEO center, navigation manager, analytics,
-   settings, and billing.
+   Articles, learning guides, categories/topics, an AI tools directory, Community, and a contextual
+   "Ask Mendanize" widget. SEO and accessibility are treated as product features.
+2. **Learner Account** (`/account/*`) — billing, learning, profile, marketplaces, and company
+   tools for signed-in **`PublicUser`** learners. Never under Admin-only `/dashboard/*`.
+3. **Admin Dashboard** (`app/(dashboard)`) — **`Admin`-only** Create / Administer surface:
+   AI Studio, CMS, SEO, navigation, analytics, settings, marketplace moderation, Communication/Email (MES-051).
 
-Authentication flows live in a third route group, `app/(auth)`.
+Authentication flows live in `app/(auth)` with dual-domain sessions (`PublicUser` vs `Admin`).
 
 The platform thesis and governing principles are defined in the
 [Mendanize Software Engineering Manifesto (MSEM)](./docs/core/MSEM.md).
@@ -375,55 +374,45 @@ Mendanize is governed by a specification hierarchy under [`docs/`](./docs/README
 - **[MSEM Appendix A](./docs/core/MSEM-Appendix-A-Engineering-Standards.md)** — binding
   engineering standards referenced by every spec.
 - **[Project Rules](./docs/core/Project-Rules.md)** — process rules.
-- **[MES Index](./docs/engineering/MES-INDEX.md)** — MES-001 → **MES-035**, implemented in
-  order. Layers:
+- **[MES Index](./docs/engineering/MES-INDEX.md)** — **MES-001 → MES-051** (v2.1), implemented
+  **one MES at a time**. Layers:
   - **Foundation** (MES-001–007 + MES-030 retrofit): platform, Shared Services & API, design
     system, public structure, homepage, dual auth, admin dashboard.
-  - **Content modules** (MES-008–016): articles, categories/topics, guides, AI Studio, AI
-    tools, homepage CMS, media library, SEO center, navigation manager.
-  - **Platform services** (MES-017–021 + MES-031): search, recommendations, Ask Mendanize,
-    platform settings, billing, AI Knowledge Generation Pipeline.
-  - **User experience** (MES-022–024): learning personalization, analytics, notifications.
+  - **Content modules** (MES-008–016 + MES-041): articles, taxonomy, guides, AI Studio, tools,
+    homepage CMS, media, SEO, navigation, static pages CMS.
+  - **Platform services** (MES-017–021 + MES-031 + MES-042/051): search, recommendations, Ask,
+    settings, billing, AI Knowledge Pipeline, email transport + EMS.
+  - **User experience** (MES-022–024 + MES-043): learning personalization, analytics, notifications, messaging.
   - **Public surfaces** (MES-025–027): public articles, guides, AI tools directory.
-  - **Launch** (MES-028–029 + MES-032–035): production readiness, final QA, observability,
-    caching, backup/recovery, privacy basics.
+  - **Launch** (MES-028–029 + MES-032–035): production readiness, QA, observability, caching, backup, privacy.
+  - **Post-v1 / next phase** (MES-036–040, MES-044–050): community, founder BI, growth/marketplaces, orgs, sandbox, events, affiliates, PWA, etc.
 
 Live status: [MES-DOCUMENTS-STATUS.md](./docs/MES-DOCUMENTS-STATUS.md). Per-spec completion
 handoffs live at `docs/MES-XXX-COMPLETION.md` when each MES is finished.
 
 **How to work (agents & contributors):** read the
-[Cursor System Prompt](./docs/core/Cursor-System-Prompt.md), the
+[Cursor System Prompt](./docs/core/Cursor-System-Prompt.md) (**v2.1 — sees MES-001→051**), the
 [MES Index](./docs/engineering/MES-INDEX.md), and
-[MES Documents Status](./docs/MES-DOCUMENTS-STATUS.md) first, then proceed spec by spec,
-confirming folder ownership in the [Module Map](./docs/architecture/Module-Map.md).
+[MES Documents Status](./docs/MES-DOCUMENTS-STATUS.md) first, then proceed **spec by spec**,
+confirming folder ownership in the [Module Map](./docs/architecture/Module-Map.md). Do **not**
+implement an entire MES range in one change set.
 
 ---
 
 ## Roadmap
 
-**v1.0 baseline** covered MES-001 → MES-029. The **current sequence continues through MES-035**
+**v1.0 baseline** covered MES-001 → MES-029. The live sequence is **MES-001 → MES-051**
 ([MES Index](./docs/engineering/MES-INDEX.md); status in
-[MES-DOCUMENTS-STATUS](./docs/MES-DOCUMENTS-STATUS.md)):
+[MES-DOCUMENTS-STATUS](./docs/MES-DOCUMENTS-STATUS.md)).
 
-- MES-030 Dual Authentication (retrofit)
-- MES-031 AI Knowledge Generation Pipeline
-- MES-032 Observability & Logging
-- MES-033 Caching & Performance
-- MES-034 Backup & Recovery
-- MES-035 Privacy & Compliance Basics
+**Next to implement** (see status board for truth):
 
-The following remain **explicitly out of this sequence** until separately designed:
+1. MES-042 Transactional Email Delivery  
+2. MES-051 Email Management System (EMS)  
+3. MES-043 → MES-050 in order  
 
-- Real ML-based recommendations
-- Real learning-progress tracking and completion certificates
-- Multi-language support
-- Community features
-- Mobile apps
-- Enterprise offerings
-- AI tool submissions / reviews
-- Affiliate tracking
-- Final per-tier billing gates
-- Multi-provider AI wiring (Claude, Gemini, Grok) — adapters are currently stubbed
+Still **explicitly out of sequence** until separately designed: full i18n, native mobile apps,
+SSO/SAML, webinar platform, ESP-grade A/B labs.
 
 ---
 

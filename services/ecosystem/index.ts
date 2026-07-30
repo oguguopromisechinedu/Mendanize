@@ -5,6 +5,8 @@
 
 export {
   listPublishedPromptPacks,
+  getPublishedPromptPackBySlug,
+  submitPromptPackReview,
   listPublishedProjectTemplates,
   listLearnerProjects,
   listLearnerCertificates,

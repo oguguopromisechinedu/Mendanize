@@ -1,3 +1,7 @@
+/** Client-safe exports — features/admin-modules
+ * Loaders: `@/features/admin-modules/server`
+ */
+
 export {
   createTagAction,
   updateTagAction,
@@ -34,22 +38,6 @@ export {
   deleteKnowledgeAction,
   advanceWorkflowAction,
 } from "./actions/actions"
-
-export {
-  loadTags,
-  loadUsers,
-  loadStaffRoles,
-  loadSubscribers,
-  loadComments,
-  loadPages,
-  loadActivityLog,
-  loadNewsletter,
-  loadBrokenLinks,
-  loadAutomation,
-  loadKnowledge,
-  loadWorkflow,
-  loadIntegrations,
-} from "./services/service"
 
 export { TagsListView, CreateHubView, ContentHubView } from "./components/tags-and-hubs"
 export { UsersListView } from "./components/users-list-view"

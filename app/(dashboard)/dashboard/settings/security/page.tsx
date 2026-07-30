@@ -1,6 +1,7 @@
+import { loadSecurity } from "@/features/platform-settings/server";
 import type { Metadata } from "next"
 
-import { loadSecurity, SecuritySettingsView } from "@/features/platform-settings"
+import { SecuritySettingsView } from "@/features/platform-settings"
 
 export const metadata: Metadata = {
   title: "Security settings",

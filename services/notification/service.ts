@@ -1,6 +1,6 @@
 /**
- * Notification Shared Service — MES-002 / MES-024.
- * Canonical dispatch for in-app + email (email delivery is logged, not SMTP-sent).
+ * Notification Shared Service — MES-002 / MES-024 / MES-042.
+ * Canonical dispatch for in-app + email (email sent via lib/email/send).
  */
 
 import "server-only";
@@ -14,6 +14,10 @@ import {
 
 import { getPrisma, isDatabaseConfigured } from "@/lib/db/prisma";
 import { AuthorizationError, ValidationError } from "@/lib/api/errors";
+import {
+  MARKETING_EMAIL_TEMPLATES,
+  TRANSACTIONAL_EMAIL_TEMPLATES,
+} from "@/lib/email/mes042";
 import type {
   AnnouncementRecord,
   CommunicationLogRecord,
@@ -119,18 +123,42 @@ const DEFAULT_EMAIL_TEMPLATES: Array<Omit<EmailTemplateRecord, "id">> = [
     key: "password_reset",
     name: "Password reset",
     subject: "Reset your Mendanize password",
-    bodyHtml: "<p>Reset link: {{resetUrl}}</p>",
-    bodyText: "Reset link: {{resetUrl}}",
-    description: "Triggered by MES-006 forgot-password flow.",
+    bodyHtml:
+      "<p>Hi {{name}},</p><p><a href=\"{{resetUrl}}\">Reset your password</a></p><p>This link expires in 1 hour. If you did not request a reset, you can ignore this email.</p>",
+    bodyText:
+      "Hi {{name}}, reset your password: {{resetUrl}}\n\nThis link expires in 1 hour.",
+    description: "Triggered by MES-006 / MES-042 forgot-password flow.",
     active: true,
   },
   {
     key: "email_verification",
     name: "Email verification",
     subject: "Verify your email",
-    bodyHtml: "<p>Verify: {{verifyUrl}}</p>",
-    bodyText: "Verify: {{verifyUrl}}",
-    description: "Triggered by MES-006 verification flow.",
+    bodyHtml:
+      "<p>Hi {{name}},</p><p><a href=\"{{verifyUrl}}\">Verify your email</a> to finish setting up Mendanize.</p><p>If you did not create an account, you can ignore this message.</p>",
+    bodyText:
+      "Hi {{name}}, verify your email: {{verifyUrl}}\n\nIf you did not create an account, ignore this message.",
+    description: "Triggered by MES-006 / MES-042 verification flow.",
+    active: true,
+  },
+  {
+    key: "admin_password_reset",
+    name: "Admin password reset",
+    subject: "Reset your Mendanize admin password",
+    bodyHtml:
+      "<p>Hi {{name}},</p><p><a href=\"{{resetUrl}}\">Reset your admin password</a></p><p>This link expires in 1 hour. If you did not request a reset, contact a Super Administrator.</p>",
+    bodyText:
+      "Hi {{name}}, reset your admin password: {{resetUrl}}\n\nThis link expires in 1 hour.",
+    description: "Admin-domain reset (MES-030 / MES-042) — never sent to PublicUser sessions.",
+    active: true,
+  },
+  {
+    key: "generic_notification",
+    name: "Generic notification",
+    subject: "{{title}}",
+    bodyHtml: "<p>{{body}}</p>",
+    bodyText: "{{body}}",
+    description: "Fallback transactional notification email (MES-042).",
     active: true,
   },
   {
@@ -239,7 +267,7 @@ async function ensureSeeded(): Promise<void> {
         data: {
           key: KEY,
           smtpNote:
-            "SMTP wiring is a placeholder (MES-020 Email settings). Dispatches are logged only.",
+            "MES-042: outbound mail via Resend or SMTP (Email settings / RESEND_API_KEY). Dispatches are sent and logged.",
         },
       });
     }
@@ -270,6 +298,26 @@ async function ensureSeeded(): Promise<void> {
           active: t.active,
         })),
       });
+    } else {
+      // MES-042: ensure newly added system templates exist without wiping custom edits.
+      for (const t of DEFAULT_EMAIL_TEMPLATES) {
+        const existing = await tx.emailTemplate.findUnique({
+          where: { key: t.key },
+        });
+        if (!existing) {
+          await tx.emailTemplate.create({
+            data: {
+              key: t.key,
+              name: t.name,
+              subject: t.subject,
+              bodyHtml: t.bodyHtml,
+              bodyText: t.bodyText,
+              description: t.description,
+              active: t.active,
+            },
+          });
+        }
+      }
     }
     const aCount = await tx.announcement.count();
     if (aCount === 0) {
@@ -447,8 +495,54 @@ export async function dispatch(
     if (!delivery.emailEnabled) {
       throw new ValidationError("Email delivery channel is disabled.");
     }
+
+    // Marketing templates respect MES-024 prefs + MES-035 consent flags on the preference row.
+    if (
+      params.userId &&
+      MARKETING_EMAIL_TEMPLATES.has(params.template) &&
+      !TRANSACTIONAL_EMAIL_TEMPLATES.has(params.template)
+    ) {
+      const prefs = await getNotificationPreferences(params.userId);
+      const allowMarketing =
+        prefs.newsletter || prefs.productUpdates || prefs.announcements;
+      if (!allowMarketing) {
+        if (isDatabaseConfigured()) {
+          const log = await db().communicationLog.create({
+            data: {
+              publicUserId: params.userId,
+              channel: "email",
+              templateKey: params.template,
+              subject: params.title || params.template,
+              status: "skipped",
+              detail: "Blocked by marketing/newsletter preferences (MES-035)",
+            },
+          });
+          return {
+            id: log.id,
+            channel: "email",
+            template: params.template,
+            status: "failed",
+            createdAt: now,
+          };
+        }
+        return {
+          id: `local-email-skipped-${Date.now()}`,
+          channel: "email",
+          template: params.template,
+          status: "failed",
+          createdAt: now,
+        };
+      }
+    }
+
     const emailTpl = isDatabaseConfigured()
-      ? await db().emailTemplate.findUnique({ where: { key: params.template } })
+      ? await db().emailTemplate.findFirst({
+          where: {
+            key: params.template,
+            deletedAt: null,
+            enabled: true,
+          },
+        })
       : null;
     const subject = emailTpl
       ? interpolate(emailTpl.subject, params.payload)
@@ -501,6 +595,13 @@ export async function dispatch(
       });
 
       if (!result.ok) {
+        const { logEmailEvent } = await import("@/lib/email/mes042");
+        await logEmailEvent({
+          level: "ERROR",
+          message: result.error ?? "Email send failed",
+          template: params.template,
+          email: params.email,
+        });
         throw new ValidationError(result.error ?? "Email send failed");
       }
 
@@ -511,6 +612,13 @@ export async function dispatch(
         status: "sent",
         createdAt: now,
       };
+    }
+
+    // No DB: allow local/dev queue stub; production must not silently succeed.
+    if (process.env.NODE_ENV === "production") {
+      throw new ValidationError(
+        "Email delivery requires a configured database and mail provider in production.",
+      );
     }
     return {
       id: `local-email-${Date.now()}`,

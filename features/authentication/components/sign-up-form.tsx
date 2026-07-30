@@ -48,8 +48,8 @@ export function SignUpForm() {
 
   return (
     <AuthShell
-      title="Create your account"
-      description="Start learning with Mendanize — free to begin"
+      title="Join Creators Hub"
+      description="Learn AI, create tools, sell what you build, and get hired — free to begin"
       footer={
         <>
           Already have an account?{" "}
@@ -123,7 +123,7 @@ export function SignUpForm() {
           </Alert>
         ) : null}
         <Button type="submit" className="w-full" loading={loading}>
-          Create account
+          Join Creators Hub
         </Button>
       </form>
     </AuthShell>

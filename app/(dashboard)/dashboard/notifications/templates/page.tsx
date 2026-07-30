@@ -1,9 +1,7 @@
+import { loadTemplates } from "@/features/notifications/server";
 import type { Metadata } from "next"
 
-import {
-  NotificationTemplatesView,
-  loadTemplates,
-} from "@/features/notifications"
+import { NotificationTemplatesView } from "@/features/notifications";
 
 export const metadata: Metadata = {
   title: "Notification templates",

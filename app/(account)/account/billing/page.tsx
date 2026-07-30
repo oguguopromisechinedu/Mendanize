@@ -1,12 +1,11 @@
+import { loadBillingDashboard } from "@/features/billing/server";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 
 import { requirePublicUser } from "@/features/authentication/server";
 import {
-  BillingDashboardView,
-  loadBillingDashboard,
-} from "@/features/billing";
+  BillingDashboardView } from "@/features/billing";
 
 export const metadata: Metadata = {
   title: "Billing",

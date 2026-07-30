@@ -1,7 +1,8 @@
 import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 
-import { UsersListView, loadUsers, loadStaffRoles } from "@/features/admin-modules"
+import { UsersListView } from "@/features/admin-modules"
+import { loadUsers, loadStaffRoles } from "@/features/admin-modules/server"
 import { requirePermission, PERMISSIONS } from "@/features/authentication/server"
 
 export const metadata: Metadata = {

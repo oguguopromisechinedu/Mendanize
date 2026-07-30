@@ -39,6 +39,14 @@ const TYPE_LABELS: Record<SearchEntityType, string> = {
   study_group: "Study Groups",
   team: "Teams",
   showcase_project: "Projects",
+  job: "Jobs",
+  marketplace_listing: "Marketplace",
+  prompt: "Prompts",
+  certificate: "Certificates",
+  learner_project: "My projects",
+  glossary_term: "Glossary",
+  free_resource: "Free Resources",
+  static_page: "Pages",
 };
 
 const TYPE_ORDER: SearchEntityType[] = [
@@ -47,10 +55,18 @@ const TYPE_ORDER: SearchEntityType[] = [
   "ai_tool",
   "category",
   "topic",
+  "glossary_term",
+  "free_resource",
+  "prompt",
+  "static_page",
   "discussion",
   "study_group",
   "team",
   "showcase_project",
+  "job",
+  "marketplace_listing",
+  "certificate",
+  "learner_project",
 ];
 
 const FALLBACK_SUGGESTIONS = [
@@ -179,6 +195,24 @@ function hrefFor(
       return `/community/teams/${slug}`
     case "showcase_project":
       return `/community/projects/${slug}`
+    case "job":
+      return `/account/work`
+    case "marketplace_listing":
+      return `/account/tools-marketplace`
+    case "prompt":
+      return scope === "account"
+        ? `/account/prompts`
+        : `/prompt-library/${slug}`
+    case "certificate":
+      return `/verify/${slug}`
+    case "learner_project":
+      return `/account/projects`
+    case "glossary_term":
+      return `/glossary/${slug}`
+    case "free_resource":
+      return `/free-resources/${slug}`
+    case "static_page":
+      return `/${slug}`
     default:
       return contentHref(type, slug, { scope })
   }
@@ -201,6 +235,24 @@ function enabledTypes(
     "team",
     "showcase_project",
   );
+  // Public platform Phase 1 surfaces
+  allowed.push("glossary_term", "free_resource", "prompt", "static_page");
+  if (!requested?.length) return allowed;
+  return allowed.filter((t) => requested.includes(t));
+}
+
+function enabledEcosystemTypes(
+  hrefScope: ContentScope,
+  requested?: SearchEntityType[],
+): SearchEntityType[] {
+  if (hrefScope !== "account") return [];
+  const allowed: SearchEntityType[] = [
+    "job",
+    "marketplace_listing",
+    "prompt",
+    "certificate",
+    "learner_project",
+  ];
   if (!requested?.length) return allowed;
   return allowed.filter((t) => requested.includes(t));
 }
@@ -528,6 +580,8 @@ export async function search(params: SearchParams): Promise<SearchResult> {
   await ensureSeeded();
 
   const types = enabledTypes(config, params.types);
+  const ecosystemTypes = enabledEcosystemTypes(hrefScope, params.types);
+  const allTypes = [...new Set([...types, ...ecosystemTypes])];
   const publishedAfter = params.publishedAfter
     ? new Date(params.publishedAfter)
     : null;
@@ -540,7 +594,7 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 
   const hits: SearchHit[] = [];
 
-  if (types.includes("article")) {
+  if (allTypes.includes("article")) {
     const articles = await db().article.findMany({
       where: {
         status: "PUBLISHED",
@@ -592,7 +646,7 @@ export async function search(params: SearchParams): Promise<SearchResult> {
     }
   }
 
-  if (types.includes("guide")) {
+  if (allTypes.includes("guide")) {
     const guides = await db().guide.findMany({
       where: {
         status: "PUBLISHED",
@@ -647,7 +701,7 @@ export async function search(params: SearchParams): Promise<SearchResult> {
     }
   }
 
-  if (types.includes("ai_tool")) {
+  if (allTypes.includes("ai_tool")) {
     const tools = await db().tool.findMany({
       where: {
         status: "PUBLISHED",
@@ -705,7 +759,7 @@ export async function search(params: SearchParams): Promise<SearchResult> {
     }
   }
 
-  if (types.includes("category") && params.difficulty == null) {
+  if (allTypes.includes("category") && params.difficulty == null) {
     const categories = await db().category.findMany({
       where: {
         status: "ACTIVE",
@@ -741,7 +795,7 @@ export async function search(params: SearchParams): Promise<SearchResult> {
     }
   }
 
-  if (types.includes("topic") && params.difficulty == null) {
+  if (allTypes.includes("topic") && params.difficulty == null) {
     const topics = await db().topic.findMany({
       where: {
         status: "ACTIVE",
@@ -784,6 +838,249 @@ export async function search(params: SearchParams): Promise<SearchResult> {
     }
   }
 
+  if (allTypes.includes("glossary_term") && params.difficulty == null) {
+    const terms = await db().glossaryTerm.findMany({
+      where: {
+        status: "PUBLISHED",
+        OR: [
+          { term: contains(query) },
+          { definition: contains(query) },
+          { category: contains(query) },
+        ],
+      },
+      orderBy: { term: "asc" },
+      take: 30,
+    });
+    for (const t of terms) {
+      hits.push({
+        type: "glossary_term",
+        id: t.id,
+        slug: t.slug,
+        href: hrefFor("glossary_term", t.slug, hrefScope),
+        title: t.term,
+        excerpt: t.definition.slice(0, 180),
+        categoryName: t.category,
+        publishedAt: t.publishedAt?.toISOString() ?? null,
+        updatedAt: t.updatedAt.toISOString(),
+      });
+    }
+  }
+
+  if (allTypes.includes("free_resource") && params.difficulty == null) {
+    const resources = await db().freeResource.findMany({
+      where: {
+        status: "PUBLISHED",
+        OR: [
+          { title: contains(query) },
+          { description: contains(query) },
+          { category: contains(query) },
+        ],
+      },
+      orderBy: { publishedAt: "desc" },
+      take: 30,
+    });
+    for (const r of resources) {
+      hits.push({
+        type: "free_resource",
+        id: r.id,
+        slug: r.slug,
+        href: hrefFor("free_resource", r.slug, hrefScope),
+        title: r.title,
+        excerpt: r.description,
+        thumbnailUrl: r.featuredImageUrl,
+        categoryName: r.category,
+        publishedAt: r.publishedAt?.toISOString() ?? null,
+        updatedAt: r.updatedAt.toISOString(),
+      });
+    }
+  }
+
+  if (allTypes.includes("prompt") && hrefScope === "public") {
+    const packs = await db().promptPack.findMany({
+      where: {
+        status: "PUBLISHED",
+        OR: [
+          { title: contains(query) },
+          { description: contains(query) },
+          { category: contains(query) },
+          { items: { some: { OR: [{ title: contains(query) }, { prompt: contains(query) }] } } },
+        ],
+      },
+      orderBy: [{ featured: "desc" }, { publishedAt: "desc" }],
+      take: 30,
+    });
+    for (const p of packs) {
+      hits.push({
+        type: "prompt",
+        id: p.id,
+        slug: p.slug,
+        href: hrefFor("prompt", p.slug, hrefScope),
+        title: p.title,
+        excerpt: p.description,
+        categoryName: p.category,
+        publishedAt: p.publishedAt?.toISOString() ?? null,
+        updatedAt: p.updatedAt.toISOString(),
+        featured: p.featured,
+      });
+    }
+  }
+
+  if (allTypes.includes("static_page") && params.difficulty == null) {
+    const pages = await db().staticPage.findMany({
+      where: {
+        status: "PUBLISHED",
+        OR: [
+          { title: contains(query) },
+          { excerpt: contains(query) },
+          { content: contains(query) },
+        ],
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 20,
+    });
+    for (const p of pages) {
+      hits.push({
+        type: "static_page",
+        id: p.id,
+        slug: p.slug,
+        href: hrefFor("static_page", p.slug, hrefScope),
+        title: p.title,
+        excerpt: p.excerpt,
+        thumbnailUrl: p.featuredImageUrl,
+        publishedAt: p.publishedAt?.toISOString() ?? null,
+        updatedAt: p.updatedAt.toISOString(),
+      });
+    }
+  }
+
+  // MES-038 — learner ecosystem entities (account search only)
+  if (hrefScope === "account" && ecosystemTypes.length > 0) {
+    if (ecosystemTypes.includes("job")) {
+      const jobs = await db().jobPosting.findMany({
+        where: {
+          status: "OPEN",
+          OR: [
+            { title: contains(query) },
+            { description: contains(query) },
+          ],
+        },
+        orderBy: { publishedAt: "desc" },
+        take: 15,
+      });
+      for (const j of jobs) {
+        hits.push({
+          type: "job",
+          id: j.id,
+          slug: j.slug,
+          href: hrefFor("job", j.slug, hrefScope),
+          title: j.title,
+          excerpt: j.description.slice(0, 160),
+          publishedAt: j.publishedAt?.toISOString() ?? null,
+        });
+      }
+    }
+
+    if (ecosystemTypes.includes("marketplace_listing")) {
+      const listings = await db().marketplaceListing.findMany({
+        where: {
+          status: "APPROVED",
+          OR: [
+            { title: contains(query) },
+            { description: contains(query) },
+          ],
+        },
+        orderBy: { publishedAt: "desc" },
+        take: 15,
+      });
+      for (const l of listings) {
+        hits.push({
+          type: "marketplace_listing",
+          id: l.id,
+          slug: l.slug,
+          href: hrefFor("marketplace_listing", l.slug, hrefScope),
+          title: l.title,
+          excerpt: l.description?.slice(0, 160) ?? null,
+          publishedAt: l.publishedAt?.toISOString() ?? null,
+        });
+      }
+    }
+
+    if (ecosystemTypes.includes("prompt") && params.userId) {
+      const prompts = await db().promptLibraryEntry.findMany({
+        where: {
+          publicUserId: params.userId,
+          OR: [{ title: contains(query) }, { body: contains(query) }],
+        },
+        orderBy: { updatedAt: "desc" },
+        take: 10,
+      });
+      for (const p of prompts) {
+        hits.push({
+          type: "prompt",
+          id: p.id,
+          slug: p.id,
+          href: hrefFor("prompt", p.id, hrefScope),
+          title: p.title,
+          excerpt: p.body.slice(0, 160),
+          updatedAt: p.updatedAt.toISOString(),
+        });
+      }
+    }
+
+    if (ecosystemTypes.includes("certificate") && params.userId) {
+      const certs = await db().certificate.findMany({
+        where: {
+          publicUserId: params.userId,
+          template: { title: contains(query) },
+        },
+        include: { template: true },
+        orderBy: { issuedAt: "desc" },
+        take: 10,
+      });
+      for (const c of certs) {
+        hits.push({
+          type: "certificate",
+          id: c.id,
+          slug: c.credentialCode,
+          href: hrefFor("certificate", c.credentialCode, hrefScope),
+          title: c.template.title,
+          publishedAt: c.issuedAt.toISOString(),
+        });
+      }
+    }
+
+    if (ecosystemTypes.includes("learner_project") && params.userId) {
+      const projects = await db().learnerProject.findMany({
+        where: {
+          publicUserId: params.userId,
+          template: {
+            OR: [
+              { title: contains(query) },
+              { brief: contains(query) },
+            ],
+          },
+        },
+        include: { template: { select: { title: true, brief: true } } },
+        orderBy: { updatedAt: "desc" },
+        take: 10,
+      });
+      for (const p of projects) {
+        hits.push({
+          type: "learner_project",
+          id: p.id,
+          slug: p.id,
+          href: hrefFor("learner_project", p.id, hrefScope),
+          title: p.template.title,
+          excerpt:
+            p.template.brief?.slice(0, 160) ??
+            p.notes?.slice(0, 160) ??
+            null,
+          updatedAt: p.updatedAt.toISOString(),
+        });
+      }
+    }
+  }
+
   // MES-036 — Community content indexed through Search Service
   const communityTypesWanted = (
     [
@@ -792,7 +1089,7 @@ export async function search(params: SearchParams): Promise<SearchResult> {
       "team",
       "showcase_project",
     ] as SearchEntityType[]
-  ).filter((t) => types.includes(t));
+  ).filter((t) => allTypes.includes(t));
   if (communityTypesWanted.length > 0) {
     const { searchCommunity } = await import("@/services/community");
     const communityHits = await searchCommunity(query);

@@ -48,15 +48,37 @@ export default async function Page({ searchParams }: PageProps) {
     appsByJob[job.id] = await listApplicationsForJob(job.id, session.user.id)
   }
 
-  let contracts: Array<{ id: string; status: string; jobId: string }> = []
+  let contracts: Array<{
+    id: string
+    status: string
+    jobId: string
+    kind: string
+    websiteLabel: string | null
+    jobTitle: string
+  }> = []
   if (isDatabaseConfigured()) {
     try {
-      contracts = await getPrisma().contract.findMany({
+      const rows = await getPrisma().contract.findMany({
         where: { clientId: session.user.id },
-        select: { id: true, status: true, jobId: true },
+        select: {
+          id: true,
+          status: true,
+          jobId: true,
+          kind: true,
+          websiteLabel: true,
+          job: { select: { title: true } },
+        },
         orderBy: { createdAt: "desc" },
         take: 20,
       })
+      contracts = rows.map((c) => ({
+        id: c.id,
+        status: c.status,
+        jobId: c.jobId,
+        kind: c.kind,
+        websiteLabel: c.websiteLabel,
+        jobTitle: c.job.title,
+      }))
     } catch (error) {
       if (!isMissingSchemaError(error)) throw error
     }
@@ -82,6 +104,9 @@ export default async function Page({ searchParams }: PageProps) {
         <div className="mt-4 flex flex-wrap gap-2">
           <Button asChild variant="outline" className="rounded-xl">
             <Link href="/account/work">Browse open jobs</Link>
+          </Button>
+          <Button asChild variant="outline" className="rounded-xl">
+            <Link href="/account/hiring/disputes">Disputes</Link>
           </Button>
           <Button asChild variant="outline" className="rounded-xl">
             <Link href="/account/company">
@@ -121,12 +146,60 @@ export default async function Page({ searchParams }: PageProps) {
           placeholder="Description"
           className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
         />
+        <div className="grid gap-2 sm:grid-cols-2">
+          <input
+            name="category"
+            placeholder="Category (e.g. Web Development)"
+            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+          />
+          <select
+            name="jobType"
+            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+            defaultValue=""
+          >
+            <option value="">Job type</option>
+            <option value="Fixed Price">Fixed Price</option>
+            <option value="Hourly">Hourly</option>
+            <option value="Contract">Contract</option>
+            <option value="Full-time">Full-time</option>
+          </select>
+          <select
+            name="workplaceType"
+            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+            defaultValue=""
+          >
+            <option value="">Workplace</option>
+            <option value="Remote">Remote</option>
+            <option value="Hybrid">Hybrid</option>
+            <option value="Onsite">Onsite</option>
+          </select>
+          <select
+            name="experienceLevel"
+            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+            defaultValue=""
+          >
+            <option value="">Experience</option>
+            <option value="Entry">Entry</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Expert">Expert</option>
+          </select>
+          <input
+            name="location"
+            placeholder="Location"
+            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+          />
+          <input
+            name="budgetCents"
+            type="number"
+            min={0}
+            step={100}
+            placeholder="Budget (cents)"
+            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+          />
+        </div>
         <input
-          name="budgetCents"
-          type="number"
-          min={0}
-          step={100}
-          placeholder="Budget (cents)"
+          name="skills"
+          placeholder="Skills (comma-separated, e.g. React, Node.js)"
           className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
         />
         <Button type="submit" className="rounded-xl">
@@ -160,6 +233,14 @@ export default async function Page({ searchParams }: PageProps) {
                         {app.applicantName ?? "Applicant"} · {app.status}
                       </p>
                       <p className="text-muted-foreground">{app.coverLetter}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {app.bidCents != null
+                          ? `Bid $${(app.bidCents / 100).toFixed(2)}`
+                          : "No bid"}
+                        {app.estimatedDays != null
+                          ? ` · ${app.estimatedDays} day${app.estimatedDays === 1 ? "" : "s"}`
+                          : ""}
+                      </p>
                     </div>
                     {app.status === "SUBMITTED" || app.status === "SHORTLISTED" ? (
                       <form action={acceptApplicationAction}>
@@ -179,13 +260,30 @@ export default async function Page({ searchParams }: PageProps) {
 
       <section className="border-t border-border/60 pt-8">
         <h2 className="text-lg font-medium">Contracts</h2>
-        <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+        <ul className="mt-3 space-y-2 text-sm">
           {contracts.length === 0 ? (
-            <li>No contracts yet.</li>
+            <li className="text-muted-foreground">No contracts yet.</li>
           ) : (
             contracts.map((c) => (
-              <li key={c.id}>
-                {c.id.slice(0, 8)}… · {c.status}
+              <li key={c.id} className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <Link
+                  href={`/account/work/contracts/${c.id}`}
+                  className="font-medium underline-offset-4 hover:underline"
+                >
+                  {c.websiteLabel ?? c.jobTitle}
+                </Link>
+                <span className="text-muted-foreground">
+                  · {c.kind === "CONTINUATION" ? "maintenance" : "project"} ·{" "}
+                  {c.status}
+                </span>
+                {c.status === "COMPLETED" ? (
+                  <Link
+                    href={`/account/work/contracts/${c.id}`}
+                    className="text-primary underline-offset-4 hover:underline"
+                  >
+                    Hire again
+                  </Link>
+                ) : null}
               </li>
             ))
           )}

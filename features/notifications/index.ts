@@ -1,4 +1,6 @@
-/** Public exports — features/notifications (MES-024) */
+/** Client-safe exports — features/notifications (MES-024)
+ * Loaders: `@/features/notifications/server`
+ */
 
 export { NotificationsNav } from "./components/notifications-nav";
 export { NotificationsDashboardView } from "./components/notifications-dashboard-view";
@@ -13,17 +15,6 @@ export {
   DeliverySettingsView,
   NotificationPreferencesView,
 } from "./components/settings-views";
-export {
-  loadAnnouncements,
-  loadAdminCenter,
-  loadCenter,
-  loadDashboard,
-  loadDelivery,
-  loadEmailTemplates,
-  loadHistory,
-  loadPreferences,
-  loadTemplates,
-} from "./services/service";
 export {
   markNotificationAction,
   saveAnnouncementAction,

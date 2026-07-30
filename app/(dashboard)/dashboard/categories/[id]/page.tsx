@@ -1,10 +1,9 @@
+import { loadCategoryDetails } from "@/features/categories-topics/server";
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 
 import {
-  CategoryDetailView,
-  loadCategoryDetails,
-} from "@/features/categories-topics"
+  CategoryDetailView } from "@/features/categories-topics";
 
 export const metadata: Metadata = {
   title: "Category details",

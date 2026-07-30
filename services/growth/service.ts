@@ -208,6 +208,71 @@ export async function listCertificatesForUser(publicUserId: string) {
   }))
 }
 
+export async function listAssessmentAttemptsForUser(publicUserId: string) {
+  if (!isDatabaseConfigured()) return []
+  const rows = await db().assessmentAttempt.findMany({
+    where: { publicUserId },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+    include: {
+      assessment: {
+        include: {
+          guide: { select: { id: true, title: true, slug: true } },
+        },
+      },
+    },
+  })
+  return rows.map((r) => ({
+    id: r.id,
+    scorePercent: r.scorePercent,
+    passed: r.passed,
+    createdAt: r.createdAt.toISOString(),
+    assessmentTitle: r.assessment.title,
+    guideTitle: r.assessment.guide.title,
+    guideSlug: r.assessment.guide.slug,
+    guideHref: `/account/guides/${r.assessment.guide.slug}`,
+  }))
+}
+
+export async function listAvailableAssessmentsForUser(publicUserId: string) {
+  if (!isDatabaseConfigured()) return []
+  const progress = await db().guideProgress.findMany({
+    where: { publicUserId },
+    select: { guideId: true, percentComplete: true, completedAt: true },
+  })
+  const guideIds = progress
+    .filter((p) => !p.completedAt && (p.percentComplete ?? 0) >= 50)
+    .map((p) => p.guideId)
+  if (!guideIds.length) return []
+
+  const assessments = await db().assessment.findMany({
+    where: { guideId: { in: guideIds }, active: true },
+    include: {
+      guide: { select: { title: true, slug: true } },
+      questions: { select: { id: true } },
+    },
+  })
+
+  const attempted = await db().assessmentAttempt.findMany({
+    where: { publicUserId, assessmentId: { in: assessments.map((a) => a.id) } },
+    select: { assessmentId: true, passed: true },
+  })
+  const passedIds = new Set(
+    attempted.filter((a) => a.passed).map((a) => a.assessmentId),
+  )
+
+  return assessments
+    .filter((a) => a.questions.length > 0 && !passedIds.has(a.id))
+    .map((a) => ({
+      id: a.id,
+      title: a.title,
+      guideTitle: a.guide.title,
+      guideSlug: a.guide.slug,
+      questionCount: a.questions.length,
+      href: `/account/guides/${a.guide.slug}`,
+    }))
+}
+
 // ─── Prompt library & Notes ───────────────────────────────────────────────────
 
 export async function listPromptLibrary(publicUserId: string) {

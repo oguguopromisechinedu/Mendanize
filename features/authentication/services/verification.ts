@@ -33,6 +33,11 @@ export async function sendEmailVerification(params: {
   email: string;
   name?: string | null;
 }) {
+  const { requireEmailConfiguredInProduction } = await import(
+    "@/lib/email/mes042"
+  );
+  await requireEmailConfiguredInProduction("email-verification");
+
   const token = await createEmailVerificationToken(params.email);
   const base =
     process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||

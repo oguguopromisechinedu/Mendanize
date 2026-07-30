@@ -1,14 +1,11 @@
-/** Public exports — features/homepage-management (MES-013) */
+/** Client-safe exports — features/homepage-management (MES-013)
+ * Loaders: `@/features/homepage-management/server`
+ */
 
 export {
   updateHomepageAction,
   publishHomepageAction,
 } from "./actions/actions"
-
-export {
-  loadHomepageAdmin,
-  loadFeaturedPickerOptions,
-} from "./services/service"
 
 export { HomepageOverviewView } from "./components/homepage-overview-view"
 export { HomepageSectionsView } from "./components/homepage-sections-view"

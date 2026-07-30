@@ -1,15 +1,11 @@
+import { loadSearchResults, loadFilterOptions } from "@/features/search/server";
 import type { Metadata } from "next"
 import { Suspense } from "react"
 
 import { PageShell } from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  loadFilterOptions,
-  loadSearchResults,
-  SearchFilters,
-  SearchResultsView,
-} from "@/features/search"
+import { SearchFilters, SearchResultsView } from "@/features/search"
 import type { SearchEntityType } from "@/services/search/types"
 import { searchFiltersSchema } from "@/features/search/validators/schema"
 

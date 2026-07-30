@@ -2,9 +2,9 @@
 
 | Field | Value |
 |-------|-------|
-| **Version** | 1.1.0 |
+| **Version** | 1.2.0 |
 | **Status** | Approved |
-| **Last Updated** | 2026-07-23 |
+| **Last Updated** | 2026-07-28 |
 | **Owner** | Mendanize Platform Architecture |
 
 
@@ -15,7 +15,7 @@ Make cross-MES and Shared Service dependencies explicit so implementation order 
 
 ## Scope
 
-Hard dependencies between MES documents and runtime Shared Services (MES-001 → MES-035).
+Hard dependencies between MES documents and runtime Shared Services (**MES-001 → MES-051**). Live status: [MES-DOCUMENTS-STATUS.md](../MES-DOCUMENTS-STATUS.md).
 
 
 ## Dependencies
@@ -45,6 +45,13 @@ Hard dependencies between MES documents and runtime Shared Services (MES-001 →
 | MES-033 | MES-031 | AI knowledge reuse / cache invalidation |
 | MES-035 | MES-021, MES-022, MES-019, MES-030 | deletion cascade order |
 | MES-028 / MES-029 | all prior **including MES-030–035** | launch gates |
+| MES-036 | MES-002, MES-004, MES-030, MES-007 | community + moderation domain |
+| MES-039 | MES-021 (separate), MES-036, MES-030 | Connect ≠ Checkout |
+| MES-040 | MES-039 | orgs extend marketplace |
+| MES-041 | MES-004, MES-007, MES-014, MES-015, MES-016 | pages CMS → `/{slug}` |
+| MES-042 | MES-002, MES-006, MES-020, MES-024 | email transport |
+| MES-051 | MES-042, MES-024, MES-035, MES-007 | EMS dashboard; absorbs newsletter |
+| MES-043–050 | see each MES header | implement only after listed deps Complete |
 
 
 ## Shared Service Fan-In
@@ -59,6 +66,7 @@ SEO ← all public entities + MES-031 draft metadata
 Media ← editors + public rendering + MES-031 generated images
 Notification ← billing, learning, system, MES-031 draft-ready alerts
 Logging / Audit ← MES-032, MES-030 auth events, MES-035 privacy actions
+Notification ← billing, learning, system, MES-031 alerts, **MES-042/051 email**
 ```
 
 

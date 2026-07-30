@@ -1,6 +1,7 @@
 ﻿import type { Metadata } from "next"
 
-import { PagesListView, loadPages } from "@/features/admin-modules"
+import { PagesListView } from "@/features/admin-modules"
+import { loadPages } from "@/features/admin-modules/server"
 
 export const metadata: Metadata = {
   title: "Pages",

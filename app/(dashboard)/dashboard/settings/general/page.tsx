@@ -1,6 +1,7 @@
+import { loadGeneral } from "@/features/platform-settings/server";
 import type { Metadata } from "next"
 
-import { loadGeneral, GeneralSettingsView } from "@/features/platform-settings"
+import { GeneralSettingsView } from "@/features/platform-settings"
 
 export const metadata: Metadata = {
   title: "General",

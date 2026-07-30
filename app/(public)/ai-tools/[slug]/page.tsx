@@ -5,6 +5,7 @@ import { PageShell } from "@/components/layout/PageShell"
 import { ToolDetailView } from "@/features/ai-tools"
 import { getSession } from "@/features/authentication/server"
 import { loadRecommendations } from "@/features/recommendations/server"
+import { getPrisma, isDatabaseConfigured } from "@/lib/db/prisma"
 import { getPublishedToolBySlug } from "@/services/content"
 import { trackContentView } from "@/services/learning"
 import { resolveMetadata } from "@/services/seo"
@@ -83,13 +84,24 @@ export default async function Page({ params }: PageProps) {
     })
   }
 
-  const [{ items }, meta] = await Promise.all([
+  const [{ items }, meta, favoriteRow] = await Promise.all([
     loadRecommendations({
       contextType: "tool",
       contextId: tool.id,
       limit: 6,
     }),
     resolveMetadata({ entityType: "ai_tool", entityId: tool.id }),
+    session?.user?.id && isDatabaseConfigured()
+      ? getPrisma().savedContent.findUnique({
+          where: {
+            publicUserId_entityType_entityId: {
+              publicUserId: session.user.id,
+              entityType: "AI_TOOL",
+              entityId: tool.id,
+            },
+          },
+        })
+      : Promise.resolve(null),
   ])
 
   const base =
@@ -155,6 +167,8 @@ export default async function Page({ params }: PageProps) {
         related={items}
         structuredData={structuredData}
         breadcrumbJsonLd={breadcrumbJsonLd}
+        signedIn={Boolean(session?.user?.id)}
+        isFavorite={Boolean(favoriteRow)}
       />
     </PageShell>
   )

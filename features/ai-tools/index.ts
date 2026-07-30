@@ -1,4 +1,6 @@
-/** Public exports — features/ai-tools (MES-012 admin + MES-027 public) */
+/** Client-safe exports — features/ai-tools (MES-012 admin + MES-027 public)
+ * Loaders: `@/features/ai-tools/server`
+ */
 
 export {
   createToolAction,
@@ -6,8 +8,6 @@ export {
   deleteToolsAction,
   bulkToolStatusAction,
 } from "./actions/actions"
-
-export { loadToolList, loadToolEditor } from "./services/service"
 
 export { ToolListView } from "./components/tool-list-view"
 export { ToolEditorForm } from "./components/tool-editor-form"

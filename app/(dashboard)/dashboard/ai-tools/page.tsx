@@ -1,6 +1,7 @@
+import { loadToolList } from "@/features/ai-tools/server";
 import type { Metadata } from "next"
 
-import { ToolListView, loadToolList } from "@/features/ai-tools"
+import { ToolListView } from "@/features/ai-tools"
 import type { ToolStatusValue } from "@/services/content/types"
 
 export const metadata: Metadata = {

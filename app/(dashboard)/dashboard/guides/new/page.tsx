@@ -1,6 +1,7 @@
+import { loadGuideEditor } from "@/features/learning-guides/server";
 import type { Metadata } from "next"
 
-import { GuideEditorForm, loadGuideEditor } from "@/features/learning-guides"
+import { GuideEditorForm } from "@/features/learning-guides"
 
 export const metadata: Metadata = {
   title: "New guide",

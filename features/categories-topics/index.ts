@@ -1,4 +1,6 @@
-/** Public exports — features/categories-topics (MES-009) */
+/** Client-safe exports — features/categories-topics (MES-009)
+ * Loaders: `@/features/categories-topics/server`
+ */
 
 export {
   createCategoryAction,
@@ -10,15 +12,6 @@ export {
   bulkCategoryStatusAction,
   bulkTopicStatusAction,
 } from "./actions/actions"
-
-export {
-  loadCategoryList,
-  loadTopicList,
-  loadCategoryEditor,
-  loadTopicEditor,
-  loadCategoryDetails,
-  loadTopicDetails,
-} from "./services/service"
 
 export { CategoryListView } from "./components/category-list-view"
 export { TopicListView } from "./components/topic-list-view"

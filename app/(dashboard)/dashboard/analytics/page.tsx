@@ -1,9 +1,7 @@
 ﻿import type { Metadata } from "next"
 
-import {
-  AnalyticsOverviewView,
-  loadOverview,
-} from "@/features/analytics"
+import { loadOverview } from "@/features/analytics/server";
+import { AnalyticsOverviewView } from "@/features/analytics";
 
 export const metadata: Metadata = {
   title: "Analytics",

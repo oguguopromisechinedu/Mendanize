@@ -1,6 +1,7 @@
 ﻿import type { Metadata } from "next"
 
-import { IntegrationsView, loadIntegrations } from "@/features/admin-modules"
+import { IntegrationsView } from "@/features/admin-modules"
+import { loadIntegrations } from "@/features/admin-modules/server"
 
 export const metadata: Metadata = {
   title: "AI & Integrations",

@@ -27,6 +27,7 @@ import {
   deletePages,
   deleteSubscribers,
   deleteTags,
+  getPageById,
   mergeTags,
   recordAudit,
   removeAdminUser,
@@ -521,7 +522,9 @@ export async function deleteCommentsAction(
   }
 }
 
-export async function createPageAction(input: unknown): Promise<ActionResult> {
+export async function createPageAction(
+  input: unknown
+): Promise<ActionResult<{ id: string; slug: string }>> {
   const session = await requireEditor()
   if (!session) return { ok: false, message: "Unauthorized" }
   const parsed = pageWriteSchema.safeParse(input)
@@ -529,8 +532,12 @@ export async function createPageAction(input: unknown): Promise<ActionResult> {
   try {
     const page = await createPage(parsed.data)
     await audit(session, "create", "page", `Created page “${page.title}”`, page.id)
-    revalidate("/dashboard/pages")
-    return { ok: true, message: "Page created" }
+    revalidate("/dashboard/pages", `/${page.slug}`)
+    return {
+      ok: true,
+      message: "Page created",
+      data: { id: page.id, slug: page.slug },
+    }
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "Failed" }
   }
@@ -539,15 +546,20 @@ export async function createPageAction(input: unknown): Promise<ActionResult> {
 export async function updatePageAction(
   id: string,
   input: unknown
-): Promise<ActionResult> {
+): Promise<ActionResult<{ id: string; slug: string }>> {
   const session = await requireEditor()
   if (!session) return { ok: false, message: "Unauthorized" }
   const parsed = pageWriteSchema.partial().safeParse(input)
   if (!parsed.success) return { ok: false, message: "Validation failed" }
   try {
-    await updatePage(id, parsed.data)
-    revalidate("/dashboard/pages")
-    return { ok: true, message: "Page updated" }
+    const page = await updatePage(id, parsed.data)
+    await audit(session, "update", "page", `Updated page “${page.title}”`, page.id)
+    revalidate("/dashboard/pages", `/${page.slug}`, `/dashboard/pages/${page.id}`)
+    return {
+      ok: true,
+      message: "Page updated",
+      data: { id: page.id, slug: page.slug },
+    }
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "Failed" }
   }
@@ -559,8 +571,13 @@ export async function deletePagesAction(input: unknown): Promise<ActionResult> {
   const parsed = idsSchema.safeParse(input)
   if (!parsed.success) return { ok: false, message: "Select pages" }
   try {
+    const before = await Promise.all(parsed.data.ids.map((id) => getPageById(id)))
     const n = await deletePages(parsed.data.ids)
-    revalidate("/dashboard/pages")
+    const paths = [
+      "/dashboard/pages",
+      ...before.filter(Boolean).map((p) => `/${p!.slug}`),
+    ]
+    revalidate(...paths)
     return { ok: true, message: `Deleted ${n} page(s)` }
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "Failed" }
@@ -576,7 +593,7 @@ export async function createNewsletterAction(
   if (!parsed.success) return { ok: false, message: "Subject required" }
   try {
     await createNewsletterCampaign(parsed.data)
-    revalidate("/dashboard/newsletter")
+    revalidate("/dashboard/newsletter", "/dashboard/communication/email/newsletter")
     return { ok: true, message: "Campaign saved", data: undefined }
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "Failed" }
@@ -593,7 +610,7 @@ export async function updateNewsletterAction(
   if (!parsed.success) return { ok: false, message: "Validation failed" }
   try {
     await updateNewsletterCampaign(id, parsed.data)
-    revalidate("/dashboard/newsletter")
+    revalidate("/dashboard/newsletter", "/dashboard/communication/email/newsletter")
     return { ok: true, message: "Campaign updated" }
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "Failed" }
@@ -612,7 +629,12 @@ export async function sendNewsletterAction(id: string): Promise<ActionResult> {
       `Sent “${campaign.subject}” to ${campaign.recipientCount}`,
       id
     )
-    revalidate("/dashboard/newsletter", "/dashboard/activity-log")
+    revalidate(
+      "/dashboard/newsletter",
+      "/dashboard/communication/email/newsletter",
+      "/dashboard/communication/email/queue",
+      "/dashboard/activity-log",
+    )
     return {
       ok: true,
       message: `Marked sent to ${campaign.recipientCount} recipient(s)`,
@@ -631,7 +653,7 @@ export async function deleteNewsletterAction(
   if (!parsed.success) return { ok: false, message: "Select campaigns" }
   try {
     const n = await deleteNewsletterCampaigns(parsed.data.ids)
-    revalidate("/dashboard/newsletter")
+    revalidate("/dashboard/newsletter", "/dashboard/communication/email/newsletter")
     return { ok: true, message: `Deleted ${n} campaign(s)` }
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "Failed" }

@@ -265,24 +265,48 @@ export async function addOrganizationMember(input: {
   assertDatabaseForProductionWrites("services/organization")
   await assertCanManageOrg(input.organizationId, input.actorId)
 
+  const { assertSeatAvailable } = await import(
+    "@/services/organization-licensing"
+  )
+  await assertSeatAvailable(input.organizationId)
+
   const email = input.email.trim().toLowerCase()
   const user = await db().publicUser.findUnique({ where: { email } })
   if (!user) throw new Error("No learner account found for that email.")
 
-  const role = input.role === "OWNER" ? "ADMIN" : (input.role ?? "MEMBER")
-  const row = await db().organizationMember.upsert({
+  const existing = await db().organizationMember.findUnique({
     where: {
       organizationId_publicUserId: {
         organizationId: input.organizationId,
         publicUserId: user.id,
       },
     },
-    create: {
+  })
+  if (existing) {
+    const role = input.role === "OWNER" ? "ADMIN" : (input.role ?? "MEMBER")
+    const row = await db().organizationMember.update({
+      where: { id: existing.id },
+      data: { role },
+      include: { publicUser: { select: { email: true, name: true } } },
+    })
+    return {
+      id: row.id,
+      organizationId: row.organizationId,
+      publicUserId: row.publicUserId,
+      role: row.role,
+      email: row.publicUser.email,
+      name: row.publicUser.name,
+      createdAt: row.createdAt.toISOString(),
+    }
+  }
+
+  const role = input.role === "OWNER" ? "ADMIN" : (input.role ?? "MEMBER")
+  const row = await db().organizationMember.create({
+    data: {
       organizationId: input.organizationId,
       publicUserId: user.id,
       role,
     },
-    update: { role },
     include: { publicUser: { select: { email: true, name: true } } },
   })
 

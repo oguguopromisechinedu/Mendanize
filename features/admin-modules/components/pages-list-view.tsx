@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -45,7 +46,7 @@ export function PagesListView({
     <div className="mx-auto max-w-7xl">
       <AdminPageHeader
         title="Pages"
-        description="Static and marketing pages with SEO fields."
+        description="Static and marketing pages with SEO fields. Published pages appear at /{slug}."
       />
       <AdminActionToolbar>
         <input
@@ -71,14 +72,18 @@ export function PagesListView({
             start(async () => {
               const res = await createPageAction({
                 title,
-                content: `<p>${title}</p>`,
+                content: `<p></p>`,
                 status: "DRAFT",
               })
               if (!res.ok) toast.error(res.message)
               else {
                 toast.success(res.message)
                 setTitle("")
-                router.refresh()
+                if (res.data?.id) {
+                  router.push(`/dashboard/pages/${res.data.id}`)
+                } else {
+                  router.refresh()
+                }
               }
             })
           }
@@ -116,7 +121,14 @@ export function PagesListView({
                   }
                 />
               </td>
-              <td className="px-3 py-2 font-medium">{page.title}</td>
+              <td className="px-3 py-2 font-medium">
+                <Link
+                  href={`/dashboard/pages/${page.id}`}
+                  className="hover:text-primary hover:underline"
+                >
+                  {page.title}
+                </Link>
+              </td>
               <td className="px-3 py-2 text-muted-foreground">/{page.slug}</td>
               <td className="px-3 py-2">
                 <StatusBadge status={page.status} />
@@ -125,27 +137,32 @@ export function PagesListView({
                 {new Date(page.updatedAt).toLocaleString()}
               </td>
               <td className="px-3 py-2">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={pending}
-                  onClick={() =>
-                    start(async () => {
-                      const next =
-                        page.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED"
-                      const res = await updatePageAction(page.id, {
-                        status: next,
+                <div className="flex flex-wrap gap-1">
+                  <Button asChild size="sm" variant="ghost">
+                    <Link href={`/dashboard/pages/${page.id}`}>Edit</Link>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={pending}
+                    onClick={() =>
+                      start(async () => {
+                        const next =
+                          page.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED"
+                        const res = await updatePageAction(page.id, {
+                          status: next,
+                        })
+                        if (!res.ok) toast.error(res.message)
+                        else {
+                          toast.success(res.message)
+                          router.refresh()
+                        }
                       })
-                      if (!res.ok) toast.error(res.message)
-                      else {
-                        toast.success(res.message)
-                        router.refresh()
-                      }
-                    })
-                  }
-                >
-                  {page.status === "PUBLISHED" ? "Unpublish" : "Publish"}
-                </Button>
+                    }
+                  >
+                    {page.status === "PUBLISHED" ? "Unpublish" : "Publish"}
+                  </Button>
+                </div>
               </td>
             </tr>
           ))}

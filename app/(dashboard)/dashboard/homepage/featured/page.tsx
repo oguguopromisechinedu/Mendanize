@@ -1,10 +1,7 @@
+import { loadFeaturedPickerOptions, loadHomepageAdmin } from "@/features/homepage-management/server";
 import type { Metadata } from "next"
 
-import {
-  HomepageFeaturedView,
-  loadFeaturedPickerOptions,
-  loadHomepageAdmin,
-} from "@/features/homepage-management"
+import { HomepageFeaturedView } from "@/features/homepage-management";
 
 export const metadata: Metadata = {
   title: "Homepage featured",

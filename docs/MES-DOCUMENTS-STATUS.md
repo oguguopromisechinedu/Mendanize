@@ -2,9 +2,9 @@
 
 | Field | Value |
 |-------|-------|
-| **Version** | 1.4.0 |
+| **Version** | 1.11.0 |
 | **Status** | Active |
-| **Last Updated** | 2026-07-26 |
+| **Last Updated** | 2026-07-30 |
 | **Owner** | Mendanize Platform Architecture |
 
 ## Purpose
@@ -19,7 +19,7 @@ Operational status of every MES so agents and contributors know **what to work o
 
 ## Canonical files
 
-`docs/engineering/MES-001.md` … `MES-040.md` + `MES-INDEX.md` (v1.9).
+`docs/engineering/MES-001.md` … `MES-053.md` + `MES-INDEX.md` (v2.2).
 
 ## Status legend
 
@@ -48,7 +48,7 @@ Operational status of every MES so agents and contributors know **what to work o
 | MES-011 | Admin AI Studio | Complete | [Handoff](./MES-011-COMPLETION.md) |
 | MES-012 | AI Tools Management | Complete | [Handoff](./MES-012-COMPLETION.md) |
 | MES-013 | Homepage CMS | Complete | [Handoff](./MES-013-COMPLETION.md) |
-| MES-014 | Media Library | Partial | [Handoff](./MES-014-COMPLETION.md); audit: real upload/storage still a gap |
+| MES-014 | Media Library | Complete | [Handoff](./MES-014-COMPLETION.md); Supabase Storage upload + delete |
 | MES-015 | SEO & Metadata | Complete | [Handoff](./MES-015-COMPLETION.md) |
 | MES-016 | Navigation Manager | Complete | [Handoff](./MES-016-COMPLETION.md) |
 | MES-017 | Search & Discovery | Complete | [Handoff](./MES-017-COMPLETION.md) |
@@ -72,19 +72,31 @@ Operational status of every MES so agents and contributors know **what to work o
 | MES-035 | Privacy & Compliance Basics | Complete | [Handoff](./MES-035-COMPLETION.md); consent, export, delete |
 | MES-036 | Community Platform (Phase 1) | Complete | [Handoff](./MES-036-COMPLETION.md); `/community` + `/dashboard/community` |
 | MES-037 | Founder Valuation Dashboard | Complete | [Handoff](./MES-037-COMPLETION.md); Super Admin `/dashboard/bi` |
-| MES-038 | Learner Ecosystem (Complete Dashboard) | Partial | [Spec](./engineering/MES-038.md); dashboard wired to marketplace/career services; portfolio, cloud, projects, workspace, messages pages |
+| MES-038 | Learner Ecosystem (Complete Dashboard) | Complete | [Handoff](./MES-038-COMPLETION.md); profile, assessments, account search |
 | MES-039 | Professional Growth & Earnings | Complete | [Handoff](./MES-039-COMPLETION.md); marketplaces + career hubs |
 | MES-040 | Company & Organization Accounts | Complete | [Handoff](./MES-040-COMPLETION.md); extends MES-039 — no new session type |
+| MES-041 | Public Static Pages CMS | Complete | [Handoff](./MES-041-COMPLETION.md); Dashboard Pages → `/{slug}` |
+| MES-042 | Transactional Email Delivery | Complete | [Handoff](./MES-042-COMPLETION.md); Resend/SMTP via Notification dispatch |
+| MES-043 | Learner Messaging | Complete | [Handoff](./MES-043-COMPLETION.md); `/account/messages` DMs + admin report queue |
+| MES-044 | Coding Workspace Execution Engine | Complete | [Handoff](./MES-044-COMPLETION.md); QuickJS WASM sandbox on `/account/workspace` |
+| MES-045 | Community Events & Calendar | Complete | [Handoff](./MES-045-COMPLETION.md); `/community/events` + Admin RSVP/reminders |
+| MES-046 | Affiliate & Referral Tracking | Complete | [Handoff](./MES-046-COMPLETION.md); `/?ref=` + `/account/referrals` + Admin payout flags |
+| MES-047 | Enterprise Organization Licensing | Complete | [Handoff](./MES-047-COMPLETION.md); seats via MES-021 Checkout + `/account/company/billing` |
+| MES-048 | Marketplace Dispute Resolution | Complete | [Handoff](./MES-048-COMPLETION.md); human review + Connect release/refund |
+| MES-049 | Recommendations ML Upgrade | Complete | [Handoff](./MES-049-COMPLETION.md); shadow/canary/default ML via MES-018 facade |
+| MES-050 | PWA & Offline Learning Basics | Complete | [Handoff](./MES-050-COMPLETION.md); manifest + SW + offline library |
+| MES-051 | Email Management System (EMS) | Complete | [Handoff](./MES-051-COMPLETION.md); Communication → Email Management |
+| MES-052 | Marketplace Experience, Licensing & Revenue | Complete | [Handoff](./MES-052-COMPLETION.md); extends MES-039 — no Connect rebuild |
+| MES-053 | Work Lifecycle: Maintenance & Ongoing Support | Complete | [Handoff](./MES-053-COMPLETION.md); Phase A+B — retainers on Connect rail |
 
 ## Recommended next work order
 
-1. Apply migration `20260727180000_mes040_organizations` (`npx prisma migrate deploy`).
-2. Smoke-test company create → Admin verify → org-linked job → hybrid listing badge.
-3. Continue MES-038: coding workspace execution engine, peer DMs, marketplace ratings — see [MES-038](./engineering/MES-038.md).
+MES-001–053 are **Complete**. Future work should be new specs or product decisions — not reinvention of existing modules.
 
 ## Notes for agents
 
 - Do **not** merge Stripe Connect marketplace payments into MES-021 subscription Checkout.
+- Do **not** route MES-053 retainers through MES-021; do **not** reopen `COMPLETED` contracts — use continuation contracts.
 - Client/Creator/Community Moderator/Organization membership never open `/dashboard/*`.
 - MES-040 reuses MES-039 marketplaces; do not rebuild JobPosting / MarketplaceListing from scratch.
 

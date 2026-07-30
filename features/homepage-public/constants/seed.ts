@@ -362,10 +362,10 @@ export const SEEDED_HOMEPAGE_CONTENT: HomepageContent = {
     },
   ],
   finalCta: {
-    headline: "Ready to get more from Mendanize?",
+    headline: "Ready to join Creators Hub?",
     description:
-      "Create a free account to unlock guided learning paths, AI tools, saved content, and the full Mendanize product experience.",
-    primaryCta: { label: "Create account", href: "/sign-up" },
+      "Learn AI, create tools and prompts, sell what you build, and get hired — all inside Creators Hub.",
+    primaryCta: { label: "Creators Hub", href: "/sign-up" },
     secondaryCta: { label: "Explore guides", href: "/guides" },
   },
 };

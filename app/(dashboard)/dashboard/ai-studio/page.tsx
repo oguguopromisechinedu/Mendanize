@@ -1,6 +1,7 @@
+import { loadStudioHome } from "@/features/ai-studio/server";
 import type { Metadata } from "next"
 
-import { StudioHomeView, loadStudioHome } from "@/features/ai-studio"
+import { StudioHomeView } from "@/features/ai-studio"
 
 export const metadata: Metadata = {
   title: "AI Studio",

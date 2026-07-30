@@ -1,6 +1,7 @@
+import { loadSearchSettings } from "@/features/search/server";
 import type { Metadata } from "next"
 
-import { loadSearchSettings, SearchSettingsView } from "@/features/search"
+import { SearchSettingsView } from "@/features/search"
 
 export const metadata: Metadata = {
   title: "Search settings",

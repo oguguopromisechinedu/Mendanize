@@ -161,6 +161,23 @@ export type CommunityModeratorRecord = {
   grantedByAdminId: string
 }
 
+export type CommunitySearchHit = {
+  type: "discussion" | "group" | "team" | "project" | "tag" | "event"
+  id: string
+  title: string
+  href: string
+  excerpt?: string | null
+}
+
+export type CommunityEventHomeItem = {
+  id: string
+  title: string
+  slug: string
+  startsAt: string
+  locationType: string
+  rsvpCount: number
+}
+
 export type CommunityHomePayload = {
   categories: CommunityCategoryRecord[]
   latestDiscussions: DiscussionSummary[]
@@ -168,14 +185,5 @@ export type CommunityHomePayload = {
   recommendedGroups: StudyGroupSummary[]
   activeTeams: TeamSummary[]
   featuredProjects: ShowcaseProjectSummary[]
-  /** Events system deferred — placeholder only */
-  upcomingEventsPlaceholder: true
-}
-
-export type CommunitySearchHit = {
-  type: "discussion" | "group" | "team" | "project" | "tag"
-  id: string
-  title: string
-  href: string
-  excerpt?: string | null
+  upcomingEvents: CommunityEventHomeItem[]
 }

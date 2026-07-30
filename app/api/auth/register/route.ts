@@ -13,6 +13,7 @@ import { signUpSchema } from "@/features/authentication/validators/schema";
 /**
  * Public registration API — creates PublicUser only (MES-030).
  * Admin accounts cannot be self-created.
+ * MES-042: sends the same verification email as the server-action register path.
  */
 export async function POST(req: Request) {
   try {
@@ -95,6 +96,75 @@ export async function POST(req: Request) {
         name: true,
       },
     });
+
+    if (authSettings.emailVerification) {
+      try {
+        const { requireEmailConfiguredInProduction } = await import(
+          "@/lib/email/mes042"
+        );
+        await requireEmailConfiguredInProduction("api-register-verification");
+        const { sendEmailVerification } = await import(
+          "@/features/authentication/services/verification"
+        );
+        await sendEmailVerification({
+          userId: user.id,
+          email: normalizedEmail,
+          name,
+        });
+      } catch (error) {
+        const { logEmailEvent } = await import("@/lib/email/mes042");
+        await logEmailEvent({
+          level: "ERROR",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Verification email failed after API register",
+          template: "email_verification",
+          email: normalizedEmail,
+        });
+        if (process.env.NODE_ENV === "production") {
+          return fail(
+            "EMAIL_DELIVERY_FAILED",
+            "Account was created but verification email could not be sent. Configure email delivery or contact support.",
+            503,
+          );
+        }
+      }
+    }
+
+    try {
+      const { dispatch } = await import("@/services/notification");
+      await dispatch({
+        channel: "email",
+        template: "welcome",
+        userId: user.id,
+        email: normalizedEmail,
+        payload: { name: name ?? "learner" },
+      });
+    } catch {
+      /* welcome must not block registration */
+    }
+
+    try {
+      const { readReferralCookieFromHeader } = await import(
+        "@/services/referrals/cookie-read"
+      );
+      const { attributeSignup } = await import("@/services/referrals");
+      const ref = readReferralCookieFromHeader(req.headers.get("cookie"));
+      await attributeSignup({
+        referredUserId: user.id,
+        referralCode: ref.code,
+        cookieCapturedAt: ref.capturedAt,
+        ipAddress:
+          req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+          req.headers.get("x-real-ip") ||
+          null,
+        userAgent: req.headers.get("user-agent"),
+        landingPath: "/api/auth/register",
+      });
+    } catch {
+      /* referral attribution must not block registration */
+    }
 
     return ok(
       {

@@ -60,10 +60,65 @@ export async function listPublishedPromptPacks(): Promise<PromptPackRecord[]> {
   if (!isDatabaseConfigured()) return [];
   const rows = await db().promptPack.findMany({
     where: { status: "PUBLISHED" },
-    orderBy: [{ sortOrder: "asc" }, { publishedAt: "desc" }],
+    orderBy: [{ featured: "desc" }, { sortOrder: "asc" }, { publishedAt: "desc" }],
     include: { items: { orderBy: { sortOrder: "asc" } } },
   });
   return rows as PromptPackRecord[];
+}
+
+export async function getPublishedPromptPackBySlug(
+  slug: string,
+): Promise<PromptPackRecord | null> {
+  if (!isDatabaseConfigured()) return null;
+  const row = await db().promptPack.findFirst({
+    where: { slug, status: "PUBLISHED" },
+    include: {
+      items: { orderBy: { sortOrder: "asc" } },
+      reviews: {
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        include: { publicUser: { select: { name: true, image: true } } },
+      },
+    },
+  });
+  return row as PromptPackRecord | null;
+}
+
+export async function submitPromptPackReview(input: {
+  packId: string;
+  publicUserId: string;
+  rating: number;
+  body?: string | null;
+}): Promise<void> {
+  assertDb();
+  const rating = Math.min(5, Math.max(1, Math.round(input.rating)));
+  await db().promptPackReview.upsert({
+    where: {
+      packId_publicUserId: {
+        packId: input.packId,
+        publicUserId: input.publicUserId,
+      },
+    },
+    create: {
+      packId: input.packId,
+      publicUserId: input.publicUserId,
+      rating,
+      body: input.body ?? null,
+    },
+    update: { rating, body: input.body ?? null },
+  });
+  const agg = await db().promptPackReview.aggregate({
+    where: { packId: input.packId },
+    _avg: { rating: true },
+    _count: { rating: true },
+  });
+  await db().promptPack.update({
+    where: { id: input.packId },
+    data: {
+      ratingAvg: agg._avg.rating ?? 0,
+      ratingCount: agg._count.rating,
+    },
+  });
 }
 
 // ─── Prompt Packs (admin) ─────────────────────────────────────────────────────
@@ -101,6 +156,9 @@ export async function adminCreatePromptPack(
       description: data.description ?? null,
       category: data.category ?? null,
       sortOrder: data.sortOrder ?? 0,
+      featured: data.featured ?? false,
+      premium: data.premium ?? false,
+      tags: data.tags ?? [],
     },
     include: { items: true },
   });
@@ -120,6 +178,9 @@ export async function adminUpdatePromptPack(
       ...(data.description !== undefined && { description: data.description }),
       ...(data.category !== undefined && { category: data.category }),
       ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
+      ...(data.featured !== undefined && { featured: data.featured }),
+      ...(data.premium !== undefined && { premium: data.premium }),
+      ...(data.tags !== undefined && { tags: data.tags }),
     },
     include: { items: { orderBy: { sortOrder: "asc" } } },
   });

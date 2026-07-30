@@ -26,6 +26,49 @@ Docs-only history. Application release notes may mirror entries when behaviour l
 
 ## Releases
 
+### 2.1.4 — 2026-07-29 (MES-045 Community Events)
+
+#### Added
+- [MES-045-COMPLETION](./MES-045-COMPLETION.md) — `/community/events`, RSVP, Admin publish, search index
+
+#### Changed
+- [MES-DOCUMENTS-STATUS.md](./MES-DOCUMENTS-STATUS.md) v1.10 — MES-045 **Complete**; next **MES-046**
+
+### 2.1.3 — 2026-07-28 (MES-044 Coding Workspace Execution)
+
+#### Added
+- [MES-044-COMPLETION](./MES-044-COMPLETION.md) — QuickJS WASM JS sandbox, kill switch, tier rate limits
+
+#### Changed
+- [MES-DOCUMENTS-STATUS.md](./MES-DOCUMENTS-STATUS.md) v1.9 — MES-044 **Complete**; next **MES-045**
+
+### 2.1.2 — 2026-07-28 (MES-043 Learner Messaging)
+
+#### Added
+- [MES-043-COMPLETION](./MES-043-COMPLETION.md) — `/account/messages` DMs + `/dashboard/community/messages` reports
+
+#### Changed
+- [MES-DOCUMENTS-STATUS.md](./MES-DOCUMENTS-STATUS.md) v1.8 — MES-043 **Complete**; next **MES-044**
+
+### 2.1.1 — 2026-07-28 (MES-041 / 042 / 051 handoffs)
+
+#### Added
+- [MES-041-COMPLETION](./MES-041-COMPLETION.md), [MES-042-COMPLETION](./MES-042-COMPLETION.md), [MES-051-COMPLETION](./MES-051-COMPLETION.md)
+
+#### Changed
+- [MES-DOCUMENTS-STATUS.md](./MES-DOCUMENTS-STATUS.md) v1.7 — MES-041, 042, 051 **Complete**; next **MES-043**
+
+### 2.1.0 — 2026-07-28 (MES-001 → MES-051 governance + EMS)
+
+#### Added
+- [MES-041](./engineering/MES-041.md) … [MES-051](./engineering/MES-051.md) (next-phase specs; EMS = MES-051)
+- MES-INDEX **v2.1** covers full sequence through MES-051
+
+#### Changed
+- [README.md](./README.md), [Cursor-System-Prompt.md](./core/Cursor-System-Prompt.md), [Project-Rules.md](./core/Project-Rules.md), [CONTRIBUTING.md](./CONTRIBUTING.md) — agents must read **MES-001 → MES-051** and follow [MES-DOCUMENTS-STATUS.md](./MES-DOCUMENTS-STATUS.md) **one MES at a time**
+- Architecture maps updated for MES-036–051 ownership
+- Status board v1.6 lists 041–051 as Specified; recommended order 041 → 042 → 051 → 043–050
+
 ### 1.3.0 — 2026-07-23 (MES-030–035 implementation handoffs)
 
 #### Added

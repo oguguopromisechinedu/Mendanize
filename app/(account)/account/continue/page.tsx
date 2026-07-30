@@ -1,10 +1,9 @@
+import { loadContinueLearning } from "@/features/user-learning/server";
 import type { Metadata } from "next"
 
 import { requirePublicUser } from "@/features/authentication/server"
 import {
-  ContinueLearningView,
-  loadContinueLearning,
-} from "@/features/user-learning"
+  ContinueLearningView } from "@/features/user-learning";
 
 export const metadata: Metadata = {
   title: "Continue learning",

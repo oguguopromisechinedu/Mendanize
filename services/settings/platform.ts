@@ -646,10 +646,42 @@ export async function getEmailSettings(): Promise<EmailSettingRecord> {
       smtpSecure: false,
       smtpPlaceholder: null,
       templatesNote: null,
+      defaultReplyTo: null,
+      brandLogoUrl: null,
+      footerHtml: null,
+      companyAddress: null,
+      socialLinksJson: null,
+      unsubscribeFooterHtml: null,
+      trackingOpens: false,
+      trackingClicks: false,
       updatedAt: new Date().toISOString(),
     };
   }
   const row = await db().emailSetting.findUniqueOrThrow({ where: { key: KEY } });
+  return mapEmailSetting(row);
+}
+
+function mapEmailSetting(row: {
+  id: string;
+  senderName: string;
+  senderEmail: string;
+  smtpHost: string | null;
+  smtpPort: number;
+  smtpUser: string | null;
+  smtpPassword: string | null;
+  smtpSecure: boolean;
+  smtpPlaceholder: string | null;
+  templatesNote: string | null;
+  defaultReplyTo: string | null;
+  brandLogoUrl: string | null;
+  footerHtml: string | null;
+  companyAddress: string | null;
+  socialLinksJson: string | null;
+  unsubscribeFooterHtml: string | null;
+  trackingOpens: boolean;
+  trackingClicks: boolean;
+  updatedAt: Date;
+}): EmailSettingRecord {
   return {
     id: row.id,
     senderName: row.senderName,
@@ -661,6 +693,14 @@ export async function getEmailSettings(): Promise<EmailSettingRecord> {
     smtpSecure: row.smtpSecure,
     smtpPlaceholder: row.smtpPlaceholder,
     templatesNote: row.templatesNote,
+    defaultReplyTo: row.defaultReplyTo,
+    brandLogoUrl: row.brandLogoUrl,
+    footerHtml: row.footerHtml,
+    companyAddress: row.companyAddress,
+    socialLinksJson: row.socialLinksJson,
+    unsubscribeFooterHtml: row.unsubscribeFooterHtml,
+    trackingOpens: row.trackingOpens,
+    trackingClicks: row.trackingClicks,
     updatedAt: row.updatedAt.toISOString(),
   };
 }
@@ -695,21 +735,33 @@ export async function updateEmailSettings(
       ...(input.templatesNote !== undefined
         ? { templatesNote: input.templatesNote?.trim() || null }
         : {}),
+      ...(input.defaultReplyTo !== undefined
+        ? { defaultReplyTo: input.defaultReplyTo?.trim() || null }
+        : {}),
+      ...(input.brandLogoUrl !== undefined
+        ? { brandLogoUrl: input.brandLogoUrl?.trim() || null }
+        : {}),
+      ...(input.footerHtml !== undefined
+        ? { footerHtml: input.footerHtml || null }
+        : {}),
+      ...(input.companyAddress !== undefined
+        ? { companyAddress: input.companyAddress?.trim() || null }
+        : {}),
+      ...(input.socialLinksJson !== undefined
+        ? { socialLinksJson: input.socialLinksJson || null }
+        : {}),
+      ...(input.unsubscribeFooterHtml !== undefined
+        ? { unsubscribeFooterHtml: input.unsubscribeFooterHtml || null }
+        : {}),
+      ...(input.trackingOpens !== undefined
+        ? { trackingOpens: input.trackingOpens }
+        : {}),
+      ...(input.trackingClicks !== undefined
+        ? { trackingClicks: input.trackingClicks }
+        : {}),
     },
   });
-  return {
-    id: row.id,
-    senderName: row.senderName,
-    senderEmail: row.senderEmail,
-    smtpHost: row.smtpHost,
-    smtpPort: row.smtpPort,
-    smtpUser: row.smtpUser,
-    smtpPassword: row.smtpPassword,
-    smtpSecure: row.smtpSecure,
-    smtpPlaceholder: row.smtpPlaceholder,
-    templatesNote: row.templatesNote,
-    updatedAt: row.updatedAt.toISOString(),
-  };
+  return mapEmailSetting(row);
 }
 
 export async function getSecuritySettings(): Promise<SecuritySettingRecord> {

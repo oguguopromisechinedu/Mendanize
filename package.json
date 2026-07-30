@@ -17,6 +17,7 @@
     "db:seed:content": "tsx prisma/seed-content.ts",
     "db:seed:homepage": "tsx scripts/seed-homepage-cms.ts",
     "db:seed:ai-tools": "tsx scripts/seed-ai-tools-marketplace.ts",
+    "db:seed:public-platform": "tsx scripts/seed-public-platform-phase1.ts",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio"
   },
@@ -54,6 +55,7 @@
     "otpauth": "^9.4.1",
     "pg": "^8.22.0",
     "postcss": "^8.5.14",
+    "quickjs-emscripten": "^0.31.0",
     "radix-ui": "^1.4.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",

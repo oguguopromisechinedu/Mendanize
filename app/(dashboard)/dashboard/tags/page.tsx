@@ -1,6 +1,7 @@
 ﻿import type { Metadata } from "next"
 
-import { TagsListView, loadTags } from "@/features/admin-modules"
+import { TagsListView } from "@/features/admin-modules"
+import { loadTags } from "@/features/admin-modules/server"
 
 export const metadata: Metadata = {
   title: "Tags",

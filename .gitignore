@@ -35,6 +35,8 @@ yarn-error.log*
 build*.txt
 *-out.txt
 vitest-out.txt
+.tmp-*
+.tmp*
 scripts/*result*.json
 
 # env files (can opt-in for committing if needed)

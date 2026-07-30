@@ -41,6 +41,21 @@ Quick lookup: which folder owns which MES. Full detail: [Module-Map.md](./Module
 | MES-034 Backup & Recovery | Ops docs + Supabase backup/restore runbook |
 | MES-035 Privacy Basics | Consent, export/delete under `/account`, privacy policy page |
 | MES-036 Community Platform | `features/community`, `services/community`, `/community/*`, `/dashboard/community` |
+| MES-037 Founder Valuation | Super Admin BI — `/dashboard/bi` (reads MES-021/023/039) |
+| MES-038 Learner Ecosystem | `/account/*` hubs; Partial — align with MES-043/044 |
+| MES-039 Growth & Earnings | Marketplace + career — `features`/`services` under account + `/dashboard/marketplace` |
+| MES-040 Organizations | `/account/company`, org-linked jobs, listing `source` badges |
+| MES-041 Static Pages CMS | `services/admin/pages`, `features/static-pages`, `/{slug}` company routes |
+| MES-042 Email Transport | Notification/email adapter — real SMTP/API delivery |
+| MES-043 Learner Messaging | `/account/messages` (Specified) |
+| MES-044 Coding Sandbox | Workspace execution engine (Specified) |
+| MES-045 Community Events | `/community/events` (Specified) |
+| MES-046 Affiliates | Referral attribution (Specified) |
+| MES-047 Org Licensing | Seat plans via MES-021 (Specified) |
+| MES-048 Marketplace Disputes | `/dashboard/marketplace/disputes` (Specified) |
+| MES-049 Recs ML Upgrade | Extends `services/recommendations` (Specified) |
+| MES-050 PWA / Offline | Manifest + service worker (Specified) |
+| MES-051 Email Management (EMS) | Dashboard → Communication → Email Management (Specified) |
 
 ## Next.js path note
 

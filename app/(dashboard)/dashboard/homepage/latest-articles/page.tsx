@@ -1,10 +1,7 @@
+import { loadFeaturedPickerOptions, loadHomepageAdmin } from "@/features/homepage-management/server";
 import type { Metadata } from "next"
 
-import {
-  HomepageLatestArticlesView,
-  loadFeaturedPickerOptions,
-  loadHomepageAdmin,
-} from "@/features/homepage-management"
+import { HomepageLatestArticlesView } from "@/features/homepage-management";
 
 export const metadata: Metadata = {
   title: "Homepage latest articles",

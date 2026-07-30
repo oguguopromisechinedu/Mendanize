@@ -1,6 +1,7 @@
+import { loadSearchPlatform } from "@/features/platform-settings/server";
 import type { Metadata } from "next"
 
-import { loadSearchPlatform, SearchPlatformSettingsView } from "@/features/platform-settings"
+import { SearchPlatformSettingsView } from "@/features/platform-settings"
 
 export const metadata: Metadata = {
   title: "Search settings",

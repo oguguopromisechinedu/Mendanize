@@ -19,6 +19,10 @@ const STATUS_VARIANT: Record<
   failed: "destructive",
   running: "warning",
   pending: "secondary",
+  verified: "success",
+  disabled: "secondary",
+  cancelled: "outline",
+  sending: "warning",
 }
 
 export function StatusBadge({

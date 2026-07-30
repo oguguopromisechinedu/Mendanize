@@ -1,9 +1,7 @@
+import { loadMenuForLocation } from "@/features/navigation/server";
 import type { Metadata } from "next"
 
-import {
-  loadMenuForLocation,
-  MenuLocationBuilderView,
-} from "@/features/navigation"
+import { MenuLocationBuilderView } from "@/features/navigation";
 
 export const metadata: Metadata = {
   title: "Mobile navigation",

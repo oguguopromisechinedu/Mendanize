@@ -1,9 +1,7 @@
+import { loadNavigationSettings } from "@/features/navigation/server";
 import type { Metadata } from "next"
 
-import {
-  loadNavigationSettings,
-  NavigationSettingsView,
-} from "@/features/navigation"
+import { NavigationSettingsView } from "@/features/navigation";
 
 export const metadata: Metadata = {
   title: "Navigation settings",

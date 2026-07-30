@@ -1,15 +1,16 @@
+import { loadBillingDashboard } from "@/features/billing/server";
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 
 import { requirePublicUser } from "@/features/authentication/server";
 import { LearnerShell } from "@/features/user-learning/components/learner-shell";
 import { loadLearnerShellConfig } from "@/features/user-learning/services/learner-shell-config";
-import { loadBillingDashboard } from "@/features/billing";
 import { loadDashboard } from "@/features/notifications/services/service";
 
 /**
- * Authenticated PublicUser account area — MES-022 / MES-030.
+ * Authenticated PublicUser Creators Hub — MES-022 / MES-030.
  * Admin dashboard is the single source of truth for flags, plans, and published content.
+ * Public site stays educational; marketplaces and creator tools live here after sign-in.
  */
 export default async function Layout({
   children,

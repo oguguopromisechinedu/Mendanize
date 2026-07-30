@@ -1,9 +1,7 @@
+import { loadGenerationHistory } from "@/features/ai-studio/server";
 import type { Metadata } from "next"
 
-import {
-  GenerationHistoryView,
-  loadGenerationHistory,
-} from "@/features/ai-studio"
+import { GenerationHistoryView } from "@/features/ai-studio";
 import type { AIGenerationTypeValue } from "@/services/ai/types"
 
 export const metadata: Metadata = {

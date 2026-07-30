@@ -15,6 +15,40 @@ export type JobApplicationStatus =
 
 export type ContractStatus = "ACTIVE" | "COMPLETED" | "DISPUTED" | "CANCELLED"
 
+export type ContractKind = "PROJECT" | "CONTINUATION"
+
+export type MaintenanceTaskType =
+  | "FEATURE"
+  | "BUG"
+  | "CONTENT"
+  | "SEO"
+  | "PERFORMANCE"
+  | "OTHER"
+
+export type MaintenanceTaskStatus =
+  | "REQUESTED"
+  | "ACCEPTED"
+  | "DECLINED"
+  | "IN_PROGRESS"
+  | "SUBMITTED"
+  | "DONE"
+  | "CANCELLED"
+
+export type MaintenanceTaskPriority = "LOW" | "NORMAL" | "HIGH"
+
+export type MaintenanceRetainerTier =
+  | "BASIC"
+  | "STANDARD"
+  | "PREMIUM"
+  | "CUSTOM"
+
+export type MaintenanceSubscriptionStatus =
+  | "TRIALING"
+  | "ACTIVE"
+  | "PAST_DUE"
+  | "CANCELLED"
+  | "INCOMPLETE"
+
 export type MarketplaceListingKind =
   | "AI_APP"
   | "AGENT"
@@ -34,7 +68,9 @@ export type MarketplaceListingSource =
   | "THIRD_PARTY"
   | "BUILT_ON_MENDANIZE"
 
-export type MarketplacePricingModel = "ONE_TIME" | "SUBSCRIPTION"
+export type MarketplacePricingModel = "ONE_TIME" | "SUBSCRIPTION" | "FREE"
+
+export type MarketplaceLicenseType = "STANDARD" | "TRANSFERABLE" | "RESALE"
 
 export type JobPostingRecord = {
   id: string
@@ -46,12 +82,19 @@ export type JobPostingRecord = {
   budgetCents: number | null
   currency: string
   skills: string[]
+  category: string | null
+  jobType: string | null
+  location: string | null
+  experienceLevel: string | null
+  workplaceType: string | null
+  featured: boolean
   status: JobPostingStatus
   reviewNote: string | null
   publishedAt: string | null
   createdAt: string
   clientName?: string | null
   organizationName?: string | null
+  proposalCount?: number
 }
 
 export type JobApplicationRecord = {
@@ -59,6 +102,8 @@ export type JobApplicationRecord = {
   jobId: string
   publicUserId: string
   coverLetter: string
+  bidCents: number | null
+  estimatedDays: number | null
   status: JobApplicationStatus
   createdAt: string
   applicantName?: string | null
@@ -70,7 +115,45 @@ export type ContractRecord = {
   clientId: string
   workerId: string
   status: ContractStatus
+  kind: ContractKind
+  parentContractId: string | null
+  websiteLabel: string | null
   disputeNote: string | null
+  createdAt: string
+}
+
+export type MaintenanceTaskRecord = {
+  id: string
+  contractId: string
+  createdById: string
+  assigneeId: string
+  title: string
+  description: string
+  type: MaintenanceTaskType
+  status: MaintenanceTaskStatus
+  priority: MaintenanceTaskPriority
+  milestoneId: string | null
+  coveredByRetainer: boolean
+  amountCents: number | null
+  milestoneStatus: string | null
+  createdAt: string
+  completedAt: string | null
+}
+
+export type MaintenanceSubscriptionRecord = {
+  id: string
+  rootContractId: string
+  continuationContractId: string
+  clientId: string
+  workerId: string
+  tier: MaintenanceRetainerTier
+  amountCents: number
+  currency: string
+  status: MaintenanceSubscriptionStatus
+  stripeSubscriptionId: string | null
+  applicationFeePercent: number
+  cancelAtPeriodEnd: boolean
+  currentPeriodEnd: string | null
   createdAt: string
 }
 
@@ -85,11 +168,19 @@ export type MarketplaceListingRecord = {
   pricingModel: MarketplacePricingModel
   priceCents: number
   currency: string
+  category: string | null
+  tags: string[]
+  logoUrl: string | null
+  featured: boolean
+  licenseType: MarketplaceLicenseType
+  deliveryType: string | null
   status: MarketplaceListingStatus
   reviewNote: string | null
   publishedAt: string | null
   createdAt: string
   creatorName?: string | null
+  averageRating?: number | null
+  reviewCount?: number
 }
 
 export type MarketplacePurchaseRecord = {

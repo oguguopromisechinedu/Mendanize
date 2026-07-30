@@ -1,9 +1,7 @@
+import { loadHistory } from "@/features/notifications/server";
 import type { Metadata } from "next"
 
-import {
-  CommunicationHistoryView,
-  loadHistory,
-} from "@/features/notifications"
+import { CommunicationHistoryView } from "@/features/notifications";
 
 export const metadata: Metadata = {
   title: "Communication history",

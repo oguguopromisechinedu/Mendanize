@@ -64,6 +64,9 @@ export type StaticPageRecord = {
   slug: string
   content: string
   excerpt: string | null
+  hero: string | null
+  featuredImageUrl: string | null
+  featuredImageAlt: string | null
   status: "DRAFT" | "REVIEW" | "PUBLISHED" | "ARCHIVED"
   seoTitle: string | null
   seoDescription: string | null

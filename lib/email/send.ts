@@ -1,11 +1,13 @@
 /**
  * Shared outbound email — Resend first, then SMTP from EmailSetting.
+ * MES-042: single transport for Notification Service + auth flows.
  */
 
 import "server-only";
 
 import nodemailer from "nodemailer";
 import { getEmailSettings } from "@/services/settings/platform";
+import { logEmailEvent } from "@/lib/email/mes042";
 
 export type SendEmailInput = {
   to: string | string[];
@@ -13,6 +15,8 @@ export type SendEmailInput = {
   text?: string;
   html?: string;
   replyTo?: string;
+  /** EMS verified sender override (MES-051); defaults to EmailSetting. */
+  from?: { name: string; email: string };
 };
 
 export type SendEmailResult = {
@@ -32,7 +36,9 @@ export async function sendEmail(
   input: SendEmailInput,
 ): Promise<SendEmailResult> {
   const settings = await getEmailSettings();
-  const from = `${settings.senderName} <${settings.senderEmail}>`;
+  const fromName = input.from?.name?.trim() || settings.senderName;
+  const fromEmail = input.from?.email?.trim() || settings.senderEmail;
+  const from = `${fromName} <${fromEmail}>`;
   const to = Array.isArray(input.to) ? input.to : [input.to];
   if (!to.length) {
     return { ok: false, provider: "none", error: "No recipients" };
@@ -62,32 +68,39 @@ export async function sendEmail(
         error?: { message?: string };
       };
       if (!res.ok) {
-        return {
-          ok: false,
-          provider: "resend",
-          error:
-            json.error?.message ??
-            json.message ??
-            `Resend HTTP ${res.status}`,
-        };
+        const error =
+          json.error?.message ?? json.message ?? `Resend HTTP ${res.status}`;
+        await logEmailEvent({
+          level: "ERROR",
+          message: `Resend send failed: ${error}`,
+          email: to[0],
+          extra: { subject: input.subject, status: res.status },
+        });
+        return { ok: false, provider: "resend", error };
       }
       return { ok: true, provider: "resend", id: json.id };
     } catch (error) {
-      return {
-        ok: false,
-        provider: "resend",
-        error: error instanceof Error ? error.message : "Resend failed",
-      };
+      const message = error instanceof Error ? error.message : "Resend failed";
+      await logEmailEvent({
+        level: "ERROR",
+        message: `Resend exception: ${message}`,
+        email: to[0],
+        extra: { subject: input.subject },
+      });
+      return { ok: false, provider: "resend", error: message };
     }
   }
 
   if (!settings.smtpHost?.trim() || !settings.smtpUser?.trim()) {
-    return {
-      ok: false,
-      provider: "none",
-      error:
-        "Email not configured — set RESEND_API_KEY or SMTP host/user in Email settings",
-    };
+    const error =
+      "Email not configured — set RESEND_API_KEY or SMTP host/user in Email settings";
+    await logEmailEvent({
+      level: process.env.NODE_ENV === "production" ? "ERROR" : "WARN",
+      message: error,
+      email: to[0],
+      extra: { subject: input.subject },
+    });
+    return { ok: false, provider: "none", error };
   }
 
   try {
@@ -116,10 +129,13 @@ export async function sendEmail(
       id: typeof info.messageId === "string" ? info.messageId : undefined,
     };
   } catch (error) {
-    return {
-      ok: false,
-      provider: "smtp",
-      error: error instanceof Error ? error.message : "SMTP send failed",
-    };
+    const message = error instanceof Error ? error.message : "SMTP send failed";
+    await logEmailEvent({
+      level: "ERROR",
+      message: `SMTP send failed: ${message}`,
+      email: to[0],
+      extra: { subject: input.subject },
+    });
+    return { ok: false, provider: "smtp", error: message };
   }
 }

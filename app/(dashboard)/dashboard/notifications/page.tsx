@@ -1,11 +1,10 @@
+import { loadDashboard } from "@/features/notifications/server";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { requireEditor } from "@/features/authentication/server";
 import {
-  NotificationsDashboardView,
-  loadDashboard,
-} from "@/features/notifications";
+  NotificationsDashboardView } from "@/features/notifications";
 
 export const metadata: Metadata = {
   title: "Notifications",

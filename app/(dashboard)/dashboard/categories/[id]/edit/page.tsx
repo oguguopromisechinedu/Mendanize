@@ -1,10 +1,9 @@
+import { loadCategoryEditor } from "@/features/categories-topics/server";
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 
 import {
-  CategoryEditorForm,
-  loadCategoryEditor,
-} from "@/features/categories-topics"
+  CategoryEditorForm } from "@/features/categories-topics";
 
 export const metadata: Metadata = {
   title: "Edit category",

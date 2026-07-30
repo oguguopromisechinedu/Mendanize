@@ -1,9 +1,7 @@
+import { loadCategoryEditor } from "@/features/categories-topics/server";
 import type { Metadata } from "next"
 
-import {
-  CategoryEditorForm,
-  loadCategoryEditor,
-} from "@/features/categories-topics"
+import { CategoryEditorForm } from "@/features/categories-topics";
 
 export const metadata: Metadata = {
   title: "New category",

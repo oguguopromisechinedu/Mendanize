@@ -1,17 +1,15 @@
+import { loadLearningDashboard, loadLearnerEcosystemExtras } from "@/features/user-learning/server";
+import { loadBillingDashboard } from "@/features/billing/server";
 import type { Metadata } from "next";
 
 import { requirePublicUser } from "@/features/authentication/server";
-import { loadBillingDashboard } from "@/features/billing";
 import { loadCenter } from "@/features/notifications/services/service";
 import {
-  LearningDashboardView,
-  loadLearningDashboard,
-  loadLearnerEcosystemExtras,
-} from "@/features/user-learning";
+  LearningDashboardView } from "@/features/user-learning";
 import { loadLearnerShellConfig } from "@/features/user-learning/services/learner-shell-config";
 
 export const metadata: Metadata = {
-  title: "My Learning",
+  title: "Creators Hub",
   robots: { index: false },
 };
 

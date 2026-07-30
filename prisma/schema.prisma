@@ -155,6 +155,10 @@ model PublicUser {
   jobApplications        JobApplication[]
   contractsAsClient      Contract[]               @relation("ContractClient")
   contractsAsWorker      Contract[]               @relation("ContractWorker")
+  maintenanceTasksCreated MaintenanceTask[]      @relation("MaintenanceTaskCreator")
+  maintenanceTasksAssigned MaintenanceTask[]     @relation("MaintenanceTaskAssignee")
+  maintenanceSubscriptionsAsClient MaintenanceSubscription[] @relation("MaintenanceSubClient")
+  maintenanceSubscriptionsAsWorker MaintenanceSubscription[] @relation("MaintenanceSubWorker")
   clientReviewsGiven     ClientReview[]           @relation("ClientReviewAuthor")
   clientReviewsReceived  ClientReview[]           @relation("ClientReviewSubject")
   marketplaceListings    MarketplaceListing[]
@@ -165,9 +169,36 @@ model PublicUser {
   creatorFollows         CreatorFollower[]        @relation("CreatorFollower")
   creatorFollowers       CreatorFollower[]        @relation("CreatorFollowed")
   reputationScore        ReputationScore?
+  /// MES-048 Marketplace Disputes
+  disputesOpened         MarketplaceDispute[]     @relation("DisputeOpener")
+  disputeStatements      DisputeStatement[]       @relation("DisputeStatementAuthor")
+  recommendationClicks   RecommendationClick[]    @relation("RecommendationClicks")
   /// MES-040 Company & Organization accounts
   organizationsOwned     Organization[]           @relation("OrganizationOwner")
   organizationMemberships OrganizationMember[]
+  /// MES-043 Learner Messaging
+  messageThreadParticipations MessageThreadParticipant[]
+  threadMessagesSent          ThreadMessage[]              @relation("ThreadMessageSender")
+  messageReportsFiled         MessageReport[]              @relation("MessageReportReporter")
+  blocksInitiated             UserBlock[]                  @relation("UserBlockBlocker")
+  blocksReceived              UserBlock[]                  @relation("UserBlockBlocked")
+  /// MES-044 Coding Workspace Execution
+  codeWorkspaces              CodeWorkspace[]
+  codeExecutionRuns           CodeExecutionRun[]
+  /// MES-045 Community Events
+  eventRsvps                  EventRsvp[]
+  /// MES-046 Affiliate & Referral Tracking
+  referralCode                ReferralCode?
+  referralAttributionsAsReferred ReferralAttribution[] @relation("ReferralReferred")
+  referralConversionsAsReferrer  ReferralConversion[]  @relation("ReferralConversionReferrer")
+  referralConversionsAsReferred  ReferralConversion[]  @relation("ReferralConversionReferred")
+  /// Public platform Phase 1
+  promptPackReviews              PromptPackReview[]
+  toolReviews                    ToolReview[]
+  freeResourceDownloads          FreeResourceDownload[]
+  /// MES-052 Marketplace licenses
+  marketplaceLicensesOwned       MarketplaceLicense[] @relation("LicenseOwner")
+  marketplaceLicensesTransferred MarketplaceLicense[] @relation("LicensePreviousOwner")
 }
 
 model Admin {
@@ -197,6 +228,13 @@ model Admin {
   authorizationLogs        AuthorizationLog[]
   communityModeratorGrants CommunityModeratorFlag[]  @relation("CommunityModeratorGrantedBy")
   communityReportResolutions CommunityReport[]       @relation("CommunityReportResolver")
+  messageReportResolutions   MessageReport[]         @relation("MessageReportResolver")
+  communityEventsCreated     CommunityEvent[]        @relation("CommunityEventCreator")
+  referralCodesDisabled      ReferralCode[]          @relation("ReferralCodeDisabledBy")
+  referralRewardsResolved    ReferralReward[]        @relation("ReferralRewardResolver")
+  organizationPlansManaged   OrganizationPlan[]      @relation("OrganizationPlanManagedBy")
+  disputesResolved           MarketplaceDispute[]    @relation("DisputeResolver")
+  recommendationModelsManaged RecommendationModel[] @relation("RecommendationModelManagedBy")
   invitationsSent          AdminInvitation[]         @relation("AdminInvitationInviter")
   invitationAccepted       AdminInvitation?          @relation("AdminInvitationAccepted")
 }
@@ -534,17 +572,155 @@ model NotificationTemplate {
 }
 
 model EmailTemplate {
-  id          String   @id @default(cuid())
-  key         String   @unique
+  id          String            @id @default(cuid())
+  key         String            @unique
   name        String
   subject     String
-  bodyHtml    String   @db.Text
-  bodyText    String?  @db.Text
+  bodyHtml    String            @db.Text
+  bodyText    String?           @db.Text
   description String?
-  active      Boolean  @default(true)
+  active      Boolean           @default(true)
+  enabled     Boolean           @default(true)
+  status      EmsTemplateStatus @default(PUBLISHED)
+  replyTo     String?
+  categoryId  String?
+  senderId    String?
+  deletedAt   DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  category    EmailCategory?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  sender      EmailSender?      @relation(fields: [senderId], references: [id], onDelete: SetNull)
+  versions    EmailTemplateVersion[]
+
+  @@index([status, enabled])
+  @@index([categoryId])
+  @@index([deletedAt])
+}
+
+enum EmsTemplateStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum EmailSenderStatus {
+  PENDING
+  VERIFIED
+  FAILED
+}
+
+enum EmailQueueStatus {
+  PENDING
+  SENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model EmailCategory {
+  id             String          @id @default(cuid())
+  name           String          @unique
+  slug           String          @unique
+  systemCritical Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  templates      EmailTemplate[]
+}
+
+model EmailSender {
+  id          String            @id @default(cuid())
+  address     String            @unique
+  displayName String
+  replyTo     String?
+  status      EmailSenderStatus @default(PENDING)
+  enabled     Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  templates   EmailTemplate[]
+  automations EmailAutomationRule[]
+
+  @@index([status, enabled])
+}
+
+model EmailTemplateVersion {
+  id               String        @id @default(cuid())
+  templateId       String
+  version          Int
+  subject          String
+  bodyHtml         String        @db.Text
+  bodyText         String?       @db.Text
+  createdByAdminId String?
+  createdAt        DateTime      @default(now())
+  template         EmailTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, version])
+  @@index([templateId])
+}
+
+model EmailVariableDefinition {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  label       String
+  description String?
+  sampleValue String?
+  builtin     Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+model EmailAutomationRule {
+  id            String       @id @default(cuid())
+  name          String
+  eventKey      String
+  templateKey   String
+  senderId      String?
+  enabled       Boolean      @default(true)
+  delayMinutes  Int          @default(0)
+  conditionJson String?      @db.Text
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  sender        EmailSender? @relation(fields: [senderId], references: [id], onDelete: SetNull)
+
+  @@index([eventKey, enabled])
+}
+
+model EmailQueueItem {
+  id                String              @id @default(cuid())
+  toEmail           String
+  templateKey       String?
+  campaignId        String?
+  subject           String
+  bodyHtml          String?             @db.Text
+  bodyText          String?             @db.Text
+  status            EmailQueueStatus    @default(PENDING)
+  attempts          Int                 @default(0)
+  lastError         String?
+  providerMessageId String?
+  isTest            Boolean             @default(false)
+  payloadJson       String?             @db.Text
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  sentAt            DateTime?
+  campaign          NewsletterCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  deliveryEvents    EmailDeliveryEvent[]
+
+  @@index([status, createdAt])
+  @@index([campaignId])
+}
+
+model EmailDeliveryEvent {
+  id           String          @id @default(cuid())
+  queueItemId  String?
+  templateKey  String?
+  campaignId   String?
+  type         String
+  metaJson     String?         @db.Text
+  createdAt    DateTime        @default(now())
+  queueItem    EmailQueueItem? @relation(fields: [queueItemId], references: [id], onDelete: SetNull)
+
+  @@index([type, createdAt])
+  @@index([templateKey])
+}
+
 
 model Announcement {
   id          String          @id @default(cuid())
@@ -969,13 +1145,20 @@ model PostTag {
 }
 
 model Subscriber {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  status    String   @default("active")
-  categories String[] @default([])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String    @id @default(cuid())
+  email             String    @unique
+  name              String?
+  status            String    @default("active")
+  categories        String[]  @default([])
+  /// Preference topics (mirrors categories; kept for explicit newsletter UX)
+  preferences       String[]  @default([])
+  verifyToken       String?   @unique
+  verifiedAt        DateTime?
+  unsubscribeToken  String?   @unique
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([status])
 }
 
 // === MES-012 AI Tools Directory ===
@@ -1051,6 +1234,8 @@ model Tool {
   seoDescription       String?
   focusKeyword         String?
   canonicalUrl         String?
+  ratingAvg            Float                    @default(0)
+  ratingCount          Int                      @default(0)
   createdAt            DateTime                 @default(now())
   updatedAt            DateTime                 @updatedAt
 
@@ -1059,6 +1244,7 @@ model Tool {
   features             ToolFeature[]
   images               ToolImage[]
   tags                 ToolTag[]
+  reviews              ToolReview[]
 
   @@index([status])
   @@index([pricing])
@@ -2034,19 +2220,27 @@ model SearchPlatformSetting {
 }
 
 model EmailSetting {
-  id                 String   @id @default(cuid())
-  key                String   @unique @default("main")
-  senderName         String   @default("Mendanize")
-  senderEmail        String   @default("noreply@mendanize.com")
-  smtpHost           String?
-  smtpPort           Int      @default(587)
-  smtpUser           String?
-  smtpPassword       String?
-  smtpSecure         Boolean  @default(false)
-  smtpPlaceholder    String?  @db.Text
-  templatesNote      String?  @db.Text
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                     String   @id @default(cuid())
+  key                    String   @unique @default("main")
+  senderName             String   @default("Mendanize")
+  senderEmail            String   @default("noreply@mendanize.com")
+  smtpHost               String?
+  smtpPort               Int      @default(587)
+  smtpUser               String?
+  smtpPassword           String?
+  smtpSecure             Boolean  @default(false)
+  smtpPlaceholder        String?  @db.Text
+  templatesNote          String?  @db.Text
+  defaultReplyTo         String?
+  brandLogoUrl           String?
+  footerHtml             String?  @db.Text
+  companyAddress         String?
+  socialLinksJson        String?  @db.Text
+  unsubscribeFooterHtml  String?  @db.Text
+  trackingOpens          Boolean  @default(false)
+  trackingClicks         Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 }
 
 model SecuritySetting {
@@ -2236,17 +2430,20 @@ enum StaticPageStatus {
 }
 
 model StaticPage {
-  id             String           @id @default(cuid())
-  title          String
-  slug           String           @unique
-  content        String           @db.Text
-  excerpt        String?
-  status         StaticPageStatus @default(DRAFT)
-  seoTitle       String?
-  seoDescription String?
-  publishedAt    DateTime?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  id               String           @id @default(cuid())
+  title            String
+  slug             String           @unique
+  content          String           @db.Text
+  excerpt          String?
+  hero             String?          @db.Text
+  featuredImageUrl String?
+  featuredImageAlt String?
+  status           StaticPageStatus @default(DRAFT)
+  seoTitle         String?
+  seoDescription   String?
+  publishedAt      DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
   @@index([status])
 }
@@ -2287,6 +2484,7 @@ model NewsletterCampaign {
   recipientCount Int                      @default(0)
   createdAt      DateTime                 @default(now())
   updatedAt      DateTime                 @updatedAt
+  queueItems     EmailQueueItem[]
 
   @@index([status])
 }
@@ -2436,25 +2634,49 @@ model PromptPack {
   category    String?
   status      CatalogPublishStatus  @default(DRAFT)
   sortOrder   Int                   @default(0)
+  featured    Boolean               @default(false)
+  premium     Boolean               @default(false)
+  tags        String[]              @default([])
+  ratingAvg   Float                 @default(0)
+  ratingCount Int                   @default(0)
   publishedAt DateTime?
   createdAt   DateTime              @default(now())
   updatedAt   DateTime              @updatedAt
   items       PromptPackItem[]
+  reviews     PromptPackReview[]
 
   @@index([status, sortOrder])
+  @@index([featured])
+  @@index([premium])
 }
 
 model PromptPackItem {
-  id        String    @id @default(cuid())
+  id        String     @id @default(cuid())
   packId    String
   title     String
-  prompt    String    @db.Text
-  sortOrder Int       @default(0)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  prompt    String     @db.Text
+  sortOrder Int        @default(0)
+  tags      String[]   @default([])
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
   pack      PromptPack @relation(fields: [packId], references: [id], onDelete: Cascade)
 
   @@index([packId, sortOrder])
+}
+
+model PromptPackReview {
+  id           String     @id @default(cuid())
+  packId       String
+  publicUserId String
+  rating       Int
+  body         String?    @db.Text
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  pack         PromptPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+  publicUser   PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+
+  @@unique([packId, publicUserId])
+  @@index([packId, createdAt])
 }
 
 model ProjectTemplate {
@@ -2923,6 +3145,53 @@ enum ContractStatus {
   CANCELLED
 }
 
+/// MES-053 — initial delivery vs follow-on maintenance workspace
+enum ContractKind {
+  PROJECT
+  CONTINUATION
+}
+
+enum MaintenanceTaskType {
+  FEATURE
+  BUG
+  CONTENT
+  SEO
+  PERFORMANCE
+  OTHER
+}
+
+enum MaintenanceTaskStatus {
+  REQUESTED
+  ACCEPTED
+  DECLINED
+  IN_PROGRESS
+  SUBMITTED
+  DONE
+  CANCELLED
+}
+
+enum MaintenanceTaskPriority {
+  LOW
+  NORMAL
+  HIGH
+}
+
+/// MES-053 Phase B — monthly client→developer retainers (Connect Billing, not MES-021)
+enum MaintenanceRetainerTier {
+  BASIC
+  STANDARD
+  PREMIUM
+  CUSTOM
+}
+
+enum MaintenanceSubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  INCOMPLETE
+}
+
 enum MilestoneStatus {
   PENDING
   FUNDED
@@ -2976,6 +3245,32 @@ enum MarketplaceListingStatus {
 enum MarketplacePricingModel {
   ONE_TIME
   SUBSCRIPTION
+  FREE
+}
+
+/// MES-052 — seller-chosen license policy for digital products
+enum MarketplaceLicenseType {
+  STANDARD
+  TRANSFERABLE
+  RESALE
+}
+
+enum MarketplaceLicenseStatus {
+  ACTIVE
+  TRANSFERRED
+  SUSPENDED
+  REVOKED
+}
+
+enum MarketplaceCommissionScope {
+  TOOLS
+  WORK
+}
+
+enum MarketplaceSellerTier {
+  STANDARD
+  PRO
+  ENTERPRISE
 }
 
 enum ValuationConfidence {
@@ -3095,6 +3390,7 @@ model Challenge {
   createdAt   DateTime              @default(now())
   updatedAt   DateTime              @updatedAt
   submissions ChallengeSubmission[]
+  events      CommunityEvent[]
 
   @@index([status, endsAt])
 }
@@ -3224,6 +3520,8 @@ model Organization {
   owner                PublicUser                      @relation("OrganizationOwner", fields: [ownerPublicUserId], references: [id], onDelete: Cascade)
   members              OrganizationMember[]
   jobPostings          JobPosting[]
+  /// MES-047 Enterprise Organization Licensing
+  subscription         OrganizationSubscription?
 
   @@index([ownerPublicUserId])
   @@index([verificationStatus, createdAt])
@@ -3253,6 +3551,13 @@ model JobPosting {
   budgetCents       Int?
   currency          String           @default("usd")
   skills            String[]         @default([])
+  /// MES-052 catalog fields
+  category          String?
+  jobType           String?
+  location          String?
+  experienceLevel   String?
+  workplaceType     String?
+  featured          Boolean          @default(false)
   status            JobPostingStatus @default(DRAFT)
   reviewNote        String?
   reviewedByAdminId String?
@@ -3267,46 +3572,136 @@ model JobPosting {
   @@index([status, createdAt])
   @@index([clientId])
   @@index([organizationId])
+  @@index([category])
+  @@index([featured, status])
 }
 
 model JobApplication {
-  id           String               @id @default(cuid())
-  jobId        String
-  publicUserId String
-  coverLetter  String               @db.Text
-  status       JobApplicationStatus @default(SUBMITTED)
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
-  job          JobPosting           @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  publicUser   PublicUser           @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
-  contract     Contract?
+  id            String               @id @default(cuid())
+  jobId         String
+  publicUserId  String
+  coverLetter   String               @db.Text
+  /// MES-052 proposal bid
+  bidCents      Int?
+  estimatedDays Int?
+  status        JobApplicationStatus @default(SUBMITTED)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  job           JobPosting           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  publicUser    PublicUser           @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  contract      Contract?
 
   @@unique([jobId, publicUserId])
   @@index([publicUserId, createdAt])
 }
 
 model Contract {
-  id            String            @id @default(cuid())
-  jobId         String
-  applicationId String            @unique
-  clientId      String
-  workerId      String
-  status        ContractStatus    @default(ACTIVE)
-  disputeNote   String?           @db.Text
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  completedAt   DateTime?
-  job           JobPosting        @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  application   JobApplication    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  client        PublicUser        @relation("ContractClient", fields: [clientId], references: [id], onDelete: Cascade)
-  worker        PublicUser        @relation("ContractWorker", fields: [workerId], references: [id], onDelete: Cascade)
-  milestones    Milestone[]
-  payments      ContractPayment[]
-  review        ClientReview?
+  id               String         @id @default(cuid())
+  jobId            String
+  applicationId    String         @unique
+  clientId         String
+  workerId         String
+  status           ContractStatus @default(ACTIVE)
+  /// MES-053
+  kind             ContractKind   @default(PROJECT)
+  parentContractId String?
+  websiteLabel     String?
+  disputeNote      String?        @db.Text
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  completedAt      DateTime?
+  job              JobPosting     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  application      JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  client           PublicUser     @relation("ContractClient", fields: [clientId], references: [id], onDelete: Cascade)
+  worker           PublicUser     @relation("ContractWorker", fields: [workerId], references: [id], onDelete: Cascade)
+  parent           Contract?      @relation("ContractLineage", fields: [parentContractId], references: [id], onDelete: SetNull)
+  children         Contract[]     @relation("ContractLineage")
+  milestones       Milestone[]
+  payments         ContractPayment[]
+  review           ClientReview?
+  maintenanceTasks MaintenanceTask[]
+  maintenanceSubscriptionsAsRoot MaintenanceSubscription[] @relation("MaintenanceSubRoot")
+  maintenanceSubscriptionsAsContinuation MaintenanceSubscription[] @relation("MaintenanceSubContinuation")
+  /// MES-048
+  disputes         MarketplaceDispute[]
 
   @@index([clientId, status])
   @@index([workerId, status])
   @@index([status])
+  @@index([parentContractId])
+  @@index([kind, status])
+}
+
+/// MES-053 Phase A — feature/bug/content requests on a continuation (or active) contract
+model MaintenanceTask {
+  id                 String                   @id @default(cuid())
+  contractId         String
+  createdById        String
+  assigneeId         String
+  title              String
+  description        String                   @db.Text
+  type               MaintenanceTaskType      @default(OTHER)
+  status             MaintenanceTaskStatus    @default(REQUESTED)
+  priority           MaintenanceTaskPriority  @default(NORMAL)
+  milestoneId        String?                  @unique
+  /// Phase B — covered by active retainer (no escrow milestone)
+  coveredByRetainer  Boolean                  @default(false)
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  completedAt        DateTime?
+  contract           Contract                 @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  createdBy          PublicUser               @relation("MaintenanceTaskCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  assignee           PublicUser               @relation("MaintenanceTaskAssignee", fields: [assigneeId], references: [id], onDelete: Cascade)
+  milestone          Milestone?               @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+
+  @@index([contractId, status])
+  @@index([assigneeId, status])
+  @@index([createdById])
+}
+
+/// MES-053 Phase B — monthly retainer (Stripe Connect destination subscription)
+model MaintenanceSubscription {
+  id                     String                        @id @default(cuid())
+  rootContractId         String
+  continuationContractId String
+  clientId               String
+  workerId               String
+  tier                   MaintenanceRetainerTier
+  amountCents            Int
+  currency               String                        @default("usd")
+  status                 MaintenanceSubscriptionStatus @default(INCOMPLETE)
+  stripeSubscriptionId   String?                       @unique
+  stripeCustomerId       String?
+  stripePriceId          String?
+  applicationFeePercent  Float                         @default(10)
+  cancelAtPeriodEnd      Boolean                       @default(false)
+  currentPeriodEnd       DateTime?
+  createdAt              DateTime                      @default(now())
+  updatedAt              DateTime                      @updatedAt
+  rootContract           Contract                      @relation("MaintenanceSubRoot", fields: [rootContractId], references: [id], onDelete: Cascade)
+  continuationContract   Contract                      @relation("MaintenanceSubContinuation", fields: [continuationContractId], references: [id], onDelete: Cascade)
+  client                 PublicUser                    @relation("MaintenanceSubClient", fields: [clientId], references: [id], onDelete: Cascade)
+  worker                 PublicUser                    @relation("MaintenanceSubWorker", fields: [workerId], references: [id], onDelete: Cascade)
+  payments               MaintenanceSubscriptionPayment[]
+
+  @@index([continuationContractId, status])
+  @@index([clientId, status])
+  @@index([workerId, status])
+  @@index([status])
+}
+
+model MaintenanceSubscriptionPayment {
+  id               String                  @id @default(cuid())
+  subscriptionId   String
+  amountCents      Int
+  platformFeeCents Int                     @default(0)
+  currency         String                  @default("usd")
+  stripeInvoiceId  String?                 @unique
+  status           String                  @default("paid")
+  createdAt        DateTime                @default(now())
+  subscription     MaintenanceSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId, createdAt])
 }
 
 model Milestone {
@@ -3320,6 +3715,8 @@ model Milestone {
   updatedAt   DateTime        @updatedAt
   contract    Contract        @relation(fields: [contractId], references: [id], onDelete: Cascade)
   payment     ContractPayment?
+  disputes    MarketplaceDispute[]
+  maintenanceTask MaintenanceTask?
 
   @@index([contractId, status])
 }
@@ -3369,6 +3766,13 @@ model MarketplaceListing {
   pricingModel      MarketplacePricingModel           @default(ONE_TIME)
   priceCents        Int
   currency          String                            @default("usd")
+  /// MES-052
+  category          String?
+  tags              String[]                          @default([])
+  logoUrl           String?
+  featured          Boolean                           @default(false)
+  licenseType       MarketplaceLicenseType            @default(STANDARD)
+  deliveryType      String?
   status            MarketplaceListingStatus          @default(DRAFT)
   reviewNote        String?
   reviewedByAdminId String?
@@ -3379,29 +3783,70 @@ model MarketplaceListing {
   purchases         MarketplacePurchase[]
   subscriptions     MarketplaceSubscriptionInstance[]
   reviews           MarketplaceReview[]
+  licenses          MarketplaceLicense[]
 
   @@index([status, publishedAt])
   @@index([creatorId])
   @@index([kind])
   @@index([source])
+  @@index([category])
+  @@index([featured, status])
 }
 
 model MarketplacePurchase {
-  id                    String             @id @default(cuid())
+  id                    String              @id @default(cuid())
   listingId             String
   buyerId               String
   amountCents           Int
-  currency              String             @default("usd")
-  platformFeeCents      Int                @default(0)
-  /// Stripe Connect � not MES-021 subscription Checkout
+  currency              String              @default("usd")
+  platformFeeCents      Int                 @default(0)
+  /// Stripe Connect — not MES-021 subscription Checkout
   stripePaymentIntentId String?
-  status                String             @default("pending")
-  createdAt             DateTime           @default(now())
-  listing               MarketplaceListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  buyer                 PublicUser         @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  status                String              @default("pending")
+  createdAt             DateTime            @default(now())
+  listing               MarketplaceListing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyer                 PublicUser          @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  license               MarketplaceLicense?
 
   @@index([buyerId, createdAt])
   @@index([listingId])
+}
+
+/// MES-052 — ownership record for a purchased tool license
+model MarketplaceLicense {
+  id               String                   @id @default(cuid())
+  listingId        String
+  purchaseId       String                   @unique
+  ownerId          String
+  previousOwnerId  String?
+  licenseType      MarketplaceLicenseType
+  status           MarketplaceLicenseStatus @default(ACTIVE)
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  transferredAt    DateTime?
+  listing          MarketplaceListing       @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  purchase         MarketplacePurchase      @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  owner            PublicUser               @relation("LicenseOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  previousOwner    PublicUser?              @relation("LicensePreviousOwner", fields: [previousOwnerId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId, status])
+  @@index([listingId])
+  @@index([licenseType, status])
+}
+
+/// MES-052 — Super Admin configurable commission (bps). Env fallback remains.
+model MarketplaceCommissionRule {
+  id        String                     @id @default(cuid())
+  scope     MarketplaceCommissionScope
+  sellerTier MarketplaceSellerTier     @default(STANDARD)
+  feeBps    Int
+  label     String?
+  active    Boolean                    @default(true)
+  createdAt DateTime                   @default(now())
+  updatedAt DateTime                   @updatedAt
+
+  @@unique([scope, sellerTier])
+  @@index([active, scope])
 }
 
 model MarketplaceSubscriptionInstance {
@@ -3502,4 +3947,598 @@ model GrowthSnapshot {
   createdAt   DateTime @default(now())
 
   @@index([rangeEnd])
+}
+
+// === MES-043 Learner Messaging (DMs) ===
+// Note: Ask AI already uses model `Message` — DM bodies are `ThreadMessage`.
+
+enum MessageReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+model MessageThread {
+  id                String                     @id @default(cuid())
+  subject           String?
+  jobApplicationId  String?
+  contractId        String?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  participants      MessageThreadParticipant[]
+  messages          ThreadMessage[]
+  reports           MessageReport[]
+
+  @@index([updatedAt])
+  @@index([jobApplicationId])
+  @@index([contractId])
+}
+
+model MessageThreadParticipant {
+  id           String        @id @default(cuid())
+  threadId     String
+  publicUserId String
+  lastReadAt   DateTime?
+  muted        Boolean       @default(false)
+  joinedAt     DateTime      @default(now())
+  leftAt       DateTime?
+  thread       MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  publicUser   PublicUser    @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+
+  @@unique([threadId, publicUserId])
+  @@index([publicUserId, muted])
+}
+
+model ThreadMessage {
+  id             String         @id @default(cuid())
+  threadId       String
+  senderId       String
+  body           String         @db.Text
+  attachmentUrl  String?
+  createdAt      DateTime       @default(now())
+  deletedAt      DateTime?
+  thread         MessageThread  @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender         PublicUser     @relation("ThreadMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  reports        MessageReport[]
+
+  @@index([threadId, createdAt])
+  @@index([senderId, createdAt])
+}
+
+model MessageReport {
+  id                   String              @id @default(cuid())
+  messageId            String
+  threadId             String
+  reporterPublicUserId String
+  reason               String              @db.Text
+  status               MessageReportStatus @default(OPEN)
+  resolvedByAdminId    String?
+  resolvedAt           DateTime?
+  createdAt            DateTime            @default(now())
+  message              ThreadMessage       @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  thread               MessageThread       @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  reporter             PublicUser          @relation("MessageReportReporter", fields: [reporterPublicUserId], references: [id], onDelete: Cascade)
+  resolvedBy           Admin?              @relation("MessageReportResolver", fields: [resolvedByAdminId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([threadId])
+}
+
+model UserBlock {
+  id            String     @id @default(cuid())
+  blockerId     String
+  blockedId     String
+  createdAt     DateTime   @default(now())
+  blocker       PublicUser @relation("UserBlockBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked       PublicUser @relation("UserBlockBlocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+// === MES-044 Coding Workspace Execution Engine ===
+// Runtime: JavaScript via QuickJS WASM (no host FS/network; ephemeral per run).
+
+enum CodeExecutionStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  TIMEOUT
+  KILLED
+  RATE_LIMITED
+  DISABLED
+}
+
+model CodeWorkspace {
+  id           String              @id @default(cuid())
+  publicUserId String
+  title        String              @default("My workspace")
+  language     String              @default("javascript")
+  presetId     String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  publicUser   PublicUser          @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  files        CodeWorkspaceFile[]
+  runs         CodeExecutionRun[]
+
+  @@index([publicUserId, updatedAt])
+}
+
+model CodeWorkspaceFile {
+  id          String        @id @default(cuid())
+  workspaceId String
+  path        String
+  content     String        @db.Text
+  updatedAt   DateTime      @updatedAt
+  createdAt   DateTime      @default(now())
+  workspace   CodeWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, path])
+  @@index([workspaceId])
+}
+
+model CodeExecutionRun {
+  id              String              @id @default(cuid())
+  publicUserId    String
+  workspaceId     String?
+  language        String              @default("javascript")
+  entryPath       String              @default("main.js")
+  sourceSnapshot  String              @db.Text
+  status          CodeExecutionStatus @default(QUEUED)
+  stdout          String?             @db.Text
+  stderr          String?             @db.Text
+  exitCode        Int?
+  durationMs      Int?
+  errorMessage    String?
+  createdAt       DateTime            @default(now())
+  finishedAt      DateTime?
+  publicUser      PublicUser          @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  workspace       CodeWorkspace?      @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+
+  @@index([publicUserId, createdAt])
+  @@index([status, createdAt])
+  @@index([workspaceId])
+}
+
+model CodeExecutionSetting {
+  id                 String   @id @default(cuid())
+  key                String   @unique @default("main")
+  enabled            Boolean  @default(true)
+  timeoutMs          Int      @default(3000)
+  memoryLimitBytes   Int      @default(16777216)
+  maxStdoutBytes     Int      @default(65536)
+  maxStderrBytes     Int      @default(16384)
+  freeDailyLimit     Int      @default(20)
+  paidDailyLimit     Int      @default(200)
+  maxSourceBytes     Int      @default(100000)
+  updatedAt          DateTime @updatedAt
+  createdAt          DateTime @default(now())
+}
+
+// === MES-045 Community Events & Learning Calendar ===
+
+enum CommunityEventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+}
+
+enum CommunityEventLocationType {
+  ONLINE
+  IN_PERSON
+  HYBRID
+}
+
+model CommunityEvent {
+  id              String                      @id @default(cuid())
+  title           String
+  slug            String                      @unique
+  description     String                      @db.Text
+  coverImageUrl   String?
+  startsAt        DateTime
+  endsAt          DateTime
+  timezone        String                      @default("UTC")
+  locationType    CommunityEventLocationType  @default(ONLINE)
+  locationLabel   String?
+  joinUrl         String?
+  capacity        Int?
+  status          CommunityEventStatus        @default(DRAFT)
+  challengeId     String?
+  createdByAdminId String?
+  publishedAt     DateTime?
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+  challenge       Challenge?                  @relation(fields: [challengeId], references: [id], onDelete: SetNull)
+  createdByAdmin  Admin?                      @relation("CommunityEventCreator", fields: [createdByAdminId], references: [id], onDelete: SetNull)
+  rsvps           EventRsvp[]
+
+  @@index([status, startsAt])
+  @@index([challengeId])
+}
+
+model EventRsvp {
+  id           String         @id @default(cuid())
+  eventId      String
+  publicUserId String
+  createdAt    DateTime       @default(now())
+  remindedAt   DateTime?
+  event        CommunityEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  publicUser   PublicUser     @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, publicUserId])
+  @@index([publicUserId, createdAt])
+  @@index([eventId, remindedAt])
+}
+
+// === MES-046 Affiliate & Referral Tracking ===
+// Primary reward: manual Admin payout flag (PENDING_PAYOUT → GRANTED/DENIED).
+// No Stripe Connect / third payment processor — finance settles outside the app.
+
+enum ReferralConversionStatus {
+  QUALIFIED
+  REWARDED
+  VOID
+}
+
+enum ReferralRewardStatus {
+  PENDING_PAYOUT
+  GRANTED
+  DENIED
+  BLOCKED_FRAUD
+}
+
+model ReferralSetting {
+  id                    String   @id @default(cuid())
+  key                   String   @unique @default("main")
+  enabled               Boolean  @default(true)
+  attributionWindowDays Int      @default(30)
+  /// Documented primary mechanism — do not invent a money-movement rail here.
+  rewardMechanism       String   @default("manual_admin_payout_flag")
+  updatedAt             DateTime @updatedAt
+  createdAt             DateTime @default(now())
+}
+
+model ReferralCode {
+  id                 String      @id @default(cuid())
+  publicUserId       String      @unique
+  code               String      @unique
+  enabled            Boolean     @default(true)
+  disabledReason     String?
+  disabledAt         DateTime?
+  disabledByAdminId  String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  publicUser         PublicUser  @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+  disabledByAdmin    Admin?      @relation("ReferralCodeDisabledBy", fields: [disabledByAdminId], references: [id], onDelete: SetNull)
+  attributions       ReferralAttribution[]
+
+  @@index([enabled, createdAt])
+}
+
+model ReferralAttribution {
+  id                   String    @id @default(cuid())
+  referralCodeId       String
+  referredUserId       String    @unique
+  codeSnapshot         String
+  landingPath          String?
+  ipAddress            String?
+  userAgent            String?
+  attributedAt         DateTime  @default(now())
+  cookieCapturedAt     DateTime?
+  expiresAt            DateTime
+  selfReferralBlocked  Boolean   @default(false)
+  abuseFlagged         Boolean   @default(false)
+  abuseReason          String?
+  referralCode         ReferralCode @relation(fields: [referralCodeId], references: [id], onDelete: Cascade)
+  referredUser         PublicUser   @relation("ReferralReferred", fields: [referredUserId], references: [id], onDelete: Cascade)
+  conversion           ReferralConversion?
+
+  @@index([referralCodeId, attributedAt])
+  @@index([abuseFlagged, attributedAt])
+}
+
+model ReferralConversion {
+  id                   String                    @id @default(cuid())
+  attributionId        String                    @unique
+  referredUserId       String
+  referrerUserId       String
+  subscriptionId       String?
+  stripeSubscriptionId String?
+  planTier             String
+  convertedAt          DateTime                  @default(now())
+  status               ReferralConversionStatus  @default(QUALIFIED)
+  attribution          ReferralAttribution       @relation(fields: [attributionId], references: [id], onDelete: Cascade)
+  referredUser         PublicUser                @relation("ReferralConversionReferred", fields: [referredUserId], references: [id], onDelete: Cascade)
+  referrerUser         PublicUser                @relation("ReferralConversionReferrer", fields: [referrerUserId], references: [id], onDelete: Cascade)
+  reward               ReferralReward?
+
+  @@index([referrerUserId, convertedAt])
+  @@index([referredUserId])
+  @@index([status, convertedAt])
+}
+
+model ReferralReward {
+  id                String               @id @default(cuid())
+  conversionId      String               @unique
+  status            ReferralRewardStatus @default(PENDING_PAYOUT)
+  note              String?
+  resolvedByAdminId String?
+  resolvedAt        DateTime?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  conversion        ReferralConversion   @relation(fields: [conversionId], references: [id], onDelete: Cascade)
+  resolvedByAdmin   Admin?               @relation("ReferralRewardResolver", fields: [resolvedByAdminId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+}
+
+// === MES-047 Enterprise Organization Licensing ===
+// Seat plans via MES-021 Stripe Checkout (same rail). Stripe Customer =
+// Organization Owner's PublicUser billing identity — not a third session type.
+
+model OrganizationPlan {
+  id                   String   @id @default(cuid())
+  key                  String   @unique
+  name                 String
+  description          String?  @db.Text
+  seatLimit            Int
+  /// Shared Ask volume boost for members (null = no org Ask entitlement)
+  askVolumeLimit       Int?
+  /// Max active org-linked job postings (null = unlimited / not gated)
+  marketplaceJobLimit  Int?
+  /// Learning seats typically equals seatLimit; stored for clarity
+  learningSeatLimit    Int?
+  stripePriceId        String?
+  requiresVerification Boolean  @default(true)
+  active               Boolean  @default(true)
+  sortOrder            Int      @default(0)
+  managedByAdminId     String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  managedByAdmin       Admin?   @relation("OrganizationPlanManagedBy", fields: [managedByAdminId], references: [id], onDelete: SetNull)
+  subscriptions        OrganizationSubscription[]
+
+  @@index([active, sortOrder])
+}
+
+model OrganizationSubscription {
+  id                   String       @id @default(cuid())
+  organizationId       String       @unique
+  planId               String
+  /// Owner PublicUser whose MES-021 Stripe customer pays for this org plan
+  billingOwnerUserId   String
+  stripeCustomerId     String?
+  stripeSubscriptionId String?      @unique
+  stripePriceId        String?
+  status               String       @default("inactive")
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean      @default(false)
+  /// Admin manual override; null = use plan.seatLimit
+  seatLimitOverride    Int?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  plan                 OrganizationPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  @@index([billingOwnerUserId])
+  @@index([status, updatedAt])
+  @@index([stripeCustomerId])
+}
+
+// === MES-048 Marketplace Dispute Resolution ===
+// Human-reviewed only. Money movement uses MES-039 Stripe Connect paths only.
+
+enum DisputeReason {
+  NON_PAYMENT
+  SCOPE
+  QUALITY
+  OTHER
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum DisputeResolutionAction {
+  NONE
+  RELEASE_MILESTONE
+  PARTIAL_REFUND
+  CANCEL_CONTRACT
+}
+
+model MarketplaceDispute {
+  id                   String                   @id @default(cuid())
+  contractId           String
+  milestoneId          String?
+  openedByPublicUserId String
+  reason               DisputeReason
+  summary              String                   @db.Text
+  status               DisputeStatus            @default(OPEN)
+  resolutionAction     DisputeResolutionAction?
+  resolutionNote       String?                  @db.Text
+  partialRefundCents   Int?
+  resolvedByAdminId    String?
+  resolvedAt           DateTime?
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  contract             Contract                 @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  milestone            Milestone?               @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  openedBy             PublicUser               @relation("DisputeOpener", fields: [openedByPublicUserId], references: [id], onDelete: Cascade)
+  resolvedByAdmin      Admin?                   @relation("DisputeResolver", fields: [resolvedByAdminId], references: [id], onDelete: SetNull)
+  statements           DisputeStatement[]
+  attachments          DisputeAttachment[]
+
+  @@index([status, createdAt])
+  @@index([contractId, status])
+  @@index([openedByPublicUserId])
+}
+
+model DisputeStatement {
+  id           String             @id @default(cuid())
+  disputeId    String
+  authorId     String
+  body         String             @db.Text
+  createdAt    DateTime           @default(now())
+  dispute      MarketplaceDispute @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  author       PublicUser         @relation("DisputeStatementAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([disputeId, createdAt])
+}
+
+model DisputeAttachment {
+  id           String             @id @default(cuid())
+  disputeId    String
+  /// Optional Media Library asset (MES-014); URL always stored for display
+  mediaAssetId String?
+  url          String
+  label        String?
+  uploadedById String?
+  createdAt    DateTime           @default(now())
+  dispute      MarketplaceDispute @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+
+  @@index([disputeId])
+}
+
+// === MES-049 Recommendations ML Upgrade ===
+// Model registry + click-through quality metrics for shadow/canary/default ML ranking.
+
+enum RecommendationModelStatus {
+  SHADOW
+  CANARY
+  DEFAULT
+  DISABLED
+}
+
+model RecommendationModel {
+  id              String                    @id @default(cuid())
+  name            String                    @unique
+  description     String?                   @db.Text
+  status          RecommendationModelStatus @default(SHADOW)
+  endpoint        String?
+  rolloutPercent  Int                       @default(0)
+  configJson      String?                   @db.Text
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+  managedByAdminId String?
+  managedByAdmin  Admin?                    @relation("RecommendationModelManagedBy", fields: [managedByAdminId], references: [id], onDelete: SetNull)
+  clicks          RecommendationClick[]
+
+  @@index([status])
+}
+
+model RecommendationClick {
+  id             String     @id @default(cuid())
+  publicUserId   String?
+  sessionId      String?
+  contextType    String
+  contextId      String?
+  entityType     String
+  entityId       String
+  position       Int?
+  modelId        String?
+  scoredByRules  Boolean    @default(true)
+  clickedAt      DateTime   @default(now())
+  publicUser     PublicUser? @relation("RecommendationClicks", fields: [publicUserId], references: [id], onDelete: SetNull)
+  model          RecommendationModel? @relation(fields: [modelId], references: [id], onDelete: SetNull)
+
+  @@index([clickedAt])
+  @@index([modelId, clickedAt])
+  @@index([publicUserId, clickedAt])
+}
+
+// === Public Platform Phase 1 — Free Resources, Glossary, Tool Reviews ===
+
+enum FreeResourceType {
+  PDF
+  TEMPLATE
+  CHECKLIST
+  CHEATSHEET
+  EBOOK
+}
+
+enum FreeResourceStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum GlossaryTermStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model FreeResource {
+  id               String             @id @default(cuid())
+  title            String
+  slug             String             @unique
+  type             FreeResourceType   @default(PDF)
+  description      String?            @db.Text
+  fileUrl          String
+  category         String?
+  tags             String[]           @default([])
+  status           FreeResourceStatus @default(DRAFT)
+  featuredImageUrl String?
+  seoTitle         String?
+  seoDescription   String?
+  downloadCount    Int                @default(0)
+  publishedAt      DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  downloads        FreeResourceDownload[]
+
+  @@index([status, publishedAt])
+  @@index([category])
+  @@index([type])
+}
+
+model FreeResourceDownload {
+  id             String       @id @default(cuid())
+  resourceId     String
+  publicUserId   String?
+  createdAt      DateTime     @default(now())
+  resource       FreeResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  publicUser     PublicUser?  @relation(fields: [publicUserId], references: [id], onDelete: SetNull)
+
+  @@index([resourceId, createdAt])
+  @@index([publicUserId])
+}
+
+model GlossaryTerm {
+  id             String             @id @default(cuid())
+  term           String
+  slug           String             @unique
+  definition     String             @db.Text
+  category       String?
+  relatedTermIds String[]           @default([])
+  status         GlossaryTermStatus @default(DRAFT)
+  seoTitle       String?
+  seoDescription String?
+  publishedAt    DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([status])
+  @@index([category])
+  @@index([term])
+}
+
+model ToolReview {
+  id           String     @id @default(cuid())
+  toolId       String
+  publicUserId String
+  rating       Int
+  body         String?    @db.Text
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  tool         Tool       @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  publicUser   PublicUser @relation(fields: [publicUserId], references: [id], onDelete: Cascade)
+
+  @@unique([toolId, publicUserId])
+  @@index([toolId, createdAt])
 }

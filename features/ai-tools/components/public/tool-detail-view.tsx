@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { AskContextualWidget } from "@/features/ask-mendanize";
 import { RecommendationsRail } from "@/features/recommendations";
 import {
@@ -15,7 +16,7 @@ import {
   TOOL_FEATURE_KIND_LABELS,
   TOOL_PRICING_LABELS,
 } from "../../constants/constants";
-import { ToolComparisonPlaceholder } from "./tool-comparison-placeholder";
+import { ToolFavoriteButton } from "./tool-favorite-button";
 import { ToolLearningPanel } from "./tool-learning-panel";
 
 export function ToolDetailView({
@@ -24,15 +25,21 @@ export function ToolDetailView({
   structuredData,
   breadcrumbJsonLd,
   scope = "public",
+  signedIn = false,
+  isFavorite = false,
 }: {
   tool: ToolRecord;
   related: RecommendationItem[];
   structuredData?: Record<string, unknown> | null;
   breadcrumbJsonLd?: Record<string, unknown> | null;
   scope?: ContentScope;
+  signedIn?: boolean;
+  isFavorite?: boolean;
 }) {
   const byKind = (kind: ToolRecord["features"][number]["kind"]) =>
     tool.features.filter((f) => f.kind === kind);
+
+  const useUrl = tool.websiteUrl || tool.documentationUrl;
 
   return (
     <>
@@ -94,34 +101,38 @@ export function ToolDetailView({
                 {tool.name}
               </h1>
               {tool.developer ? (
-                <p className="mt-2 text-sm text-muted-foreground">
-                  by {tool.developer}
-                  {tool.websiteUrl ? (
-                    <>
-                      {" · "}
-                      <a
-                        href={tool.websiteUrl}
-                        className="text-primary underline-offset-2 hover:underline"
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Website
-                      </a>
-                    </>
-                  ) : null}
-                </p>
-              ) : tool.websiteUrl ? (
-                <p className="mt-2 text-sm">
-                  <a
-                    href={tool.websiteUrl}
-                    className="text-primary underline-offset-2 hover:underline"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Visit website
-                  </a>
-                </p>
+                <div className="mt-3 rounded-lg border border-border bg-card/40 px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Developer
+                  </p>
+                  <p className="mt-1 text-sm text-foreground">{tool.developer}</p>
+                </div>
               ) : null}
+              <div className="mt-4 flex flex-wrap gap-2">
+                {useUrl ? (
+                  <Button asChild>
+                    <a href={useUrl} target="_blank" rel="noreferrer">
+                      {tool.websiteUrl ? "Install / Use" : "Documentation"}
+                    </a>
+                  </Button>
+                ) : null}
+                <ToolFavoriteButton
+                  toolId={tool.id}
+                  signedIn={signedIn}
+                  initialFavorite={isFavorite}
+                />
+                {tool.documentationUrl && tool.websiteUrl ? (
+                  <Button asChild variant="outline">
+                    <a
+                      href={tool.documentationUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Docs
+                    </a>
+                  </Button>
+                ) : null}
+              </div>
             </div>
           </header>
 
@@ -165,24 +176,24 @@ export function ToolDetailView({
             />
           ) : null}
 
-          {(
-            ["FEATURE", "USE_CASE", "ADVANTAGE", "LIMITATION"] as const
-          ).map((kind) => {
-            const items = byKind(kind);
-            if (!items.length) return null;
-            return (
-              <div key={kind} className="mt-8">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                  {TOOL_FEATURE_KIND_LABELS[kind]}s
-                </h2>
-                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-                  {items.map((f) => (
-                    <li key={f.id}>{f.label}</li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
+          {(["FEATURE", "USE_CASE", "ADVANTAGE", "LIMITATION"] as const).map(
+            (kind) => {
+              const items = byKind(kind);
+              if (!items.length) return null;
+              return (
+                <div key={kind} className="mt-8">
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    {TOOL_FEATURE_KIND_LABELS[kind]}s
+                  </h2>
+                  <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
+                    {items.map((f) => (
+                      <li key={f.id}>{f.label}</li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            }
+          )}
 
           {tool.recommendedFor.length > 0 ? (
             <div className="mt-8">
@@ -217,48 +228,31 @@ export function ToolDetailView({
               </div>
             </div>
           ) : null}
-
-          {tool.demoVideoUrl ? (
-            <div className="mt-8 rounded-lg border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
-              Demo video placeholder:{" "}
-              <a
-                href={tool.demoVideoUrl}
-                className="text-primary underline-offset-2 hover:underline"
-                target="_blank"
-                rel="noreferrer"
-              >
-                {tool.demoVideoUrl}
-              </a>
-            </div>
-          ) : null}
         </article>
 
         <ToolLearningPanel tool={tool} />
 
+        <section className="rounded-xl border border-border p-5">
+          <h2 className="font-[family-name:var(--font-display)] text-xl text-foreground">
+            Explore more tools
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Filter the directory by pricing, difficulty, and category to
+            compare options that fit your goals.
+          </p>
+          <Button asChild variant="outline" className="mt-4">
+            <Link href={contentListHref("ai_tool", { scope })}>
+              Browse AI Tools
+            </Link>
+          </Button>
+        </section>
+
+        <RecommendationsRail items={related} title="Related picks" />
         <AskContextualWidget
           contextType="AI_TOOL"
           contextId={tool.id}
           contextTitle={tool.name}
-          contextExcerpt={tool.shortDescription}
-          suggestions={[
-            "Explain this tool",
-            "Compare similar tools",
-            "Recommend alternatives",
-          ]}
         />
-
-        <RecommendationsRail title="Related learning resources" items={related} />
-
-        <ToolComparisonPlaceholder />
-
-        <p className="text-sm">
-          <Link
-            href={contentListHref("ai_tool", { scope })}
-            className="text-primary hover:underline"
-          >
-            ← All AI tools
-          </Link>
-        </p>
       </div>
     </>
   );

@@ -1,9 +1,7 @@
+import { loadEmailTemplates } from "@/features/notifications/server";
 import type { Metadata } from "next"
 
-import {
-  EmailTemplatesView,
-  loadEmailTemplates,
-} from "@/features/notifications"
+import { EmailTemplatesView } from "@/features/notifications";
 
 export const metadata: Metadata = {
   title: "Email templates",

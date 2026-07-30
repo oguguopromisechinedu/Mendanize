@@ -333,7 +333,7 @@ export async function syncSubscriptionFromStripe(
           : stripeSub.status;
 
   await ensureSubscription(userId);
-  await db().subscription.update({
+  const updated = await db().subscription.update({
     where: { publicUserId: userId },
     data: {
       plan: toPlanTier(status === "canceled" ? "FREE" : plan),
@@ -345,11 +345,34 @@ export async function syncSubscriptionFromStripe(
       cancelAtPeriodEnd: Boolean(stripeSub.cancel_at_period_end),
     },
   });
+
+  // MES-046: attribute paid plan starts to referral conversions
+  if (
+    status !== "canceled" &&
+    updated.plan !== PlanTier.FREE &&
+    (stripeSub.status === "active" || stripeSub.status === "trialing")
+  ) {
+    try {
+      const { recordPaidConversion } = await import("@/services/referrals");
+      await recordPaidConversion({
+        publicUserId: userId,
+        subscriptionId: updated.id,
+        stripeSubscriptionId: stripeSub.id,
+        planTier: updated.plan,
+      });
+    } catch {
+      /* referral conversion must not break billing sync */
+    }
+  }
 }
 
 async function markPastDue(customerId: string): Promise<void> {
   if (!isDatabaseConfigured()) return;
   await db().subscription.updateMany({
+    where: { stripeCustomerId: customerId },
+    data: { status: "past_due" },
+  });
+  await db().organizationSubscription.updateMany({
     where: { stripeCustomerId: customerId },
     data: { status: "past_due" },
   });
@@ -383,38 +406,101 @@ export async function handleStripeWebhook(
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
-      const userId =
-        session.metadata?.publicUserId ||
-        session.metadata?.userId ||
-        session.client_reference_id;
+      if (session.metadata?.rail === "mes053_retainer") {
+        break;
+      }
       if (session.subscription && typeof session.subscription === "string") {
         const sub = await stripe.subscriptions.retrieve(session.subscription);
-        await syncSubscriptionFromStripe(sub, userId);
+        if (sub.metadata?.rail === "mes053_retainer") {
+          const { handleMaintenanceRetainerStripeEvent } = await import(
+            "@/services/marketplace/retainers"
+          );
+          await handleMaintenanceRetainerStripeEvent({
+            ...event,
+            type: "customer.subscription.updated",
+            data: { object: sub },
+          } as Stripe.Event);
+          break;
+        }
+        if (
+          session.metadata?.kind === "organization" ||
+          sub.metadata?.kind === "organization"
+        ) {
+          const { syncOrganizationSubscriptionFromStripe } = await import(
+            "@/services/organization-licensing"
+          );
+          await syncOrganizationSubscriptionFromStripe(sub);
+        } else {
+          const userId =
+            session.metadata?.publicUserId ||
+            session.metadata?.userId ||
+            session.client_reference_id;
+          await syncSubscriptionFromStripe(sub, userId);
+        }
       }
       break;
     }
     case "customer.subscription.created":
     case "customer.subscription.updated": {
       const sub = event.data.object as Stripe.Subscription;
-      await syncSubscriptionFromStripe(
-        sub,
-        sub.metadata?.publicUserId || sub.metadata?.userId,
-      );
+      if (sub.metadata?.rail === "mes053_retainer") {
+        const { handleMaintenanceRetainerStripeEvent } = await import(
+          "@/services/marketplace/retainers"
+        );
+        await handleMaintenanceRetainerStripeEvent(event);
+        break;
+      }
+      if (sub.metadata?.kind === "organization") {
+        const { syncOrganizationSubscriptionFromStripe } = await import(
+          "@/services/organization-licensing"
+        );
+        await syncOrganizationSubscriptionFromStripe(sub);
+      } else {
+        await syncSubscriptionFromStripe(
+          sub,
+          sub.metadata?.publicUserId || sub.metadata?.userId,
+        );
+      }
       break;
     }
     case "customer.subscription.deleted": {
       const sub = event.data.object as Stripe.Subscription;
-      await syncSubscriptionFromStripe(
-        { ...sub, status: "canceled" },
-        sub.metadata?.publicUserId || sub.metadata?.userId,
-      );
+      if (sub.metadata?.rail === "mes053_retainer") {
+        const { handleMaintenanceRetainerStripeEvent } = await import(
+          "@/services/marketplace/retainers"
+        );
+        await handleMaintenanceRetainerStripeEvent(event);
+        break;
+      }
+      if (sub.metadata?.kind === "organization") {
+        const { syncOrganizationSubscriptionFromStripe } = await import(
+          "@/services/organization-licensing"
+        );
+        await syncOrganizationSubscriptionFromStripe({
+          ...sub,
+          status: "canceled",
+        });
+      } else {
+        await syncSubscriptionFromStripe(
+          { ...sub, status: "canceled" },
+          sub.metadata?.publicUserId || sub.metadata?.userId,
+        );
+      }
       break;
     }
+    case "invoice.paid":
     case "invoice.payment_failed": {
-      const invoice = event.data.object as Stripe.Invoice;
-      const customerId =
-        typeof invoice.customer === "string" ? invoice.customer : null;
-      if (customerId) await markPastDue(customerId);
+      const { handleMaintenanceRetainerStripeEvent } = await import(
+        "@/services/marketplace/retainers"
+      );
+      const handled = await handleMaintenanceRetainerStripeEvent(event);
+      if (handled) break;
+      if (event.type === "invoice.payment_failed") {
+        const invoice = event.data.object as Stripe.Invoice;
+        const customerId =
+          typeof invoice.customer === "string" ? invoice.customer : null;
+        if (customerId) await markPastDue(customerId);
+      }
       break;
     }
     default:

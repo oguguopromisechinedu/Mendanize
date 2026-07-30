@@ -110,6 +110,21 @@ export function CommunityHomeView({
             />
           ))}
         </Section>
+
+        <Section
+          title="Upcoming events"
+          href="/community/events"
+          empty="No upcoming events yet."
+        >
+          {data.upcomingEvents.map((e) => (
+            <ListRow
+              key={e.id}
+              href={`/community/events/${e.slug}`}
+              title={e.title}
+              meta={`${new Date(e.startsAt).toLocaleString()} · ${e.locationType.replaceAll("_", " ")} · ${e.rsvpCount} RSVPs`}
+            />
+          ))}
+        </Section>
       </div>
 
       <section className="mt-10">
@@ -167,9 +182,17 @@ export function CommunityHomeView({
         </ul>
       </section>
 
-      <p className="mt-10 text-xs text-muted-foreground">
-        Upcoming learning events — coming later. No events system in this phase.
-      </p>
+      <section className="mt-10 rounded-xl border border-border bg-surface/40 p-5">
+        <h2 className="font-display text-xl font-semibold">Announcements</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Platform updates and community notices appear in discussions tagged
+          announcements. Read the{" "}
+          <Link href="/community/guidelines" className="text-primary hover:underline">
+            community guidelines
+          </Link>{" "}
+          before posting.
+        </p>
+      </section>
     </div>
   )
 }

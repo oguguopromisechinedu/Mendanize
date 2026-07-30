@@ -13,3 +13,11 @@ export {
   getRelated,
   recordContentView,
 } from "./service";
+
+export {
+  recordRecommendationClick,
+  listRecommendationModels,
+  upsertRecommendationModel,
+  disableRecommendationModel,
+  getRecommendationQualityMetrics,
+} from "./ml-scoring";
