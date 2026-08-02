@@ -149,7 +149,7 @@ export function HeroAskBar({ content }: { content: AskContent }) {
           <AskImages images={result.images ?? []} />
           <MarkdownRenderer
             content={result.answer}
-            className="prose-neutral max-w-none text-sm dark:prose-invert"
+            className="prose-neutral max-w-none text-sm"
           />
           {result.related.length > 0 ? (
             <div>

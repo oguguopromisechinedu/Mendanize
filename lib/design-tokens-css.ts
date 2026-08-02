@@ -7,7 +7,7 @@ function colorBlock(colors: DesignColorTokens): string {
   const entries: Array<[string, string]> = [
     ["background", colors.background],
     ["foreground", colors.foreground],
-    ["header", "#0A0B1E"],
+    ["header", colors.surface],
     ["surface", colors.surface],
     ["card", colors.card],
     ["card-foreground", colors.foreground],
@@ -48,5 +48,9 @@ function colorBlock(colors: DesignColorTokens): string {
 
 /** Inline CSS that applies Settings-backed design tokens at runtime (MES-003 / MES-020). */
 export function designTokensToStyleBlock(tokens: DesignTokens): string {
-  return `:root {\n${colorBlock(tokens.colorsLight)}\n}\n.dark {\n${colorBlock(tokens.colors)}\n}`;
+  const light = colorBlock(tokens.colorsLight);
+  const dark = colorBlock(tokens.colors);
+  // `.theme-light` lets the public site force the light palette even though
+  // <html> carries `.dark` for the dashboard.
+  return `:root {\n${light}\n}\n.theme-light {\n${light}\n}\n.dark {\n${dark}\n}`;
 }

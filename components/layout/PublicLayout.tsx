@@ -16,7 +16,7 @@ export default async function PublicLayout({
   const nav = await getNavigationConfig()
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
+    <div className="theme-light flex min-h-screen flex-col bg-background text-foreground">
       <PublicHeader
         brandName={nav.brand.name}
         brandHref={nav.brand.href}
