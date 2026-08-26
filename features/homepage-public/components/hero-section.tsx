@@ -1,13 +1,20 @@
 import Link from "next/link"
-import { Zap } from "lucide-react"
+import { Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Container } from "@/components/ui/container"
 import type { AskContent, HeroContent, StatItem } from "../types/types"
 import { HeroAskBar } from "./hero-ask-bar"
-import { HeroBrainVisual } from "./hero-brain-visual"
+import { HeroMascotVisual } from "./hero-mascot-visual"
 import { LiveHomepageStats } from "./live-homepage-stats"
 import { HomeSection } from "./section-primitives"
+
+/** Ignore legacy stock-photo seeds so the branded mascot art shows by default. */
+function resolveHeroImage(imageUrl?: string | null) {
+  if (!imageUrl) return null
+  if (/unsplash|placeholder|picsum/i.test(imageUrl)) return null
+  return imageUrl
+}
 
 export function HeroSection({
   content,
@@ -18,16 +25,7 @@ export function HeroSection({
   ask?: AskContent
   stats?: StatItem[]
 }) {
-  const brain = content.imageUrl ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={content.imageUrl}
-      alt=""
-      className="size-full rounded-[2rem] border border-border object-cover shadow-glow"
-    />
-  ) : (
-    <HeroBrainVisual />
-  )
+  const heroImage = resolveHeroImage(content.imageUrl)
 
   return (
     <HomeSection
@@ -36,22 +34,16 @@ export function HeroSection({
     >
       <Container
         size="xl"
-        className="relative grid grid-cols-1 items-center gap-8 py-11 sm:gap-10 sm:py-14 lg:grid-cols-2 lg:gap-12 lg:py-16"
+        className="relative grid grid-cols-1 items-center gap-10 py-12 sm:py-16 lg:grid-cols-2 lg:gap-14 lg:py-20"
       >
         {/* Copy — always left column on desktop */}
-        <div className="min-w-0 lg:col-start-1 lg:row-start-1">
-          {content.eyebrow ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-              <Zap className="size-3" aria-hidden />
-              {content.eyebrow}
-            </span>
-          ) : (
-            <p className="font-display text-sm font-semibold uppercase tracking-[0.28em] text-primary">
-              {content.brand}
-            </p>
-          )}
+        <div className="min-w-0 max-w-2xl lg:col-start-1 lg:row-start-1">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-foreground shadow-elevated">
+            <Sparkles className="size-3.5 text-primary" aria-hidden />
+            {content.eyebrow || content.brand}
+          </span>
 
-          <h1 className="type-display mt-4 text-[clamp(1.875rem,5vw,2.75rem)] leading-[1.05] tracking-[-0.02em] text-foreground lg:text-[2.75rem] lg:leading-[1.05] lg:tracking-[-0.02em]">
+          <h1 className="type-display mt-5 text-balance text-[clamp(2.25rem,6vw,3.5rem)] leading-[1.03] tracking-[-0.03em] text-foreground">
             {content.headline}
             {(content.headlineLead || content.headlineAccent) && (
               <>
@@ -66,32 +58,24 @@ export function HeroSection({
             )}
           </h1>
 
-          <p className="mt-3.5 max-w-[27rem] text-lg leading-[1.6] text-muted-foreground">
+          <p className="mt-5 max-w-[32rem] text-lg leading-relaxed text-muted-foreground">
             {content.description}
           </p>
 
-          <div className="mx-auto mt-6 max-w-[300px] lg:hidden">
-            {content.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={content.imageUrl}
-                alt=""
-                className="w-full rounded-2xl border border-border object-cover shadow-glow"
-              />
-            ) : (
-              <HeroBrainVisual height={260} />
-            )}
+          {/* Mascot on mobile/tablet */}
+          <div className="mt-8 lg:hidden">
+            <HeroMascotVisual src={heroImage} />
           </div>
 
           {ask && content.showAskInHero !== false ? (
             <HeroAskBar content={ask} />
           ) : null}
 
-          <div className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-stretch">
+          <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-stretch">
             <Button
               asChild
               size="lg"
-              className="h-auto min-h-11 w-full !whitespace-normal rounded-xl px-4 py-2.5 text-center text-sm leading-snug shadow-glow sm:min-w-[9.5rem] sm:flex-1 sm:text-base"
+              className="h-auto min-h-12 w-full !whitespace-normal rounded-xl px-6 py-3 text-center text-base font-semibold leading-snug shadow-glow sm:w-auto"
             >
               <Link href={content.primaryCta.href}>
                 {content.primaryCta.label}
@@ -101,7 +85,7 @@ export function HeroSection({
               asChild
               size="lg"
               variant="outline"
-              className="h-auto min-h-11 w-full !whitespace-normal rounded-xl px-4 py-2.5 text-center text-sm leading-snug sm:min-w-[9.5rem] sm:flex-1 sm:text-base"
+              className="h-auto min-h-12 w-full !whitespace-normal rounded-xl border-border bg-card px-6 py-3 text-center text-base font-medium leading-snug sm:w-auto"
             >
               <Link href={content.secondaryCta.href}>
                 {content.secondaryCta.label}
@@ -112,15 +96,15 @@ export function HeroSection({
           {stats && stats.length > 0 ? (
             <LiveHomepageStats items={stats} variant="hero" />
           ) : content.trustLine ? (
-            <p className="mt-6 text-sm text-muted-foreground">
+            <p className="mt-7 text-sm text-muted-foreground">
               {content.trustLine}
             </p>
           ) : null}
         </div>
 
-        {/* 3D brain — always right column on desktop */}
-        <div className="relative hidden min-h-[380px] lg:col-start-2 lg:row-start-1 lg:block">
-          {brain}
+        {/* Mascot — right column on desktop */}
+        <div className="relative hidden min-h-[460px] items-center justify-center lg:col-start-2 lg:row-start-1 lg:flex">
+          <HeroMascotVisual src={heroImage} />
         </div>
       </Container>
     </HomeSection>
