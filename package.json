@@ -93,7 +93,7 @@
     "tailwindcss": "^4.3.0",
     "tsx": "^4.22.4",
     "typescript": "^5",
-    "vitest": "^3.2.4"
+    "vitest": "^5.0.0"
   },
   "description": "AI-powered technology learning platform — Next.js, Prisma, NextAuth.",
   "repository": {
