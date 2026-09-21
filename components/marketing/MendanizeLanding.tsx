@@ -2,10 +2,14 @@
 
 import {
   ArrowRight,
+  ArrowUpRight,
   BriefcaseBusiness,
   Check,
   Code2,
+  Globe,
   Layers3,
+  Mail,
+  MessageCircle,
   Menu,
   Play,
   Search,
@@ -123,7 +127,26 @@ export function MendanizeLanding() {
 
       <section className="relative overflow-hidden bg-slate-900 text-white"><div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(56,189,248,.25),transparent_30%),linear-gradient(120deg,#071c2d,#172d4a)]" /><div className="relative mx-auto flex max-w-7xl flex-col justify-between gap-10 px-6 py-20 lg:flex-row lg:items-end lg:px-10 lg:py-24"><div><p className="mb-4 text-xs font-semibold uppercase tracking-[.18em] text-sky-300">Your next chapter starts here</p><h2 className="max-w-2xl text-4xl font-semibold leading-tight tracking-[-.04em] sm:text-5xl">Join a platform built for your growth, freedom and success.</h2><p className="mt-5 text-slate-300">Learn. Build. Work. Earn. — with Mendanize.</p><a href="/sign-up" className="mt-8 inline-flex items-center gap-3 rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-slate-950">Get Started Free <ArrowRight className="size-4" /></a></div><div className="flex items-center gap-3 text-sm text-white/80"><span className="grid size-10 place-items-center rounded-full border border-white/30"><Play className="ml-0.5 size-4 fill-current" /></span>Watch Video</div></div></section>
 
-      <footer className="bg-white"><div className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between lg:px-10"><Logo /><div className="flex flex-wrap gap-5"><a href="#paths">Explore</a><a href="#ai">AI Tools</a><a href="#community">Community</a><a href="/sign-in">Sign in</a></div><p>© 2026 Mendanize</p></div></footer>
+      <footer className="bg-[#061b2d] text-white">
+        <div className="mx-auto max-w-7xl px-6 pb-8 pt-16 lg:px-10 lg:pt-20">
+          <div className="grid gap-12 lg:grid-cols-[1.2fr_2fr]">
+            <div className="max-w-sm">
+              <Logo light />
+              <p className="mt-6 text-sm leading-7 text-slate-300">The intelligent platform for learning digital skills, building products, finding opportunities, and creating a future on your terms.</p>
+              <div className="mt-7 flex items-center gap-3">
+                {[{ label: "Community", icon: MessageCircle, href: "#community" }, { label: "Website", icon: Globe, href: "#top" }, { label: "Contact", icon: Mail, href: "#top" }].map(({ label, icon: Icon, href }) => <a key={label} href={href} aria-label={label} className="grid size-10 place-items-center rounded-full border border-white/15 text-slate-300 transition hover:border-sky-300 hover:text-white"><Icon className="size-4" /></a>)}
+              </div>
+            </div>
+            <div className="grid gap-10 sm:grid-cols-3">
+              <div><h3 className="text-sm font-semibold text-white">Platform</h3><div className="mt-5 flex flex-col gap-3 text-sm text-slate-300"><a href="#paths" className="hover:text-white">Learn</a><a href="#ai" className="hover:text-white">Build</a><a href="#paths" className="hover:text-white">Marketplace</a><a href="#community" className="hover:text-white">Work</a></div></div>
+              <div><h3 className="text-sm font-semibold text-white">Resources</h3><div className="mt-5 flex flex-col gap-3 text-sm text-slate-300"><a href="#ai" className="hover:text-white">Mendanize AI</a><a href="#community" className="hover:text-white">Community</a><a href="/templates" className="hover:text-white">Templates</a><a href="/tools" className="hover:text-white">Tools</a></div></div>
+              <div><h3 className="text-sm font-semibold text-white">Company</h3><div className="mt-5 flex flex-col gap-3 text-sm text-slate-300"><a href="#top" className="hover:text-white">About us</a><a href="#community" className="hover:text-white">Careers</a><a href="#top" className="hover:text-white">Contact</a><a href="#top" className="hover:text-white">Blog</a></div></div>
+            </div>
+          </div>
+          <div className="mt-16 rounded-2xl border border-white/10 bg-white/[.05] p-6 sm:flex sm:items-center sm:justify-between sm:gap-8"><div><div className="flex items-center gap-2 text-sm font-semibold"><Mail className="size-4 text-sky-300" /> Stay in the loop</div><p className="mt-2 text-sm text-slate-300">Get practical insights, opportunities, and product updates.</p></div><form className="mt-5 flex max-w-md gap-2 sm:mt-0" onSubmit={(event) => event.preventDefault()}><label htmlFor="footer-email" className="sr-only">Email address</label><input id="footer-email" type="email" required placeholder="Your email address" className="min-w-0 flex-1 rounded-full border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-400 focus:border-sky-300" /><button type="submit" className="inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-4 py-3 text-sm font-semibold text-slate-950">Subscribe <ArrowRight className="size-4" /></button></form></div>
+          <div className="mt-12 flex flex-col gap-5 border-t border-white/10 pt-6 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between"><p>© 2026 Mendanize. All rights reserved.</p><div className="flex flex-wrap gap-5"><a href="#top" className="hover:text-white">Privacy Policy</a><a href="#top" className="hover:text-white">Terms of Service</a><a href="#top" className="hover:text-white">Cookies</a><a href="#top" className="inline-flex items-center gap-1 hover:text-white">Back to top <ArrowUpRight className="size-3" /></a></div></div>
+        </div>
+      </footer>
     </main>
   );
 }
