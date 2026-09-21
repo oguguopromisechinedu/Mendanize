@@ -73,7 +73,7 @@ export function DashboardShell({
           labelByHref={labelByHref}
           onOpenMobileNav={() => setMobileOpen(true)}
         />
-        <main className="flex-1 px-4 py-6 lg:px-6">{children}</main>
+        <main className="flex-1 bg-[linear-gradient(180deg,rgba(11,99,206,0.04),transparent_22rem)] px-4 py-7 lg:px-8 lg:py-8">{children}</main>
       </div>
     </div>
   )

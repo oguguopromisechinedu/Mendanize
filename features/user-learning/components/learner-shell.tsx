@@ -79,7 +79,7 @@ export function LearnerShell({
           planName={planName}
           onOpenMobileNav={() => setMobileOpen(true)}
         />
-        <main className="flex-1 bg-[radial-gradient(ellipse_at_top,rgba(232,148,12,0.06),transparent_45%)] px-4 py-6 lg:px-6">
+        <main className="flex-1 bg-[linear-gradient(180deg,rgba(11,99,206,0.04),transparent_22rem)] px-4 py-7 lg:px-8 lg:py-8">
           {children}
         </main>
       </div>

@@ -73,7 +73,7 @@ export function LearnerTopBar({
             <Button
               asChild
               size="icon-sm"
-              className="rounded-full bg-gradient-to-r from-primary to-amber-500 text-primary-foreground shadow-glow hover:opacity-95 sm:hidden"
+              className="rounded-full bg-primary text-primary-foreground shadow-glow hover:opacity-95 sm:hidden"
             >
               <Link href={routes.billing} aria-label="Go Premium">
                 <Sparkles className="size-4" aria-hidden />
@@ -82,7 +82,7 @@ export function LearnerTopBar({
             <Button
               asChild
               size="sm"
-              className="hidden rounded-full bg-gradient-to-r from-primary to-amber-500 text-primary-foreground shadow-glow hover:opacity-95 sm:inline-flex"
+              className="hidden rounded-full bg-primary text-primary-foreground shadow-glow hover:opacity-95 sm:inline-flex"
             >
               <Link href={routes.billing} className="gap-1.5">
                 <Sparkles className="size-3.5 shrink-0" aria-hidden />

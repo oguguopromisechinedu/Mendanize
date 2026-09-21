@@ -60,87 +60,86 @@
   --container-2xl: 90rem;
 
   /* Light theme seed (future toggle) */
-  --background: #fafaf9;
-  --foreground: #0d0d0d;
+  --background: #f4f7fb;
+  --foreground: #10233f;
   --surface: #ffffff;
   --card: #ffffff;
-  --card-foreground: #0d0d0d;
+  --card-foreground: #10233f;
   --popover: #ffffff;
-  --popover-foreground: #0d0d0d;
-  --primary: #7c3aed;
+  --popover-foreground: #10233f;
+  --primary: #0b63ce;
   --primary-foreground: #ffffff;
-  --secondary: #f5f5f4;
-  --secondary-foreground: #0a0b1e;
-  --muted: #f5f5f4;
-  --muted-foreground: #78716c;
-  --accent: #6366f1;
+  --secondary: #e9f0f8;
+  --secondary-foreground: #10233f;
+  --muted: #eef3f8;
+  --muted-foreground: #64748b;
+  --accent: #18a6a6;
   --accent-foreground: #ffffff;
-  --destructive: #dc2626;
-  --success: #16a34a;
-  --warning: #d97706;
-  --border: rgba(124, 58, 237, 0.15);
-  --input: rgba(13, 13, 13, 0.12);
-  --ring: #7c3aed;
-  --hover: rgba(124, 58, 237, 0.1);
+  --destructive: #c93434;
+  --success: #17835b;
+  --warning: #b7791f;
+  --border: #d9e3ef;
+  --input: #cbd8e6;
+  --ring: #0b63ce;
+  --hover: #eaf3ff;
 
-  --sidebar: #fafaf9;
-  --sidebar-foreground: #0a0b1e;
-  --sidebar-primary: #7c3aed;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f5f5f4;
-  --sidebar-accent-foreground: #0a0b1e;
-  --sidebar-border: rgba(124, 58, 237, 0.15);
-  --sidebar-ring: #7c3aed;
+  --sidebar: #0c203a;
+  --sidebar-foreground: #dce8f5;
+  --sidebar-primary: #5db4ff;
+  --sidebar-primary-foreground: #06203b;
+  --sidebar-accent: #153453;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #5db4ff;
 
-  --chart-1: #7c3aed;
-  --chart-2: #78716c;
-  --chart-3: #a8a29e;
-  --chart-4: #57534e;
-  --chart-5: #292524;
+  --chart-1: #0b63ce;
+  --chart-2: #18a6a6;
+  --chart-3: #e3a62f;
+  --chart-4: #64748b;
+  --chart-5: #7c5cff;
 }
 
 /* Dark-first — matches live mendanize.com public homepage */
 .dark {
   /* Surfaces */
-  --background: #0a0b1e;
-  --header: #0a0b1e;
-  --surface: #12132a;
-  --foreground: #f5f5f4;
-  --card: #16172e;
-  --card-foreground: #f5f5f4;
-  --popover: #16172e;
-  --popover-foreground: #f5f5f4;
-  /* Brand */
-  --primary: #e8940c;
-  --primary-foreground: #ffffff;
-  --accent: #e8940c;
-  --accent-foreground: #ffffff;
-  --secondary: #12132a;
-  --secondary-foreground: #f5f5f4;
-  --muted: #16172e;
-  --muted-foreground: #a8a29e;
-  --destructive: #ef4444;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --border: rgba(139, 92, 246, 0.15);
-  --input: rgba(139, 92, 246, 0.12);
-  --ring: #e8940c;
-  --hover: rgba(232, 148, 12, 0.12);
+  --background: #081727;
+  --header: #081727;
+  --surface: #0d2137;
+  --foreground: #eaf2fb;
+  --card: #102943;
+  --card-foreground: #eaf2fb;
+  --popover: #102943;
+  --popover-foreground: #eaf2fb;
+  --primary: #5db4ff;
+  --primary-foreground: #06203b;
+  --accent: #31c0b7;
+  --accent-foreground: #06203b;
+  --secondary: #153453;
+  --secondary-foreground: #eaf2fb;
+  --muted: #153453;
+  --muted-foreground: #9bb0c6;
+  --destructive: #f47d7d;
+  --success: #5fd19b;
+  --warning: #e8bb61;
+  --border: rgba(157, 190, 220, 0.18);
+  --input: rgba(157, 190, 220, 0.2);
+  --ring: #5db4ff;
+  --hover: rgba(93, 180, 255, 0.12);
 
-  --sidebar: #12132a;
-  --sidebar-foreground: #f8fafc;
-  --sidebar-primary: #e8940c;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #16172e;
-  --sidebar-accent-foreground: #f5f5f4;
-  --sidebar-border: rgba(139, 92, 246, 0.15);
-  --sidebar-ring: #e8940c;
+  --sidebar: #06182b;
+  --sidebar-foreground: #dce8f5;
+  --sidebar-primary: #5db4ff;
+  --sidebar-primary-foreground: #06203b;
+  --sidebar-accent: #102943;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(157, 190, 220, 0.14);
+  --sidebar-ring: #5db4ff;
 
-  --chart-1: #e8940c;
-  --chart-2: #3b82f6;
-  --chart-3: #14b8a6;
-  --chart-4: #f59e0b;
-  --chart-5: #ec4899;
+  --chart-1: #5db4ff;
+  --chart-2: #31c0b7;
+  --chart-3: #e8bb61;
+  --chart-4: #9bb0c6;
+  --chart-5: #9b8cff;
 }
 
 @media (prefers-reduced-motion: reduce) {

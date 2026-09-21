@@ -384,7 +384,7 @@ export function LearningDashboardView({
 /* ─── Hero with 3D Robot ─── */
 function WelcomeHero({ firstName }: { firstName: string }) {
   return (
-    <section className="relative overflow-hidden rounded-[1.75rem] border border-border bg-gradient-to-br from-surface via-card to-background p-6 sm:p-8">
+    <section className="surface-premium relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-surface via-card to-background p-6 sm:p-8">
       <div
         aria-hidden
         className="pointer-events-none absolute -right-8 -top-20 h-72 w-72 rounded-full bg-primary/25 blur-3xl"

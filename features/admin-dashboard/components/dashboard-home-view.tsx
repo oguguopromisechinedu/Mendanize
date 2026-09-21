@@ -27,7 +27,7 @@ const OPS_ICONS: Record<string, typeof BarChart3> = {
 
 export function DashboardHomeView({ data }: { data: DashboardHomeData }) {
   return (
-    <div className="flex gap-6">
+    <div className="mx-auto flex max-w-[110rem] gap-7">
       <div className="min-w-0 flex-1 space-y-6">
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">

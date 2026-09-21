@@ -106,7 +106,7 @@ export function AdminPanel({
   return (
     <section
       className={cn(
-        "rounded-xl border border-border bg-surface/60 p-4 sm:p-5",
+        "surface-premium rounded-2xl p-5 sm:p-6",
         className
       )}
     >

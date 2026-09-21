@@ -153,7 +153,7 @@ export function LearnerSidebar({
 
       <div className="space-y-3 border-t border-sidebar-border p-3">
         {!collapsed ? (
-          <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/25 via-card to-card p-4 shadow-md">
+          <div className="surface-premium rounded-2xl border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card p-4">
             <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-foreground">
               <Crown className="size-4 text-primary" aria-hidden />
               {isFree ? "Upgrade to Pro" : "You're on Pro"}
